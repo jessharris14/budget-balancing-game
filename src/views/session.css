@@ -1,0 +1,79 @@
+.session-view {
+  max-width: 40rem;
+  margin: 3rem auto;
+  padding: 0 1.5rem;
+  font-family: system-ui, sans-serif;
+}
+
+.session-view label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.session-view input,
+.session-view select {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+  font-weight: normal;
+  box-sizing: border-box;
+}
+
+.session-view button {
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.session-view .error {
+  color: #b00020;
+}
+
+.session-view .code-display {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.session-view .code-display .code {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.session-view .role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.session-view .role-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+}
+
+.session-view .role-options input {
+  width: auto;
+  margin: 0;
+}
+
+.lobby-commission {
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lobby-commission h3 {
+  margin-top: 0;
+}
+
+.lobby-you {
+  background: rgba(255, 220, 100, 0.25);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+}

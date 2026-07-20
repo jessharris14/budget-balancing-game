@@ -6,6 +6,14 @@
   font-family: system-ui, sans-serif;
 }
 
+.home-nav {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 2rem 0;
+  font-size: 1.1rem;
+}
+
 .auth-status {
   margin-top: 2rem;
   padding: 1rem;

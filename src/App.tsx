@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAnonymousAuth } from "./hooks/useAnonymousAuth";
 import "./App.css";
 
@@ -7,19 +8,21 @@ function App() {
   return (
     <div className="app-shell">
       <h1>Let's Balance!</h1>
-      <p>Phase 0 scaffold</p>
+      <p>A live budget balancing simulation game.</p>
+
+      <nav className="home-nav">
+        <Link to="/new">New Game (Facilitator)</Link>
+        <Link to="/join">Join a Game</Link>
+      </nav>
 
       <div className="auth-status">
-        {status === "loading" && <p>Signing in anonymously…</p>}
+        {status === "loading" && <p>Signing in…</p>}
         {status === "signed-in" && user && (
-          <>
-            <p>✅ Anonymous auth working</p>
-            <p>
-              UID: <code>{user.uid}</code>
-            </p>
-          </>
+          <p>
+            Connected as <code>{user.uid}</code>
+          </p>
         )}
-        {status === "error" && <p>❌ Auth error: {error}</p>}
+        {status === "error" && <p>Auth error: {error}</p>}
       </div>
     </div>
   );
