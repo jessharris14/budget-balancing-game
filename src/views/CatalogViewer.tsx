@@ -52,7 +52,9 @@ function CatalogViewer() {
           <li>Projected Expenditure: ${catalog.budgetPicture.projectedExpenditure}</li>
           <li>Shortfall: ${catalog.budgetPicture.shortfall}</li>
         </ul>
-        <p>{catalog.budgetPicture.narrative}</p>
+        {catalog.budgetPicture.narrative.split("\n\n").map((paragraph, i) => (
+          <p key={i}>{paragraph}</p>
+        ))}
       </section>
 
       <section>
