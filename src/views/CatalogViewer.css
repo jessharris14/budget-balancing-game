@@ -1,0 +1,36 @@
+.catalog-viewer {
+  max-width: 72rem;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  font-family: system-ui, sans-serif;
+}
+
+.catalog-viewer__status {
+  padding: 2rem;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+}
+
+.catalog-viewer__note {
+  color: #888;
+  font-style: italic;
+}
+
+.catalog-viewer table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.catalog-viewer th,
+.catalog-viewer td {
+  border: 1px solid #ccc;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.catalog-viewer th {
+  background: rgba(128, 128, 128, 0.15);
+}
