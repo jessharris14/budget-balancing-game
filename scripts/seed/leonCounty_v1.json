@@ -5,7 +5,7 @@
     "projectedRevenue": 101,
     "projectedExpenditure": 106,
     "shortfall": 5,
-    "narrative": "Leon County's current budget is $100, with revenue and expenditures balanced. Next year's projections show revenue rising to $101 while expenditures climb to $106 -- a $5 shortfall the Commission must close through tonight's decisions."
+    "narrative": "Since the recession there has been a slow economic recovery. Last year for the first time in four years countywide property values increased – slightly. This year a modest increase in property values is anticipated; however, expenses to maintain County operations such as roadways, the stormwater system, and public safety will increase just as they did during the recession.\n\nState shared revenue is expected to increase modestly as are other County revenue. However some revenues derived through gas taxes and building permits cannot be used to fund general county services like libraries, law enforcement and parks. The Board will have to make some difficult decisions regarding establishing a millage rate, possibly enacting other fees, and/or reducing services and reducing taxes in order to balance the budget as required by Florida Statutes.\n\nOther revenue sources, sales tax and public service taxes will increase by $1. Anticipated expenditure increases are $6 (cost of living increases, retirement, health care insurance, utilities, contractual obligation) — the cost to \"open the doors\" is projected at $106.\n\nThis shortfall does not include additional services (i.e. increasing library hours) or projects (i.e. constructing new parks) the Commission may wish to fund in the upcoming budget, which could potentially increase the projected shortfall if increases in revenues and/or decreases in expenditures are not considered in other areas.\n\nIn order to meet statutory guidelines and adopt a balanced budget (Revenues = Expenditures), the Commission must consider a combination of the following strategies: Increase Revenues/Expenditures, Decrease Revenues/Expenditures, or use Reserves. In compliance with Florida Statutes, the Commission must conduct a Public Hearing to discuss the budget and receive public comment prior to adoption."
   },
   "reservePolicy": {
     "max": 20,
@@ -53,14 +53,24 @@
     {
       "id": "R1",
       "title": "Increase Permitting & Inspection Fees",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Would reduce general revenue needed for Development Services.",
+        "More general revenue available to fund other vital County services.",
+        "Will cause additional up-front building costs.",
+        "Will likely cause considerable outrage from the building community."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R2",
       "title": "Reduce Millage Rate by 0.5 Mills",
-      "impactBullets": ["Increase deficit $2"],
+      "impactBullets": [
+        "Property tax savings for property owners.",
+        "$75 savings for a home with a taxable value of $150,000.",
+        "Loss of revenue for the County may impact services currently being provided.",
+        "Note: If this card is active, you cannot use Revenue #3 or #4."
+      ],
       "amount": 2,
       "direction": "increase",
       "exclusivityGroup": "millage-rate",
@@ -69,7 +79,12 @@
     {
       "id": "R3",
       "title": "Increase Millage Rate by 0.5 Mills",
-      "impactBullets": ["Decrease deficit $2"],
+      "impactBullets": [
+        "More general revenue available to fund other vital County services.",
+        "Increase in property taxes for property owners.",
+        "$75 increase for a home with a taxable value of $150,000.",
+        "Note: If this card is active, you cannot use Revenue #2 or #4."
+      ],
       "amount": 2,
       "direction": "decrease",
       "exclusivityGroup": "millage-rate",
@@ -78,7 +93,13 @@
     {
       "id": "R4",
       "title": "Leave Millage Rate the Same",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "More general revenue available to fund other vital County services due to increased property value.",
+        "Slight increase in property taxes for property owners.",
+        "$37 increase for a home with a taxable value of $150,000.",
+        "Per Florida law, this is considered a tax increase.",
+        "Note: If this card is active, you cannot use Revenue #2 or #3."
+      ],
       "amount": 1,
       "direction": "decrease",
       "exclusivityGroup": "millage-rate",
@@ -87,63 +108,99 @@
     {
       "id": "R5",
       "title": "Implement the Business Tax",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "More general revenue available to fund County services, such as economic development projects.",
+        "Will create an expense to local business community.",
+        "Strong likelihood that Chamber of Commerce will actively oppose implementation of this policy."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R6",
       "title": "Implement a User Fee for County Ball Fields",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Increase in revenue for the County to continue to maintain quality ball fields.",
+        "Will not have to be supported by General Revenue.",
+        "Fee will increase costs to various sport leagues."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R7",
       "title": "Increase Probation Fees",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "General revenue used to support Probation could be redirected for other County priorities.",
+        "Fee increase will only affect clients of the Probation department.",
+        "Some clients will be unable to pay and seek waivers from the Court in order to not have to pay the fees."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R8",
       "title": "Increase Rural Waste Collection Centers' Fees",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Rural Waste Center users would pay the true cost to dispose of their solid waste.",
+        "Illegal dumping could increase if citizens are discouraged from using Rural Waste Centers."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R9",
       "title": "Reduce Stormwater Fee",
-      "impactBullets": ["Increase deficit $1"],
+      "impactBullets": [
+        "Will provide relief to citizens currently paying stormwater fees.",
+        "May impact the ability of the County to provide quality stormwater maintenance and flood prevention.",
+        "Will result in a loss of revenue for the County."
+      ],
       "amount": 1,
       "direction": "increase"
     },
     {
       "id": "R10",
       "title": "Implement the Five-Cent Gas Tax",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Will provide funding to build and maintain new roads and sidewalks.",
+        "General Revenue previously used to support transportation can be redirected.",
+        "Roughly 30% of revenue generated would be from non-residents.",
+        "Increased expenses for citizens and businesses."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R11",
       "title": "Implement the Tourist Development Tax",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Provide a revenue stream for activities directly related to drawing in tourism.",
+        "General Revenue previously used to support tourism can be redirected.",
+        "Majority of revenue generated by non-residents.",
+        "Increased fees for those staying at hotels."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R12",
       "title": "Implement Impact Fee",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "General Revenue previously used for capital projects can be supplemented by the impact fee.",
+        "Will create an expense to local developers.",
+        "Strong likelihood that Chamber of Commerce will actively oppose implementation of this policy."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "R13",
       "title": "Reduce Public Service Tax",
-      "impactBullets": ["Increase deficit $1"],
+      "impactBullets": [
+        "Moderate savings for citizens who utilize utilities by reducing the tax on electricity, water, gas and fuel/oil.",
+        "A reduction in general revenue for the County."
+      ],
       "amount": 1,
       "direction": "increase"
     }
@@ -152,91 +209,142 @@
     {
       "id": "E1",
       "title": "Eliminate Weekend Hours at the Main Library",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Would reduce staff and utility costs for the department.",
+        "Implementing this policy would mean no libraries would be open on Sunday.",
+        "Branch libraries would be open on Saturday only.",
+        "Would impact those patrons who cannot visit the library during the week."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E2",
       "title": "Reduce Road Repair & Maintenance Services",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Reduce roadside mowing from five times a year to three times.",
+        "Grading County dirt roads will be increased from a 15-day cycle to a 30-day cycle.",
+        "Reduced costs associated with less fuel/oil, vehicle fleet insurance, and contractual costs.",
+        "Citizens may see visible changes in the right-of-ways and dirt roads."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E3",
       "title": "Reduce Constitutionals' Funding",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Funding for Constitutional Officers could be redirected for other County priorities.",
+        "Constitutionals will have fewer resources to provide their services.",
+        "The Sheriff's Office has indicated that public safety may be an issue if this policy is implemented.",
+        "Constitutionals = Sheriff, Supervisor of Elections, Tax Collector, Clerk of Court, State Attorney, Public Defender."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E4",
       "title": "Reduce Human Services Funding",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Reduction in the County's support for outside human services agencies.",
+        "Funding can be redirected for other County priorities.",
+        "Agencies will have to eliminate vital services and/or seek additional funding sources.",
+        "Legally required services may have to eventually be incorporated into County services."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E5",
       "title": "Increase Human Services Funding",
-      "impactBullets": ["Increase deficit $1"],
+      "impactBullets": [
+        "Increase in the County's support for outside human services agencies.",
+        "Funding for non-profits to provide necessary services to the community without the County having to hire additional personnel."
+      ],
       "amount": 1,
       "direction": "increase"
     },
     {
       "id": "E6",
       "title": "Implement Mandatory Garbage Collection",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Closure of rural waste center.",
+        "Eliminate general revenue support for rural waste service centers.",
+        "Residents would have to subscribe to the County's waste collection provider for garbage pickup.",
+        "Illegal dumping may decrease since garbage collection would be mandatory."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E7",
       "title": "Increase Business Incentives",
-      "impactBullets": ["Increase deficit $1"],
+      "impactBullets": [
+        "The incentives can boost the local economy by creating jobs, which may grow the tax base.",
+        "These incentives will not immediately produce new revenues for the County."
+      ],
       "amount": 1,
       "direction": "increase"
     },
     {
       "id": "E8",
       "title": "Increase Primary Healthcare Funding",
-      "impactBullets": ["Increase deficit $1"],
+      "impactBullets": [
+        "Increase funding for primary healthcare to address the growing number of uninsured and underinsured.",
+        "The return on investment for this program is for every $1 invested, another $4 is received from other providers."
+      ],
       "amount": 1,
       "direction": "increase"
     },
     {
       "id": "E9",
       "title": "Increase Hours at Branch Libraries",
-      "impactBullets": ["Increase deficit $1"],
+      "impactBullets": [
+        "Increased hours at the branch libraries will make services more accessible to citizens.",
+        "Will increase expenses for staff and utilities."
+      ],
       "amount": 1,
       "direction": "increase"
     },
     {
       "id": "E10",
       "title": "Reduce Capital Funding for Intersection Improvements",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Reduction in funding for one year for intersection projects throughout the County.",
+        "Residents utilizing the intersections will have to wait longer for needed safety improvements."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E11",
       "title": "Reduce Passive Park and Active Field Access",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Reduction in the hours of operation for all passive parks and active fields.",
+        "Sporting events and regular park access will be more limited.",
+        "Reduction in hours of operation will reduce costs for staff, utilities, and maintenance."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E12",
       "title": "Decrease Ambulance Services",
-      "impactBullets": ["Decrease deficit $1"],
+      "impactBullets": [
+        "Decrease general revenue support of providing ambulance services in the County.",
+        "Ambulance availability within the community will be impacted.",
+        "Local healthcare community may actively oppose the implementation of this policy."
+      ],
       "amount": 1,
       "direction": "decrease"
     },
     {
       "id": "E13",
       "title": "Increase Community Garden Incentives",
-      "impactBullets": ["Increase deficit $1"],
+      "impactBullets": [
+        "Provide greater incentives to develop community gardens within the County.",
+        "Encourages the community to eat healthy."
+      ],
       "amount": 1,
       "direction": "increase"
     }
