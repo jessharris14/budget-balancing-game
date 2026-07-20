@@ -34,3 +34,8 @@ firebase-debug.log
 firebase-debug.*.log
 ui-debug.log
 .runtimeconfig.json
+
+# Firebase Admin SDK service account keys (never commit real credentials)
+serviceAccountKey.json
+*firebase-adminsdk*.json
+*.serviceaccount.json
