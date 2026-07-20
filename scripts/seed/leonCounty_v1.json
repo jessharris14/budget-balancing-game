@@ -1,0 +1,437 @@
+{
+  "catalogVersion": "leonCounty_v1",
+  "budgetPicture": {
+    "currentBudget": 100,
+    "projectedRevenue": 101,
+    "projectedExpenditure": 106,
+    "shortfall": 5,
+    "narrative": "Leon County's current budget is $100, with revenue and expenditures balanced. Next year's projections show revenue rising to $101 while expenditures climb to $106 -- a $5 shortfall the Commission must close through tonight's decisions."
+  },
+  "reservePolicy": {
+    "max": 20,
+    "minimum": 15
+  },
+  "priorityCards": [
+    {
+      "id": "P1",
+      "title": "Economic Development",
+      "description": "$1 incentive for Company XYZ (30 jobs, $50k+ min salary)",
+      "amount": 1
+    },
+    {
+      "id": "P2",
+      "title": "Human Services",
+      "description": "$1 to Helping Hands agency (outreach for abused women/children)",
+      "amount": 1
+    },
+    {
+      "id": "P3",
+      "title": "Cultural",
+      "description": "$1 to non-profit building a county history museum",
+      "amount": 1
+    },
+    {
+      "id": "P4",
+      "title": "Environmental Sustainability",
+      "description": "$1 for solar panels at the Courthouse",
+      "amount": 1
+    },
+    {
+      "id": "P5",
+      "title": "Libraries",
+      "description": "$1 for a summer enrichment program at all libraries",
+      "amount": 1
+    },
+    {
+      "id": "P6",
+      "title": "Parks & Recreation",
+      "description": "$1 to build new athletic fields",
+      "amount": 1
+    }
+  ],
+  "revenueCards": [
+    {
+      "id": "R1",
+      "title": "Increase Permitting & Inspection Fees",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R2",
+      "title": "Reduce Millage Rate by 0.5 Mills",
+      "impactBullets": ["Increase deficit $2"],
+      "amount": 2,
+      "direction": "increase",
+      "exclusivityGroup": "millage-rate",
+      "notes": "Exclusive with R3, R4"
+    },
+    {
+      "id": "R3",
+      "title": "Increase Millage Rate by 0.5 Mills",
+      "impactBullets": ["Decrease deficit $2"],
+      "amount": 2,
+      "direction": "decrease",
+      "exclusivityGroup": "millage-rate",
+      "notes": "Exclusive with R2, R4"
+    },
+    {
+      "id": "R4",
+      "title": "Leave Millage Rate the Same",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease",
+      "exclusivityGroup": "millage-rate",
+      "notes": "Exclusive with R2, R3"
+    },
+    {
+      "id": "R5",
+      "title": "Implement the Business Tax",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R6",
+      "title": "Implement a User Fee for County Ball Fields",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R7",
+      "title": "Increase Probation Fees",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R8",
+      "title": "Increase Rural Waste Collection Centers' Fees",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R9",
+      "title": "Reduce Stormwater Fee",
+      "impactBullets": ["Increase deficit $1"],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "R10",
+      "title": "Implement the Five-Cent Gas Tax",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R11",
+      "title": "Implement the Tourist Development Tax",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R12",
+      "title": "Implement Impact Fee",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "R13",
+      "title": "Reduce Public Service Tax",
+      "impactBullets": ["Increase deficit $1"],
+      "amount": 1,
+      "direction": "increase"
+    }
+  ],
+  "expenditureCards": [
+    {
+      "id": "E1",
+      "title": "Eliminate Weekend Hours at the Main Library",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E2",
+      "title": "Reduce Road Repair & Maintenance Services",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E3",
+      "title": "Reduce Constitutionals' Funding",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E4",
+      "title": "Reduce Human Services Funding",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E5",
+      "title": "Increase Human Services Funding",
+      "impactBullets": ["Increase deficit $1"],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "E6",
+      "title": "Implement Mandatory Garbage Collection",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E7",
+      "title": "Increase Business Incentives",
+      "impactBullets": ["Increase deficit $1"],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "E8",
+      "title": "Increase Primary Healthcare Funding",
+      "impactBullets": ["Increase deficit $1"],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "E9",
+      "title": "Increase Hours at Branch Libraries",
+      "impactBullets": ["Increase deficit $1"],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "E10",
+      "title": "Reduce Capital Funding for Intersection Improvements",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E11",
+      "title": "Reduce Passive Park and Active Field Access",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E12",
+      "title": "Decrease Ambulance Services",
+      "impactBullets": ["Decrease deficit $1"],
+      "amount": 1,
+      "direction": "decrease"
+    },
+    {
+      "id": "E13",
+      "title": "Increase Community Garden Incentives",
+      "impactBullets": ["Increase deficit $1"],
+      "amount": 1,
+      "direction": "increase"
+    }
+  ],
+  "challengeCards": [
+    {
+      "id": "C1",
+      "title": "Natural Disaster",
+      "printedText": "Natural Disaster: Reduce reserves by $4.",
+      "facilitatorNarrative": "Tornado damage; FEMA covers part, $4 in reserves needed for recovery",
+      "amount": 4,
+      "target": "reserves",
+      "direction": "decrease"
+    },
+    {
+      "id": "C2",
+      "title": "Increase in Mandated State Payments",
+      "printedText": "Increase in Mandated State Payments: Increase deficit by $1.",
+      "facilitatorNarrative": "Medicaid state payments mandated up 10%",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C3",
+      "title": "Eliminate Waste, Fraud and Abuse",
+      "printedText": "Eliminate Waste, Fraud and Abuse: Decrease deficit by $1.",
+      "facilitatorNarrative": "Efficiency study found savings",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "decrease"
+    },
+    {
+      "id": "C4",
+      "title": "Reduction in Final Property Values",
+      "printedText": "Reduction in Final Property Values: Increase deficit by $2.",
+      "facilitatorNarrative": "Final values 3% below projection",
+      "amount": 2,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C5",
+      "title": "Major Fire",
+      "printedText": "Major Fire: Increase deficit by $1.",
+      "facilitatorNarrative": "Neighborhood fire; shelter operating costs",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C6",
+      "title": "Increased Healthcare Costs",
+      "printedText": "Increased Healthcare Costs: Increase deficit by $2.",
+      "facilitatorNarrative": "Employee claims drove premium increase",
+      "amount": 2,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C7",
+      "title": "Emergency Road Repair",
+      "printedText": "Emergency Road Repair: Increase deficit by $1.",
+      "facilitatorNarrative": "Sinkhole on a major roadway",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C8",
+      "title": "Decrease in State Shared Revenue",
+      "printedText": "Decrease in State Shared Revenue: Increase deficit by $1.",
+      "facilitatorNarrative": "Sales tax forecast down 10%",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C9",
+      "title": "Fuel/Utility Increase",
+      "printedText": "Fuel/Utility Increase: Increase deficit by $1.",
+      "facilitatorNarrative": "Rising fuel/oil/utility costs",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C10",
+      "title": "Economic Opportunity",
+      "printedText": "Economic Opportunity: Increase deficit by $1.",
+      "facilitatorNarrative": "Incentive package to land 1,000 new jobs",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "increase"
+    },
+    {
+      "id": "C11",
+      "title": "Replace Supervisor of Election Equipment",
+      "printedText": "Replace Supervisor of Election Equipment: Increase deficit by $1.",
+      "facilitatorNarrative": "State-mandated voting equipment replacement",
+      "amount": 1,
+      "target": "deficit",
+      "direction": "increase"
+    }
+  ],
+  "promptBank": [
+    {
+      "id": "prompt-fiscal-1",
+      "theme": "fiscal-conservative",
+      "text": "Argue that new spending should wait until reserves are fully funded first."
+    },
+    {
+      "id": "prompt-fiscal-2",
+      "theme": "fiscal-conservative",
+      "text": "Push back on any expenditure card that doesn't have a clear, measurable return on investment."
+    },
+    {
+      "id": "prompt-fiscal-3",
+      "theme": "fiscal-conservative",
+      "text": "Ask the Commission to justify every dollar of increased spending against the risk of raising taxes or fees."
+    },
+    {
+      "id": "prompt-safety-1",
+      "theme": "public-safety",
+      "text": "Advocate for maintaining or increasing funding for emergency response and public safety services."
+    },
+    {
+      "id": "prompt-safety-2",
+      "theme": "public-safety",
+      "text": "Warn the Commission about the risks of cutting services that residents depend on in emergencies."
+    },
+    {
+      "id": "prompt-safety-3",
+      "theme": "public-safety",
+      "text": "Ask what happens to response times if public-safety-related funding is reduced."
+    },
+    {
+      "id": "prompt-social-1",
+      "theme": "social-services",
+      "text": "Speak on behalf of vulnerable residents who rely on human services funding."
+    },
+    {
+      "id": "prompt-social-2",
+      "theme": "social-services",
+      "text": "Urge the Commission to protect or expand funding for outreach programs serving families in need."
+    },
+    {
+      "id": "prompt-social-3",
+      "theme": "social-services",
+      "text": "Ask how any proposed cuts would affect the county's most vulnerable populations."
+    },
+    {
+      "id": "prompt-econdev-1",
+      "theme": "business-econ-dev",
+      "text": "Make the case that economic development incentives pay for themselves through future job growth."
+    },
+    {
+      "id": "prompt-econdev-2",
+      "theme": "business-econ-dev",
+      "text": "Urge the Commission to prioritize policies that attract new businesses and employers to the county."
+    },
+    {
+      "id": "prompt-econdev-3",
+      "theme": "business-econ-dev",
+      "text": "Ask how the Commission plans to keep the county competitive with neighboring counties for business investment."
+    },
+    {
+      "id": "prompt-enviro-1",
+      "theme": "environmental",
+      "text": "Advocate for sustainability investments, even if they cost more in the short term."
+    },
+    {
+      "id": "prompt-enviro-2",
+      "theme": "environmental",
+      "text": "Ask the Commission to weigh the long-term environmental costs of any infrastructure decisions."
+    },
+    {
+      "id": "prompt-enviro-3",
+      "theme": "environmental",
+      "text": "Push for continued or expanded funding for conservation and clean-energy initiatives."
+    },
+    {
+      "id": "prompt-devil-1",
+      "theme": "general-devils-advocate",
+      "text": "Challenge whatever decision seems to have the most support in the room, just to stress-test it."
+    },
+    {
+      "id": "prompt-devil-2",
+      "theme": "general-devils-advocate",
+      "text": "Ask pointed 'have you considered' questions about tradeoffs the Commission hasn't discussed yet."
+    },
+    {
+      "id": "prompt-devil-3",
+      "theme": "general-devils-advocate",
+      "text": "Play skeptic: question whether the Commission's priority choice is really the best use of limited dollars."
+    }
+  ]
+}
