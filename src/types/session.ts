@@ -10,6 +10,23 @@ export type SessionPhase =
 
 export type VoteResult = "pass" | "fail";
 
+export type ParticipantRole = "facilitator" | "managerAdmin" | "clerk" | "commissioner" | "publicHearingSpeaker";
+
+/**
+ * Session-wide roster keyed by uid. Not part of the spec's Section 4 model as
+ * written -- added because that model tracks role assignments only by ID
+ * (managerAdminId, commissionerIds, etc.) with nowhere to hang a display
+ * name for anyone except Speaker. This is the single place the Lobby view
+ * looks up "who is this uid and what did they join as."
+ */
+export interface Participant {
+  uid: string;
+  name: string;
+  role: ParticipantRole;
+  /** Null for the Facilitator and Public Hearing Speakers, who aren't tied to one Commission. */
+  commissionId: string | null;
+}
+
 export interface Speaker {
   id: string;
   name: string;
@@ -22,7 +39,12 @@ export interface CommissionMembers {
   managerAdminId: string | null;
   clerkId: string | null;
   chairId: string | null;
-  commissionerIds: string[];
+  /**
+   * Keyed by uid rather than an array: RTDB has no safe way to append to an
+   * array from multiple concurrent writers, but each participant writing
+   * their own `{uid: true}` entry is race-free by construction.
+   */
+  commissionerIds: Record<string, true>;
 }
 
 export interface CommissionLedger {
@@ -60,16 +82,19 @@ export interface FinalScore {
 
 export interface Commission {
   id: string;
-  name: string;
+  /** Jurisdiction name (free text), set by the first participant to join this table. Null until then. */
+  name: string | null;
   members: CommissionMembers;
   ledger: CommissionLedger;
   priority: CommissionPriority;
   /** One-time privilege: the Chair may apply one $1 card directly at the start of Main Game. */
   chairFreeCardUsed: boolean;
-  cardsInPlay: CardInPlay[];
-  /** IDs of cards locked out by mutual-exclusivity rules (e.g. the R2/R3/R4 group). */
-  cardsLockedOut: string[];
-  challengesApplied: string[];
+  /** Keyed by a client-generated id; empty until Phase 4. */
+  cardsInPlay: Record<string, CardInPlay>;
+  /** IDs of cards locked out by mutual-exclusivity rules (e.g. the R2/R3/R4 group), keyed by cardId. */
+  cardsLockedOut: Record<string, true>;
+  /** Keyed by challengeCardId. */
+  challengesApplied: Record<string, true>;
   activeMotion: ActiveMotion | null;
   finalScore: FinalScore | null;
 }
@@ -92,6 +117,10 @@ export interface Session {
   clock: SessionClock;
   /** Which catalog version this session was created against (see CardCatalog.catalogVersion). */
   catalogVersion: string;
-  commissions: Commission[];
-  publicHearingSpeakers: Speaker[];
+  createdAt: number;
+  commissions: Record<string, Commission>;
+  /** Keyed by uid: each speaker writes only their own entry. */
+  publicHearingSpeakers: Record<string, Speaker>;
+  /** Keyed by uid: each participant writes only their own entry. See Participant above. */
+  participants: Record<string, Participant>;
 }
