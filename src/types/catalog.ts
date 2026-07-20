@@ -67,7 +67,7 @@ export interface PromptBankEntry {
 }
 
 export interface CardCatalog {
-  /** Versioned catalog identifier, e.g. "leonCounty_v1" — matches the Firestore document path under `catalogs/`. */
+  /** Versioned catalog identifier, e.g. "countyBudgetSim_v1" — matches the Firestore document path under `catalogs/`. */
   catalogVersion: string;
   revenueCards: RevenueCard[];
   expenditureCards: ExpenditureCard[];

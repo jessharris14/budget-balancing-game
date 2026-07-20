@@ -4,7 +4,7 @@ import { getCatalog } from "../services/catalogService";
 import type { CardCatalog } from "../types/catalog";
 import "./CatalogViewer.css";
 
-const CATALOG_VERSION = "leonCounty_v1";
+const CATALOG_VERSION = "countyBudgetSim_v1";
 
 function CatalogViewer() {
   const { status: authStatus } = useAnonymousAuth();

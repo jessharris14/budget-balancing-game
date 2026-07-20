@@ -4,7 +4,7 @@ import path from "node:path";
 import { cert, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import type { CardCatalog, EffectDirection, PromptBankTheme } from "../../src/types/catalog.ts";
-import catalogJson from "./leonCounty_v1.json" with { type: "json" };
+import catalogJson from "./countyBudgetSim_v1.json" with { type: "json" };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
