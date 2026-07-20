@@ -48,24 +48,28 @@ function Lobby() {
       </div>
 
       <h2>Commissions</h2>
-      {Object.entries(session.commissions).map(([id, commission]) => {
-        const commissioners = Object.keys(commission.members.commissionerIds).map(
+      {Object.entries(session.commissions ?? {}).map(([id, commission]) => {
+        // RTDB prunes empty objects and null values from storage, so a
+        // freshly created commission with nobody joined yet has no
+        // `members` node at all -- everything here must tolerate that.
+        const members = commission.members ?? { managerAdminId: null, clerkId: null, commissionerIds: {} };
+        const commissioners = Object.keys(members.commissionerIds ?? {}).map(
           (uid) => session.participants[uid]?.name ?? uid,
         );
         return (
           <div key={id} className="lobby-commission">
             <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
-            <p>Manager/Administrator: {commission.members.managerAdminId ? session.participants[commission.members.managerAdminId]?.name : "— open —"}</p>
-            <p>Clerk: {commission.members.clerkId ? session.participants[commission.members.clerkId]?.name : "— open —"}</p>
+            <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
+            <p>Clerk: {members.clerkId ? (session.participants[members.clerkId]?.name ?? members.clerkId) : "— open —"}</p>
             <p>Commissioners ({commissioners.length}): {commissioners.length > 0 ? commissioners.join(", ") : "none yet"}</p>
           </div>
         );
       })}
 
       <h2>Public Hearing Speakers</h2>
-      {Object.keys(session.publicHearingSpeakers).length === 0 && <p>None yet.</p>}
+      {Object.keys(session.publicHearingSpeakers ?? {}).length === 0 && <p>None yet.</p>}
       <ul>
-        {Object.values(session.publicHearingSpeakers).map((speaker) => (
+        {Object.values(session.publicHearingSpeakers ?? {}).map((speaker) => (
           <li key={speaker.id}>{speaker.name}</li>
         ))}
       </ul>

@@ -51,7 +51,7 @@ function JoinSession() {
       }
       setCode(normalized);
       setSession(found);
-      const firstCommissionId = Object.keys(found.commissions)[0] ?? "";
+      const firstCommissionId = Object.keys(found.commissions ?? {})[0] ?? "";
       setCommissionId(firstCommissionId);
       setStep("details");
     } catch (err) {
@@ -128,9 +128,9 @@ function JoinSession() {
 
   if (!session) return null;
 
-  const commissionEntries = Object.entries(session.commissions);
+  const commissionEntries = Object.entries(session.commissions ?? {});
   const needsCommission = role !== "publicHearingSpeaker";
-  const selectedCommission = commissionId ? session.commissions[commissionId] : undefined;
+  const selectedCommission = commissionId ? session.commissions?.[commissionId] : undefined;
 
   return (
     <div className="session-view">

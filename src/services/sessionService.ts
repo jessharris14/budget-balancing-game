@@ -1,4 +1,4 @@
-import { get, off, onValue, ref, runTransaction, set } from "firebase/database";
+import { get, onValue, ref, runTransaction, set } from "firebase/database";
 import { auth, rtdb } from "../firebase/config";
 import type { PromptBankEntry } from "../types/catalog";
 import type { Commission, Participant, ParticipantRole, Session, Speaker } from "../types/session";
@@ -96,10 +96,9 @@ export async function getSession(code: string): Promise<Session | null> {
 
 export function subscribeToSession(code: string, callback: (session: Session | null) => void): () => void {
   const sessionRef = ref(rtdb, `sessions/${code}`);
-  const listener = onValue(sessionRef, (snapshot) => {
+  return onValue(sessionRef, (snapshot) => {
     callback(snapshot.exists() ? (snapshot.val() as Session) : null);
   });
-  return () => off(sessionRef, "value", listener);
 }
 
 async function writeParticipant(code: string, participant: Participant): Promise<void> {
