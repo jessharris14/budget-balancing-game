@@ -1,0 +1,47 @@
+{
+  "rules": {
+    "sessions": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists()",
+
+        "commissions": {
+          "$commissionId": {
+            "name": {
+              ".write": "auth != null && !data.exists()"
+            },
+            "members": {
+              "managerAdminId": {
+                ".write": "auth != null && !data.exists() && newData.val() === auth.uid",
+                ".validate": "newData.val() === auth.uid"
+              },
+              "clerkId": {
+                ".write": "auth != null && !data.exists() && newData.val() === auth.uid",
+                ".validate": "newData.val() === auth.uid"
+              },
+              "commissionerIds": {
+                "$uid": {
+                  ".write": "auth != null && auth.uid === $uid",
+                  ".validate": "newData.val() === true"
+                }
+              }
+            }
+          }
+        },
+
+        "publicHearingSpeakers": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+
+        "participants": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.child('uid').val() === $uid"
+          }
+        }
+      }
+    }
+  }
+}
