@@ -8,6 +8,36 @@ export type SessionPhase =
   | "mainGame"
   | "debrief";
 
+/**
+ * Ordered so "Next Phase" is just SESSION_PHASE_ORDER[currentIndex + 1].
+ * Phase is session-wide, not per-Commission -- Lobby through Public Hearing
+ * are explicitly facilitator-narrated to the whole room in the spec, and
+ * Main Game is described as a single "master" clock, so all Commissions
+ * move through every phase together on one shared control rather than at
+ * their own pace.
+ */
+export const SESSION_PHASE_ORDER: SessionPhase[] = [
+  "lobby",
+  "overview",
+  "gameOverview",
+  "publicHearing",
+  "rollForChair",
+  "rankPriorities",
+  "mainGame",
+  "debrief",
+];
+
+export const SESSION_PHASE_LABELS: Record<SessionPhase, string> = {
+  lobby: "Lobby",
+  overview: "Budget Process Overview",
+  gameOverview: "Game Overview",
+  publicHearing: "Public Hearing",
+  rollForChair: "Roll for Chair",
+  rankPriorities: "Rank Priorities",
+  mainGame: "Main Game",
+  debrief: "Debrief",
+};
+
 export type VoteResult = "pass" | "fail";
 
 export type ParticipantRole = "facilitator" | "managerAdmin" | "clerk" | "commissioner" | "publicHearingSpeaker";
@@ -80,11 +110,20 @@ export interface FinalScore {
   total: number;
 }
 
+/** Currently broadcast Challenge card for this Commission -- what makes the trigger a live push, not just a log entry. */
+export interface ActiveChallenge {
+  cardId: string;
+  printedText: string;
+  triggeredAt: number;
+}
+
 export interface Commission {
   id: string;
   /** Jurisdiction name (free text), set by the first participant to join this table. Null until then. */
   name: string | null;
   members: CommissionMembers;
+  /** uid -> die roll (1-6) from the most recent Roll for Chair. Null until rolled. */
+  chairRoll: Record<string, number> | null;
   ledger: CommissionLedger;
   priority: CommissionPriority;
   /** One-time privilege: the Chair may apply one $1 card directly at the start of Main Game. */
@@ -93,8 +132,9 @@ export interface Commission {
   cardsInPlay: Record<string, CardInPlay>;
   /** IDs of cards locked out by mutual-exclusivity rules (e.g. the R2/R3/R4 group), keyed by cardId. */
   cardsLockedOut: Record<string, true>;
-  /** Keyed by challengeCardId. */
+  /** Keyed by challengeCardId -- audit trail of every challenge ever triggered for this Commission. */
   challengesApplied: Record<string, true>;
+  activeChallenge: ActiveChallenge | null;
   activeMotion: ActiveMotion | null;
   finalScore: FinalScore | null;
 }
