@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { subscribeToSession } from "../services/sessionService";
-import type { Session } from "../types/session";
+import FacilitatorConsole from "./FacilitatorConsole";
+import { SESSION_PHASE_LABELS, type Session } from "../types/session";
 import "./session.css";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -31,15 +32,26 @@ function Lobby() {
   const myParticipant = user ? session.participants[user.uid] : undefined;
   const joinUrl = `${window.location.origin}/join?code=${code}`;
 
+  if (myParticipant?.role === "facilitator") {
+    return <FacilitatorConsole code={code} session={session} />;
+  }
+
+  const myCommission = myParticipant?.commissionId ? session.commissions[myParticipant.commissionId] : undefined;
+
   return (
     <div className="session-view">
       <h1>Lobby — {code}</h1>
+      <p>Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong></p>
       <p>Debate timer: {session.settings.debateTimerMinutes} min</p>
       {myParticipant && (
         <p>
           You are: <span className="lobby-you">{ROLE_LABELS[myParticipant.role]}</span>
           {myParticipant.commissionId && ` — ${session.commissions[myParticipant.commissionId]?.name ?? myParticipant.commissionId}`}
         </p>
+      )}
+
+      {myCommission?.activeChallenge && (
+        <p className="challenge-banner">📢 Challenge: {myCommission.activeChallenge.printedText}</p>
       )}
 
       <div className="code-display">
