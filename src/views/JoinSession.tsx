@@ -22,7 +22,7 @@ const ROLE_LABELS: Record<Exclude<ParticipantRole, "facilitator">, string> = {
 };
 
 function JoinSession() {
-  const { status: authStatus } = useAnonymousAuth();
+  const { user, status: authStatus } = useAnonymousAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -68,6 +68,13 @@ function JoinSession() {
     const name = displayName.trim();
     if (!name) {
       setJoinError("Please enter your name.");
+      setJoining(false);
+      return;
+    }
+    if (user?.uid === session.facilitatorId) {
+      setJoinError(
+        "This device created this session as Facilitator and can't also join as a participant. Open the join link on a different device or browser.",
+      );
       setJoining(false);
       return;
     }

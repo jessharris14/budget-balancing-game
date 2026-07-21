@@ -32,7 +32,14 @@ function Lobby() {
   const myParticipant = user ? session.participants[user.uid] : undefined;
   const joinUrl = `${window.location.origin}/join?code=${code}`;
 
-  if (myParticipant?.role === "facilitator") {
+  // Checked against facilitatorId (set once at creation, never overwritten)
+  // rather than myParticipant.role: that role field lives in the same
+  // uid-keyed participants map that the join flow writes to, so if the
+  // facilitator's own device ever also joins as a participant role (e.g.
+  // testing the join link in the same browser, which shares the anonymous
+  // auth identity across tabs), that write would silently overwrite their
+  // own "facilitator" role and lock them out of their own console.
+  if (user?.uid === session.facilitatorId) {
     return <FacilitatorConsole code={code} session={session} />;
   }
 

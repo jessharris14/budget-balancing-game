@@ -35,9 +35,13 @@ function FacilitatorConsole({ code, session }: Props) {
       .catch((err: unknown) => setCatalogError(err instanceof Error ? err.message : String(err)));
   }, [session.catalogVersion]);
 
-  const phaseTimerMs = useCountdown(session.clock.phaseTimer);
-  const mainGameMs = useCountdown(session.clock.mainGameTimer);
-  const nextChallengeMs = useCountdown(session.clock.nextChallengeDue);
+  // Same RTDB pruning behavior as commission.members: a freshly created
+  // session has phaseTimer/mainGameTimer/nextChallengeDue all null, so the
+  // whole `clock` node is absent until advancePhase() first writes to it.
+  const clock = session.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
+  const phaseTimerMs = useCountdown(clock.phaseTimer);
+  const mainGameMs = useCountdown(clock.mainGameTimer);
+  const nextChallengeMs = useCountdown(clock.nextChallengeDue);
 
   const commissionEntries = Object.entries(session.commissions ?? {});
   const phaseIdx = SESSION_PHASE_ORDER.indexOf(session.phase);
@@ -67,11 +71,11 @@ function FacilitatorConsole({ code, session }: Props) {
     if (!catalog || !selectedChallengeId) return;
     const card = catalog.challengeCards.find((c) => c.id === selectedChallengeId);
     if (!card) return;
-    await triggerChallenge(code, commissionId, card, session.clock.mainGameTimer);
+    await triggerChallenge(code, commissionId, card, clock.mainGameTimer);
   }
 
   const challengeReminderDue =
-    session.phase === "mainGame" && session.clock.nextChallengeDue !== null && (nextChallengeMs ?? 0) <= 0;
+    session.phase === "mainGame" && clock.nextChallengeDue !== null && (nextChallengeMs ?? 0) <= 0;
 
   const joinUrl = `${window.location.origin}/join?code=${code}`;
 
@@ -104,7 +108,7 @@ function FacilitatorConsole({ code, session }: Props) {
           {!challengeReminderDue && nextChallengeMs !== null && (
             <p>Next challenge reminder in: {formatDuration(nextChallengeMs)}</p>
           )}
-          {!challengeReminderDue && session.clock.nextChallengeDue === null && (
+          {!challengeReminderDue && clock.nextChallengeDue === null && (
             <p>No more challenge reminders (inside the final 10 minutes).</p>
           )}
         </>
