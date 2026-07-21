@@ -5,6 +5,13 @@
         ".read": "auth != null",
         ".write": "auth != null && !data.exists()",
 
+        "phase": {
+          ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+        },
+        "clock": {
+          ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+        },
+
         "commissions": {
           "$commissionId": {
             "name": {
@@ -19,11 +26,31 @@
                 ".write": "auth != null && !data.exists() && newData.val() === auth.uid",
                 ".validate": "newData.val() === auth.uid"
               },
+              "chairId": {
+                ".write": "auth != null && !data.exists() && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+              },
               "commissionerIds": {
                 "$uid": {
                   ".write": "auth != null && auth.uid === $uid",
                   ".validate": "newData.val() === true"
                 }
+              }
+            },
+            "chairRoll": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+            },
+            "priority": {
+              "selectedCardId": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+              }
+            },
+            "activeChallenge": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+            },
+            "challengesApplied": {
+              "$cardId": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()",
+                ".validate": "newData.val() === true"
               }
             }
           }
