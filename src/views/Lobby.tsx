@@ -53,6 +53,7 @@ function Lobby() {
   }
 
   const myCommission = myParticipant?.commissionId ? session.commissions[myParticipant.commissionId] : undefined;
+  const isMyChair = !!user && !!myCommission && myCommission.members?.chairId === user.uid;
 
   return (
     <div className="session-view">
@@ -67,7 +68,7 @@ function Lobby() {
       <p>Debate timer: {session.settings.debateTimerMinutes} min</p>
       {myParticipant && (
         <p>
-          You are: <span className="lobby-you">{ROLE_LABELS[myParticipant.role]}</span>
+          You are: <span className="lobby-you">{ROLE_LABELS[myParticipant.role]}{isMyChair && " (Chair)"}</span>
           {myParticipant.commissionId && ` — ${session.commissions[myParticipant.commissionId]?.name ?? myParticipant.commissionId}`}
         </p>
       )}
