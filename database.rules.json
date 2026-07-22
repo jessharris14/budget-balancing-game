@@ -55,7 +55,7 @@
             },
 
             "ledger": {
-              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || auth.uid === root.child('sessions').child($code).child('facilitatorId').val())"
             },
             "cardsInPlay": {
               "$cardId": {
@@ -68,7 +68,7 @@
               }
             },
             "challengeLedgerAppliedAt": {
-              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || auth.uid === root.child('sessions').child($code).child('facilitatorId').val())"
             },
             "chairFreeCardUsed": {
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && data.val() === false && newData.val() === true"

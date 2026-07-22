@@ -137,7 +137,7 @@ export async function applyCard(
   const result = await claimAndApplyLedgerDelta(
     base,
     cardId,
-    { cardId, cardType, appliedAmount },
+    { cardId, cardType, appliedAmount, playedAt: Date.now() },
     { revenueDelta, expenditureDelta, deficitDelta },
   );
   if (!result.ok) return result;
@@ -199,31 +199,31 @@ export async function reconsiderCard(
 }
 
 /**
- * Applies the currently active Challenge's dollar impact -- to deficit or
- * to reserves, per the card's `target` -- and records that this specific
- * trigger (by triggeredAt, not just cardId) has been applied, so the same
- * card triggered again later isn't blocked as "already done." Challenges
+ * Applies a Challenge's dollar impact -- to deficit or to reserves, per the
+ * card's `target` -- the instant it's triggered, with no manual step:
+ * unlike Revenue/Expenditure cards, Challenges cannot be debated or
+ * declined ("there is no debate... they must be funded"), so a manual
+ * "Apply" button was actually a bug -- a Commission could simply never
+ * click it and take zero Challenge impact all game. Called automatically
+ * by triggerChallenge() the moment the Facilitator broadcasts a Challenge.
+ *
+ * Guards against applying the same trigger twice (by triggeredAt, not just
+ * cardId, so the same card triggered again later isn't blocked as "already
+ * done") via a transactional claim on challengeLedgerAppliedAt. Challenges
  * are never reconsidered -- an external shock already happened, unlike a
  * Commission's own policy choice.
  */
 export async function applyChallengeToLedger(
   code: string,
   commissionId: string,
-  commission: Commission,
   card: ChallengeCard,
+  triggeredAt: number,
 ): Promise<ActionResult> {
-  const active = commission.activeChallenge;
-  if (!active || active.cardId !== card.id) return { ok: false, reason: "This challenge is not currently active." };
-  if (commission.challengeLedgerAppliedAt === active.triggeredAt) {
-    return { ok: false, reason: "Already applied to the ledger." };
-  }
-
   const base = `sessions/${code}/commissions/${commissionId}`;
 
-  // Claim this specific trigger transactionally so it can't be applied twice.
   const claim = await runTransaction(ref(rtdb, `${base}/challengeLedgerAppliedAt`), (current: number | null) => {
-    if (current === active.triggeredAt) return undefined;
-    return active.triggeredAt;
+    if (current === triggeredAt) return undefined;
+    return triggeredAt;
   });
   if (!claim.committed) return { ok: false, reason: "Already applied to the ledger." };
 
@@ -283,7 +283,7 @@ export async function applyChairFreeCard(
   const result = await claimAndApplyLedgerDelta(
     base,
     cardId,
-    { cardId, cardType, appliedAmount },
+    { cardId, cardType, appliedAmount, playedAt: Date.now() },
     { revenueDelta, expenditureDelta, deficitDelta },
   );
   if (!result.ok) return result;

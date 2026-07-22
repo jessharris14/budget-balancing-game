@@ -1,5 +1,6 @@
 import { ref, runTransaction, update } from "firebase/database";
 import { rtdb } from "../firebase/config";
+import { applyChallengeToLedger } from "./ledgerService";
 import type { ChallengeCard } from "../types/catalog";
 import { SESSION_PHASE_ORDER, type SessionPhase } from "../types/session";
 
@@ -112,6 +113,13 @@ export async function recordCommissionPriority(code: string, commissionId: strin
  * trail) and sets activeChallenge, which is what live-subscribed clients
  * actually react to. Also reschedules the next reminder due-time, since any
  * trigger -- for any Commission -- resets the shared facilitator cadence.
+ *
+ * Immediately applies the Challenge's dollar impact to the ledger too --
+ * Challenges cannot be debated or declined ("there is no debate... they
+ * must be funded"), so there's never a legitimate case where a triggered
+ * Challenge shouldn't take effect. This runs under the Facilitator's own
+ * write, since they're guaranteed present at the moment they trigger it
+ * (unlike the Manager/Administrator, whose console might not be open).
  */
 export async function triggerChallenge(
   code: string,
@@ -134,4 +142,5 @@ export async function triggerChallenge(
   }
 
   await update(ref(rtdb), updates);
+  await applyChallengeToLedger(code, commissionId, card, now);
 }
