@@ -3,9 +3,13 @@ import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { subscribeToSession } from "../services/sessionService";
+import { getCatalog } from "../services/catalogService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import DecisionsList from "./DecisionsList";
 import FacilitatorConsole from "./FacilitatorConsole";
+import LedgerStatusBar from "./LedgerStatusBar";
 import ManagerConsole from "./ManagerConsole";
+import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Session } from "../types/session";
 import "./session.css";
 
@@ -21,11 +25,19 @@ function Lobby() {
   const { code = "" } = useParams<{ code: string }>();
   const { user, status: authStatus } = useAnonymousAuth();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [catalog, setCatalog] = useState<CardCatalog | null>(null);
 
   useEffect(() => {
     if (authStatus !== "signed-in") return;
     return subscribeToSession(code, setSession);
   }, [code, authStatus]);
+
+  useEffect(() => {
+    if (!session) return;
+    getCatalog(session.catalogVersion)
+      .then(setCatalog)
+      .catch(() => setCatalog(null));
+  }, [session?.catalogVersion]);
 
   // Hooks must run unconditionally on every render, before the loading/error
   // early returns below -- session is possibly still undefined/null here,
@@ -87,6 +99,9 @@ function Lobby() {
       {myCommission?.activeChallenge && (
         <p className="challenge-banner">📢 Challenge: {myCommission.activeChallenge.printedText}</p>
       )}
+
+      {myCommission && <LedgerStatusBar ledger={myCommission.ledger} />}
+      {myCommission && catalog && <DecisionsList commission={myCommission} catalog={catalog} />}
 
       <div className="code-display">
         <div className="code">{code}</div>
