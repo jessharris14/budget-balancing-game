@@ -1,6 +1,7 @@
 import { get, onValue, ref, runTransaction, set } from "firebase/database";
 import { auth, rtdb } from "../firebase/config";
-import type { PromptBankEntry } from "../types/catalog";
+import { getCatalog } from "./catalogService";
+import type { BudgetPicture, PromptBankEntry, ReservePolicy } from "../types/catalog";
 import type { Commission, Participant, ParticipantRole, Session, Speaker } from "../types/session";
 
 const CODE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -20,19 +21,31 @@ function requireUid(): string {
   return uid;
 }
 
-function buildInitialCommission(id: string): Commission {
+/**
+ * Ledger starts from the seeded Budget Picture's projections (before any
+ * Commission decisions) and the Reserve Policy maximum -- the spec gives no
+ * explicit "starting reserves" figure, so starting at policy max (rather
+ * than minimum) is a judgment call: it gives a Commission room to absorb a
+ * reserves-targeting Challenge (only C1 hits reserves in the seeded
+ * catalog) before dropping below the policy minimum, rather than starting
+ * already at the edge of the worst-but-one scoring tier.
+ */
+function buildInitialCommission(id: string, budgetPicture: BudgetPicture, reservePolicy: ReservePolicy): Commission {
+  const revenue = budgetPicture.projectedRevenue;
+  const expenditures = budgetPicture.projectedExpenditure;
   return {
     id,
     name: null,
     members: { managerAdminId: null, clerkId: null, chairId: null, commissionerIds: {} },
     chairRoll: null,
-    ledger: { revenue: 0, expenditures: 0, reserves: 0, deficitOrSurplus: 0 },
+    ledger: { revenue, expenditures, reserves: reservePolicy.max, deficitOrSurplus: revenue - expenditures },
     priority: { selectedCardId: null, funded: false },
     chairFreeCardUsed: false,
     cardsInPlay: {},
     cardsLockedOut: {},
     challengesApplied: {},
     activeChallenge: null,
+    challengeLedgerAppliedAt: null,
     activeMotion: null,
     finalScore: null,
   };
@@ -56,10 +69,13 @@ export interface CreateSessionParams {
 export async function createSession(params: CreateSessionParams): Promise<string> {
   const uid = requireUid();
 
+  const catalog = await getCatalog(params.catalogVersion);
+  if (!catalog) throw new Error(`Catalog "${params.catalogVersion}" not found.`);
+
   const commissions: Record<string, Commission> = {};
   for (let i = 1; i <= params.commissionCount; i++) {
     const id = `c${i}`;
-    commissions[id] = buildInitialCommission(id);
+    commissions[id] = buildInitialCommission(id, catalog.budgetPicture, catalog.reservePolicy);
   }
 
   for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
