@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
-import {
-  applyCard,
-  applyChairFreeCard,
-  applyChallengeToLedger,
-  getReserveTier,
-  isCardAvailable,
-  reconsiderCard,
-  type CardType,
-} from "../services/ledgerService";
+import { applyCard, applyChairFreeCard, isCardAvailable, reconsiderCard, type CardType } from "../services/ledgerService";
+import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import DecisionsList from "./DecisionsList";
+import LedgerStatusBar from "./LedgerStatusBar";
 import type { CardCatalog } from "../types/catalog";
-import type { Commission, Session } from "../types/session";
+import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
 import "./session.css";
 import "./ManagerConsole.css";
 
@@ -20,13 +15,6 @@ interface Props {
   commissionId: string;
   commission: Commission;
 }
-
-const RESERVE_TIER_LABELS: Record<string, string> = {
-  safe: "≥ $15 — on policy (+1)",
-  neutral: "= $14 — neutral (0)",
-  warning: "$10–$13 — below minimum (−1)",
-  critical: "≤ $9 — critical (−2)",
-};
 
 function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
@@ -46,6 +34,12 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }, [session.catalogVersion]);
 
+  // Hooks must run unconditionally, before the "still loading the catalog"
+  // early return below.
+  const clock = session.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
+  const phaseTimerMs = useCountdown(clock.phaseTimer);
+  const mainGameMs = useCountdown(clock.mainGameTimer);
+
   async function runAction(cardId: string, action: () => Promise<{ ok: boolean; reason?: string }>) {
     setBusyCardId(cardId);
     setError(null);
@@ -62,15 +56,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading ledger…</p>;
 
-  const { ledger } = commission;
-  const reserveTier = getReserveTier(ledger.reserves);
-
-  const activeChallengeCard = commission.activeChallenge
-    ? catalog.challengeCards.find((c) => c.id === commission.activeChallenge?.cardId)
-    : undefined;
-  const challengeAlreadyApplied =
-    !!commission.activeChallenge && commission.challengeLedgerAppliedAt === commission.activeChallenge.triggeredAt;
-
   const canUseFreeCard = session.phase === "mainGame" && !commission.chairFreeCardUsed;
   const dollarCards = [
     ...catalog.revenueCards
@@ -81,73 +66,30 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       .map((c) => ({ type: "expenditure" as CardType, id: c.id, title: c.title })),
   ];
 
-  // Symmetric range around zero, generous enough that the marker never pins to an edge.
-  const range = Math.max(20, Math.abs(ledger.deficitOrSurplus) + 5);
-  const markerPercent = Math.min(100, Math.max(0, 50 + (ledger.deficitOrSurplus / range) * 50));
-
   return (
     <div className="session-view manager-console">
       <h1>Manager/Administrator Console — {code}</h1>
       <p>{commission.name ?? `Table ${commissionId} (unnamed)`}</p>
 
-      <div className="ledger-summary">
-        <div className="ledger-figure">
-          <span className="ledger-figure__label">Revenue</span>
-          <span className="ledger-figure__value">${ledger.revenue}</span>
-        </div>
-        <div className="ledger-figure">
-          <span className="ledger-figure__label">Expenditures</span>
-          <span className="ledger-figure__value">${ledger.expenditures}</span>
-        </div>
-        <div className="ledger-figure">
-          <span className="ledger-figure__label">{ledger.deficitOrSurplus >= 0 ? "Surplus" : "Deficit"}</span>
-          <span className={`ledger-figure__value ${ledger.deficitOrSurplus >= 0 ? "positive" : "negative"}`}>
-            ${Math.abs(ledger.deficitOrSurplus)}
-          </span>
-        </div>
-        <div className="ledger-figure">
-          <span className="ledger-figure__label">Reserves</span>
-          <span className={`ledger-figure__value reserve-tier-${reserveTier}`}>${ledger.reserves}</span>
-        </div>
-      </div>
-
-      <div className="ledger-numberline">
-        <div className="ledger-numberline__track">
-          <div className="ledger-numberline__zero" />
-          <div className="ledger-numberline__marker" style={{ left: `${markerPercent}%` }} />
-        </div>
-        <div className="ledger-numberline__caption">
-          {ledger.deficitOrSurplus >= 0 ? "Surplus" : "Deficit"}: ${Math.abs(ledger.deficitOrSurplus)}
-        </div>
-      </div>
-
-      <p className={`reserve-tier-note reserve-tier-${reserveTier}`}>
-        Reserve tier: {RESERVE_TIER_LABELS[reserveTier]}
+      <p>
+        Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
       </p>
+      {session.phase === "rankPriorities" && phaseTimerMs !== null && (
+        <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>
+      )}
+      {session.phase === "mainGame" && mainGameMs !== null && (
+        <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
+      )}
+
+      <LedgerStatusBar ledger={commission.ledger} />
 
       {error && <p className="error">{error}</p>}
 
-      {commission.activeChallenge && activeChallengeCard && (
+      {commission.activeChallenge && (
         <div className="lobby-commission">
           <h3>Active Challenge</h3>
           <p>{commission.activeChallenge.printedText}</p>
-          <p>
-            ${activeChallengeCard.amount} {activeChallengeCard.target} ({activeChallengeCard.direction})
-          </p>
-          {challengeAlreadyApplied ? (
-            <p>Already applied to the ledger.</p>
-          ) : (
-            <button
-              onClick={() =>
-                runAction(activeChallengeCard.id, () =>
-                  applyChallengeToLedger(code, commissionId, commission, activeChallengeCard),
-                )
-              }
-              disabled={busyCardId === activeChallengeCard.id}
-            >
-              Apply to Ledger
-            </button>
-          )}
+          <p>Applied to the ledger automatically when triggered -- Challenges can't be debated or declined.</p>
         </div>
       )}
 
@@ -181,6 +123,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           </button>
         </div>
       )}
+
+      <DecisionsList commission={commission} catalog={catalog} />
 
       <h2>Revenue Cards</h2>
       <table>
