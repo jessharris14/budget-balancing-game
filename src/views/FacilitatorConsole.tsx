@@ -9,6 +9,7 @@ import {
 } from "../services/facilitatorService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import { getReserveTier } from "../services/ledgerService";
+import DecisionsList from "./DecisionsList";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
@@ -23,6 +24,7 @@ function FacilitatorConsole({ code, session }: Props) {
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [rolling, setRolling] = useState<string | null>(null);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+  const [triggeringCommissionId, setTriggeringCommissionId] = useState<string | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -69,10 +71,15 @@ function FacilitatorConsole({ code, session }: Props) {
   }
 
   async function handleTriggerChallenge(commissionId: string) {
-    if (!catalog || !selectedChallengeId) return;
+    if (!catalog || !selectedChallengeId || triggeringCommissionId) return;
     const card = catalog.challengeCards.find((c) => c.id === selectedChallengeId);
     if (!card) return;
-    await triggerChallenge(code, commissionId, card, clock.mainGameTimer);
+    setTriggeringCommissionId(commissionId);
+    try {
+      await triggerChallenge(code, commissionId, card, clock.mainGameTimer);
+    } finally {
+      setTriggeringCommissionId(null);
+    }
   }
 
   const challengeReminderDue =
@@ -176,14 +183,16 @@ function FacilitatorConsole({ code, session }: Props) {
 
             {session.phase === "mainGame" && (
               <div>
-                <button onClick={() => handleTriggerChallenge(id)} disabled={!selectedChallengeId}>
-                  Push selected Challenge to this table
+                <button onClick={() => handleTriggerChallenge(id)} disabled={!selectedChallengeId || !!triggeringCommissionId}>
+                  {triggeringCommissionId === id ? "Pushing…" : "Push selected Challenge to this table"}
                 </button>
                 {commission.activeChallenge && (
                   <p>Last triggered: {commission.activeChallenge.printedText}</p>
                 )}
               </div>
             )}
+
+            {catalog && <DecisionsList commission={commission} catalog={catalog} />}
           </div>
         );
       })}
@@ -199,6 +208,7 @@ function FacilitatorConsole({ code, session }: Props) {
       {session.phase === "mainGame" && catalog && (
         <>
           <h2>Challenge Cards</h2>
+          <p>Pushing a Challenge applies its dollar impact immediately -- Challenges can't be debated or declined.</p>
           <table>
             <thead>
               <tr>
