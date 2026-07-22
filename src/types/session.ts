@@ -93,6 +93,8 @@ export interface CardInPlay {
   cardId: string;
   cardType: "revenue" | "expenditure";
   appliedAmount: number;
+  /** When this card was played -- lets the "Decisions So Far" list show them in order. */
+  playedAt: number;
 }
 
 export interface ActiveMotion {
