@@ -8,6 +8,7 @@ import {
   triggerChallenge,
 } from "../services/facilitatorService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
+import { getReserveTier } from "../services/ledgerService";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
@@ -130,6 +131,11 @@ function FacilitatorConsole({ code, session }: Props) {
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
             <p>Clerk: {members.clerkId ? (session.participants[members.clerkId]?.name ?? members.clerkId) : "— open —"}</p>
             <p>Commissioners ({commissionerNames.length}): {commissionerNames.length > 0 ? commissionerNames.join(", ") : "none yet"}</p>
+            <p>
+              Revenue: ${commission.ledger.revenue} | Expenditures: ${commission.ledger.expenditures} |{" "}
+              {commission.ledger.deficitOrSurplus >= 0 ? "Surplus" : "Deficit"}: ${Math.abs(commission.ledger.deficitOrSurplus)} |{" "}
+              Reserves: ${commission.ledger.reserves} ({getReserveTier(commission.ledger.reserves)})
+            </p>
 
             {session.phase === "rollForChair" && (
               <div>
