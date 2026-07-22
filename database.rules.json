@@ -52,6 +52,26 @@
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()",
                 ".validate": "newData.val() === true"
               }
+            },
+
+            "ledger": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+            },
+            "cardsInPlay": {
+              "$cardId": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+              }
+            },
+            "cardsLockedOut": {
+              "$cardId": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+              }
+            },
+            "challengeLedgerAppliedAt": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+            },
+            "chairFreeCardUsed": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && data.val() === false && newData.val() === true"
             }
           }
         },
