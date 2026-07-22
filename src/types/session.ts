@@ -135,6 +135,15 @@ export interface Commission {
   /** Keyed by challengeCardId -- audit trail of every challenge ever triggered for this Commission. */
   challengesApplied: Record<string, true>;
   activeChallenge: ActiveChallenge | null;
+  /**
+   * The triggeredAt of the activeChallenge whose dollar impact was most
+   * recently applied to the ledger, written by the Manager/Administrator.
+   * Compared against activeChallenge.triggeredAt (facilitator-written) to
+   * tell "already applied" from "needs applying" -- kept as its own field,
+   * rather than a flag inside activeChallenge, so the two roles never need
+   * write access to the same node.
+   */
+  challengeLedgerAppliedAt: number | null;
   activeMotion: ActiveMotion | null;
   finalScore: FinalScore | null;
 }
