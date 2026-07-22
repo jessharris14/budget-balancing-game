@@ -99,3 +99,31 @@
 .reserve-tier-critical {
   color: #b00020;
 }
+
+.balanced-banner {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a7a1a;
+  background: rgba(26, 122, 26, 0.12);
+  border: 1px solid rgba(26, 122, 26, 0.4);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.decisions-list {
+  margin: 1.5rem 0;
+}
+
+.decisions-list ol {
+  padding-left: 1.5rem;
+}
+
+.decisions-list .decision-amount.positive {
+  color: #1a7a1a;
+}
+
+.decisions-list .decision-amount.negative {
+  color: #b00020;
+}
