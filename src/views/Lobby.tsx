@@ -5,6 +5,7 @@ import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { subscribeToSession } from "../services/sessionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import FacilitatorConsole from "./FacilitatorConsole";
+import ManagerConsole from "./ManagerConsole";
 import { SESSION_PHASE_LABELS, type Session } from "../types/session";
 import "./session.css";
 
@@ -54,6 +55,16 @@ function Lobby() {
 
   const myCommission = myParticipant?.commissionId ? session.commissions[myParticipant.commissionId] : undefined;
   const isMyChair = !!user && !!myCommission && myCommission.members?.chairId === user.uid;
+
+  // Same reasoning as the Facilitator check above: routed on the
+  // one-shot-write members.managerAdminId (Phase 2's claimSingleSeatRole),
+  // not myParticipant.role, so this can't be knocked over by the same
+  // mutable-role-field issue fixed for the Facilitator in Phase 3.
+  if (user && myCommission?.members?.managerAdminId === user.uid && myParticipant?.commissionId) {
+    return (
+      <ManagerConsole code={code} session={session} commissionId={myParticipant.commissionId} commission={myCommission} />
+    );
+  }
 
   return (
     <div className="session-view">

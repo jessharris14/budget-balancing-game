@@ -1,0 +1,101 @@
+.manager-console {
+  max-width: 60rem;
+}
+
+.ledger-summary {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+}
+
+.ledger-figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 8rem;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+}
+
+.ledger-figure__label {
+  font-size: 0.85rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ledger-figure__value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.ledger-figure__value.positive {
+  color: #1a7a1a;
+}
+
+.ledger-figure__value.negative {
+  color: #b00020;
+}
+
+.ledger-numberline {
+  margin: 1.5rem 0;
+}
+
+.ledger-numberline__track {
+  position: relative;
+  height: 0.5rem;
+  background: linear-gradient(to right, #b00020, #ccc 50%, #1a7a1a);
+  border-radius: 0.25rem;
+}
+
+.ledger-numberline__zero {
+  position: absolute;
+  left: 50%;
+  top: -0.35rem;
+  width: 2px;
+  height: 1.2rem;
+  background: #333;
+  transform: translateX(-50%);
+}
+
+.ledger-numberline__marker {
+  position: absolute;
+  top: -0.5rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: #222;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px #222;
+  transform: translateX(-50%);
+}
+
+.ledger-numberline__caption {
+  text-align: center;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.reserve-tier-note {
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+.reserve-tier-safe {
+  color: #1a7a1a;
+}
+
+.reserve-tier-neutral {
+  color: #806b00;
+}
+
+.reserve-tier-warning {
+  color: #b06000;
+}
+
+.reserve-tier-critical {
+  color: #b00020;
+}
