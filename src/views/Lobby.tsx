@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { subscribeToSession } from "../services/sessionService";
+import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import FacilitatorConsole from "./FacilitatorConsole";
 import { SESSION_PHASE_LABELS, type Session } from "../types/session";
 import "./session.css";
@@ -24,6 +25,14 @@ function Lobby() {
     if (authStatus !== "signed-in") return;
     return subscribeToSession(code, setSession);
   }, [code, authStatus]);
+
+  // Hooks must run unconditionally on every render, before the loading/error
+  // early returns below -- session is possibly still undefined/null here,
+  // so these read through optional chaining rather than off the narrowed
+  // `session` used everywhere past those guards.
+  const clock = session?.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
+  const phaseTimerMs = useCountdown(clock.phaseTimer);
+  const mainGameMs = useCountdown(clock.mainGameTimer);
 
   if (authStatus !== "signed-in") return <p className="session-view">Signing in…</p>;
   if (session === undefined) return <p className="session-view">Loading lobby…</p>;
@@ -49,6 +58,12 @@ function Lobby() {
     <div className="session-view">
       <h1>Lobby — {code}</h1>
       <p>Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong></p>
+      {session.phase === "rankPriorities" && phaseTimerMs !== null && (
+        <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>
+      )}
+      {session.phase === "mainGame" && mainGameMs !== null && (
+        <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
+      )}
       <p>Debate timer: {session.settings.debateTimerMinutes} min</p>
       {myParticipant && (
         <p>
@@ -71,7 +86,7 @@ function Lobby() {
         // RTDB prunes empty objects and null values from storage, so a
         // freshly created commission with nobody joined yet has no
         // `members` node at all -- everything here must tolerate that.
-        const members = commission.members ?? { managerAdminId: null, clerkId: null, commissionerIds: {} };
+        const members = commission.members ?? { managerAdminId: null, clerkId: null, chairId: null, commissionerIds: {} };
         const commissioners = Object.keys(members.commissionerIds ?? {}).map(
           (uid) => session.participants[uid]?.name ?? uid,
         );
@@ -81,6 +96,7 @@ function Lobby() {
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
             <p>Clerk: {members.clerkId ? (session.participants[members.clerkId]?.name ?? members.clerkId) : "— open —"}</p>
             <p>Commissioners ({commissioners.length}): {commissioners.length > 0 ? commissioners.join(", ") : "none yet"}</p>
+            {members.chairId && <p>Chair: {session.participants[members.chairId]?.name ?? members.chairId}</p>}
           </div>
         );
       })}
