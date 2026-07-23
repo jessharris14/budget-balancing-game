@@ -22,10 +22,6 @@
                 ".write": "auth != null && !data.exists() && newData.val() === auth.uid",
                 ".validate": "newData.val() === auth.uid"
               },
-              "clerkId": {
-                ".write": "auth != null && !data.exists() && newData.val() === auth.uid",
-                ".validate": "newData.val() === auth.uid"
-              },
               "chairId": {
                 ".write": "auth != null && !data.exists() && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
               },

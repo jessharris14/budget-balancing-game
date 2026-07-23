@@ -16,7 +16,6 @@ import "./session.css";
 const ROLE_LABELS: Record<string, string> = {
   facilitator: "Facilitator",
   managerAdmin: "Manager/Administrator",
-  clerk: "Clerk",
   commissioner: "Commissioner",
   publicHearingSpeaker: "Public Hearing Speaker",
 };
@@ -113,7 +112,7 @@ function Lobby() {
         // RTDB prunes empty objects and null values from storage, so a
         // freshly created commission with nobody joined yet has no
         // `members` node at all -- everything here must tolerate that.
-        const members = commission.members ?? { managerAdminId: null, clerkId: null, chairId: null, commissionerIds: {} };
+        const members = commission.members ?? { managerAdminId: null, chairId: null, commissionerIds: {} };
         const commissioners = Object.keys(members.commissionerIds ?? {}).map(
           (uid) => session.participants[uid]?.name ?? uid,
         );
@@ -121,7 +120,6 @@ function Lobby() {
           <div key={id} className="lobby-commission">
             <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
-            <p>Clerk: {members.clerkId ? (session.participants[members.clerkId]?.name ?? members.clerkId) : "— open —"}</p>
             <p>Commissioners ({commissioners.length}): {commissioners.length > 0 ? commissioners.join(", ") : "none yet"}</p>
             {members.chairId && <p>Chair: {session.participants[members.chairId]?.name ?? members.chairId}</p>}
           </div>

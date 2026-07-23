@@ -126,7 +126,7 @@ function FacilitatorConsole({ code, session }: Props) {
 
       <h2>Commissions</h2>
       {commissionEntries.map(([id, commission]) => {
-        const members = commission.members ?? { managerAdminId: null, clerkId: null, chairId: null, commissionerIds: {} };
+        const members = commission.members ?? { managerAdminId: null, chairId: null, commissionerIds: {} };
         const commissionerUids = Object.keys(members.commissionerIds ?? {});
         const chairName = members.chairId ? (session.participants[members.chairId]?.name ?? members.chairId) : null;
 
@@ -136,7 +136,6 @@ function FacilitatorConsole({ code, session }: Props) {
           <div key={id} className="lobby-commission">
             <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
-            <p>Clerk: {members.clerkId ? (session.participants[members.clerkId]?.name ?? members.clerkId) : "— open —"}</p>
             <p>Commissioners ({commissionerNames.length}): {commissionerNames.length > 0 ? commissionerNames.join(", ") : "none yet"}</p>
             <p>
               Revenue: ${commission.ledger.revenue} | Expenditures: ${commission.ledger.expenditures} |{" "}
