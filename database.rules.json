@@ -68,13 +68,37 @@
             },
             "chairFreeCardUsed": {
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && data.val() === false && newData.val() === true"
+            },
+
+            "chairHighlightedCardId": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
+            },
+            "debateTimerEndsAt": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
+            },
+
+            "decisionsLog": {
+              "$entryId": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+              }
+            },
+
+            "publicTrustTally": {
+              ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).exists()",
+              ".validate": "newData.val() === data.val() + 1 || newData.val() === data.val() - 1"
             }
           }
         },
 
         "publicHearingSpeakers": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid"
+            ".write": "auth != null && auth.uid === $uid",
+            "endorsementsUsed": {
+              ".validate": "newData.numChildren() <= 3 && (data.exists() ? newData.numChildren() === data.numChildren() + 1 : newData.numChildren() === 1)",
+              "$key": {
+                ".validate": "newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+              }
+            }
           }
         },
 
