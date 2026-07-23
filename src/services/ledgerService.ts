@@ -1,7 +1,7 @@
-import { get, ref, runTransaction, update } from "firebase/database";
+import { get, push, ref, runTransaction, update } from "firebase/database";
 import { rtdb } from "../firebase/config";
 import type { CardCatalog, ChallengeCard, EffectDirection, ExpenditureCard, RevenueCard } from "../types/catalog";
-import type { CardInPlay, Commission, CommissionLedger, SessionPhase } from "../types/session";
+import type { CardInPlay, Commission, CommissionLedger, DecisionLogEntry, SessionPhase } from "../types/session";
 
 export type CardType = "revenue" | "expenditure";
 
@@ -63,22 +63,25 @@ export function isCardAvailable(commission: Commission, cardId: string): boolean
 }
 
 /**
- * Applies a resolved card's ledger delta and marks it played.
+ * Applies a resolved card's ledger delta, marks it played, and appends a
+ * permanent decisionsLog entry.
  *
- * Uses two separate transactions rather than one plain multi-path update,
- * because the naive "read this.commission prop, compute new absolute
- * values, write them" approach has a real race: if the Manager/
- * Administrator applies two different cards in quick succession, the
- * second write can be computed from a stale pre-first-write ledger
- * snapshot and clobber the first card's effect once it lands. Each
- * transaction instead reads the current server value at write time:
+ * Uses transactions rather than a plain multi-path update, because the
+ * naive "read this.commission prop, compute new absolute values, write
+ * them" approach has a real race: if the Manager/Administrator applies two
+ * different cards in quick succession, the second write can be computed
+ * from a stale pre-first-write ledger snapshot and clobber the first
+ * card's effect once it lands. Each transaction instead reads the current
+ * server value at write time:
  *
  * 1. Claim cardsInPlay/{cardId} transactionally (write only if absent) --
  *    same "first write wins" pattern as Phase 2's single-seat role claims.
  *    This is what makes two near-simultaneous plays of the SAME card safe.
- * 2. Only if the claim succeeds, fold the delta into `ledger` via its own
- *    transaction, reading the fresh ledger rather than a stale prop -- this
- *    is what makes rapid sequential plays of DIFFERENT cards safe.
+ * 2. Only if the claim succeeds, write the decisionsLog entry (a freshly
+ *    generated push-id, so no race possible) and fold the delta into
+ *    `ledger` via its own transaction, reading the fresh ledger rather
+ *    than a stale prop -- this is what makes rapid sequential plays of
+ *    DIFFERENT cards safe.
  *
  * cardsLockedOut writes are a plain (non-transactional) update: they're
  * idempotent absolute sets, not read-modify-write, so there's nothing to
@@ -91,14 +94,24 @@ export function isCardAvailable(commission: Commission, cardId: string): boolean
 async function claimAndApplyLedgerDelta(
   base: string,
   cardId: string,
-  cardInPlay: CardInPlay,
+  cardType: CardType,
+  appliedAmount: number,
   deltas: { revenueDelta: number; expenditureDelta: number; deficitDelta: number },
 ): Promise<ActionResult> {
+  const logEntryId = push(ref(rtdb, `${base}/decisionsLog`)).key;
+  if (!logEntryId) return { ok: false, reason: "Could not generate a decision log entry." };
+
+  const now = Date.now();
+  const cardInPlay: CardInPlay = { cardId, cardType, appliedAmount, playedAt: now, logEntryId };
+
   const claim = await runTransaction(ref(rtdb, `${base}/cardsInPlay/${cardId}`), (current: CardInPlay | null) => {
     if (current !== null) return undefined;
     return cardInPlay;
   });
   if (!claim.committed) return { ok: false, reason: "This card has already been played." };
+
+  const logEntry: DecisionLogEntry = { cardId, cardType, appliedAmount, appliedAt: now, reconsideredAt: null };
+  await update(ref(rtdb), { [`${base}/decisionsLog/${logEntryId}`]: logEntry });
 
   await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
     if (current === null) return current;
@@ -115,8 +128,11 @@ async function claimAndApplyLedgerDelta(
 
 /**
  * Applies a Revenue or Expenditure card's dollar impact to the ledger and
- * marks it played. Assumes the verbal motion/vote already happened --
- * gating this behind the Clerk's actual motion/vote flow is Phase 5.
+ * marks it played. Assumes the verbal motion/vote already happened -- per
+ * spec Section 8a #1, no role records vote outcomes in-app at all; the
+ * real verbal vote plus the Manager/Administrator's own judgment is the
+ * actual mechanism, matching a live human-facilitated meeting rather than
+ * a strict rules engine.
  */
 export async function applyCard(
   code: string,
@@ -137,7 +153,8 @@ export async function applyCard(
   const result = await claimAndApplyLedgerDelta(
     base,
     cardId,
-    { cardId, cardType, appliedAmount, playedAt: Date.now() },
+    cardType,
+    appliedAmount,
     { revenueDelta, expenditureDelta, deficitDelta },
   );
   if (!result.ok) return result;
@@ -160,6 +177,12 @@ export async function applyCard(
  * from the catalog) against a fresh ledger read. If the card belonged to
  * an exclusivity group, frees the other group members, since the
  * constraint no longer applies once it's undone.
+ *
+ * Marks the corresponding decisionsLog entry (via cardsInPlay's stored
+ * logEntryId) with reconsideredAt rather than deleting it -- the log is a
+ * permanent history distinct from cardsInPlay's "currently active" state,
+ * so a reconsidered decision still shows up with a reversal marker instead
+ * of disappearing.
  */
 export async function reconsiderCard(
   code: string,
@@ -177,7 +200,9 @@ export async function reconsiderCard(
   });
   if (!claim.committed || !claimed) return { ok: false, reason: "This card is not currently played." };
 
-  const { cardType, appliedAmount } = claimed;
+  const { cardType, appliedAmount, logEntryId } = claimed;
+  await update(ref(rtdb), { [`${base}/decisionsLog/${logEntryId}/reconsideredAt`]: Date.now() });
+
   await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
     if (current === null) return current;
     return {
@@ -283,7 +308,8 @@ export async function applyChairFreeCard(
   const result = await claimAndApplyLedgerDelta(
     base,
     cardId,
-    { cardId, cardType, appliedAmount, playedAt: Date.now() },
+    cardType,
+    appliedAmount,
     { revenueDelta, expenditureDelta, deficitDelta },
   );
   if (!result.ok) return result;
@@ -306,4 +332,39 @@ export function getReserveTier(reserves: number): ReserveTier {
   if (reserves === 14) return "neutral";
   if (reserves >= 10) return "warning";
   return "critical";
+}
+
+export type PublicTrustTier = "positive" | "neutral" | "negative";
+
+/** Section 6's 4th scoring dimension -- same live-indicator caveat as getReserveTier. */
+export function getPublicTrustTier(publicTrustTally: number): PublicTrustTier {
+  if (publicTrustTally > 0) return "positive";
+  if (publicTrustTally === 0) return "neutral";
+  return "negative";
+}
+
+/** Section 6 point value for a given tier -- used by both the live indicator (Phase 4/5) and Phase 7's authoritative final score. */
+export function getReserveTierPoints(tier: ReserveTier): number {
+  switch (tier) {
+    case "safe":
+      return 1;
+    case "neutral":
+      return 0;
+    case "warning":
+      return -1;
+    case "critical":
+      return -2;
+  }
+}
+
+/** Section 6 point value for a given Public Trust tier. */
+export function getPublicTrustTierPoints(tier: PublicTrustTier): number {
+  switch (tier) {
+    case "positive":
+      return 1;
+    case "neutral":
+      return 0;
+    case "negative":
+      return -1;
+  }
 }
