@@ -94,9 +94,17 @@
           "$uid": {
             ".write": "auth != null && auth.uid === $uid",
             "endorsementsUsed": {
-              ".validate": "newData.numChildren() <= 3 && ((!data.exists() && newData.numChildren() === 1) || (data.exists() && newData.numChildren() === data.numChildren() + 1))",
-              "$key": {
-                ".validate": "newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+              "0": {
+                ".validate": "!data.exists() && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+              },
+              "1": {
+                ".validate": "!data.exists() && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+              },
+              "2": {
+                ".validate": "!data.exists() && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+              },
+              "$other": {
+                ".validate": false
               }
             }
           }

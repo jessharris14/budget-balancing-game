@@ -16,10 +16,13 @@ const MAX_ENDORSEMENTS = 3;
  * least one; the cap here only prevents more than 3.
  *
  * Two writes:
- * 1. A transaction on the Speaker's own endorsementsUsed map -- reads the
- *    current map, rejects if already at 3, and adds the next sequential
- *    key ("0"/"1"/"2"). Transactional so two rapid taps (or two tabs) can't
- *    both succeed and push the count past 3.
+ * 1. Claims one of the 3 numbered slots ("0"/"1"/"2") under the Speaker's
+ *    own endorsementsUsed, trying each in turn via a transaction scoped to
+ *    that single slot (write-only-if-absent, same "first write wins"
+ *    pattern used elsewhere for single-seat claims). This writes only the
+ *    one new key rather than rewriting the whole map, so the RTDB rule for
+ *    each slot can be a simple one-shot !data.exists() check instead of
+ *    needing to count children.
  * 2. A transaction on publicTrustTally for every Commission in the session
  *    -- Speakers are session-wide, not tied to one table (see
  *    Commission.publicTrustTally's doc comment), so every table's tally
@@ -33,14 +36,19 @@ export async function castEndorsement(
   type: EndorsementType,
   commissionIds: string[],
 ): Promise<CastEndorsementResult> {
-  const endorsementsRef = ref(rtdb, `sessions/${code}/publicHearingSpeakers/${uid}/endorsementsUsed`);
-  const claim = await runTransaction(endorsementsRef, (current: Record<string, EndorsementAction> | null) => {
-    const existing = current ?? {};
-    const count = Object.keys(existing).length;
-    if (count >= MAX_ENDORSEMENTS) return undefined;
-    return { ...existing, [String(count)]: { type, timestamp: Date.now() } };
-  });
-  if (!claim.committed) return { ok: false, reason: "All 3 endorsements have already been used." };
+  let claimed = false;
+  for (let slot = 0; slot < MAX_ENDORSEMENTS; slot++) {
+    const slotRef = ref(rtdb, `sessions/${code}/publicHearingSpeakers/${uid}/endorsementsUsed/${slot}`);
+    const claim = await runTransaction(slotRef, (current: EndorsementAction | null) => {
+      if (current !== null) return undefined;
+      return { type, timestamp: Date.now() };
+    });
+    if (claim.committed) {
+      claimed = true;
+      break;
+    }
+  }
+  if (!claimed) return { ok: false, reason: "All 3 endorsements have already been used." };
 
   const delta = type === "endorse" ? 1 : -1;
   await Promise.all(
