@@ -50,11 +50,10 @@ function FacilitatorConsole({ code, session }: Props) {
   const phaseIdx = SESSION_PHASE_ORDER.indexOf(session.phase);
   const isLastPhase = phaseIdx === SESSION_PHASE_ORDER.length - 1;
 
-  // Session-wide, not per-Commission, since Speakers aren't tied to one
-  // table (spec Section 8a #7/#8) -- this count is exact regardless of how
-  // many Commissions exist.
+  // Speakers each pick one Commission/table to watch at join, same as a
+  // Commissioner, so this tracker is scoped per-Commission below rather
+  // than session-wide (spec Section 8a #7/#8 correction).
   const speakers = Object.values(session.publicHearingSpeakers ?? {});
-  const speakersWithEndorsement = speakers.filter((s) => Object.keys(s.endorsementsUsed ?? {}).length > 0).length;
 
   async function handleNextPhase() {
     await advancePhase(code, session.phase);
@@ -138,6 +137,8 @@ function FacilitatorConsole({ code, session }: Props) {
 
         const commissionerNames = commissionerUids.map((uid) => session.participants[uid]?.name ?? uid);
         const decisionsCount = Object.keys(commission.decisionsLog ?? {}).length;
+        const tableSpeakers = speakers.filter((s) => s.commissionId === id);
+        const tableSpeakersWithEndorsement = tableSpeakers.filter((s) => Object.keys(s.endorsementsUsed ?? {}).length > 0).length;
 
         return (
           <div key={id} className="lobby-commission">
@@ -145,6 +146,11 @@ function FacilitatorConsole({ code, session }: Props) {
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
             <p>Commissioners ({commissionerNames.length}): {commissionerNames.length > 0 ? commissionerNames.join(", ") : "none yet"}</p>
             <p>Decisions made: {decisionsCount}</p>
+            {tableSpeakers.length > 0 && (
+              <p>
+                {tableSpeakersWithEndorsement} of {tableSpeakers.length} Speakers at this table have cast at least one endorsement.
+              </p>
+            )}
             <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
 
             {session.phase === "rollForChair" && (
@@ -202,14 +208,11 @@ function FacilitatorConsole({ code, session }: Props) {
 
       <h2>Public Hearing Speakers</h2>
       {speakers.length === 0 && <p>None yet.</p>}
-      {speakers.length > 0 && (
-        <p>
-          {speakersWithEndorsement} of {speakers.length} Speakers have cast at least one endorsement.
-        </p>
-      )}
       <ul>
         {speakers.map((speaker) => (
-          <li key={speaker.id}>{speaker.name}</li>
+          <li key={speaker.id}>
+            {speaker.name} — {session.commissions[speaker.commissionId]?.name ?? `Table ${speaker.commissionId}`}
+          </li>
         ))}
       </ul>
 
