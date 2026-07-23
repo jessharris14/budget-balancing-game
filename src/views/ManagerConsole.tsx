@@ -39,6 +39,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const clock = session.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
   const phaseTimerMs = useCountdown(clock.phaseTimer);
   const mainGameMs = useCountdown(clock.mainGameTimer);
+  const debateMs = useCountdown(commission.debateTimerEndsAt ?? null);
 
   async function runAction(cardId: string, action: () => Promise<{ ok: boolean; reason?: string }>) {
     setBusyCardId(cardId);
@@ -55,6 +56,11 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading ledger…</p>;
+
+  const highlightedCard = commission.chairHighlightedCardId
+    ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
+      catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
+    : null;
 
   const canUseFreeCard = session.phase === "mainGame" && !commission.chairFreeCardUsed;
   const dollarCards = [
@@ -81,9 +87,16 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
       )}
 
-      <LedgerStatusBar ledger={commission.ledger} />
+      <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
 
       {error && <p className="error">{error}</p>}
+
+      {commission.chairHighlightedCardId && (
+        <div className="lobby-commission chair-highlight">
+          <h3>Chair has highlighted: {highlightedCard?.title ?? commission.chairHighlightedCardId}</h3>
+          {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
+        </div>
+      )}
 
       {commission.activeChallenge && (
         <div className="lobby-commission">
