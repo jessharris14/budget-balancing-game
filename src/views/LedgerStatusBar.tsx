@@ -1,4 +1,4 @@
-import { getReserveTier } from "../services/ledgerService";
+import { getPublicTrustTier, getReserveTier } from "../services/ledgerService";
 import type { CommissionLedger } from "../types/session";
 import "./ManagerConsole.css";
 
@@ -9,18 +9,29 @@ const RESERVE_TIER_LABELS: Record<string, string> = {
   critical: "≤ $9 — critical (−2)",
 };
 
+const PUBLIC_TRUST_LABELS: Record<string, string> = {
+  positive: "Positive",
+  neutral: "Neutral",
+  negative: "Negative",
+};
+
 interface Props {
   ledger: CommissionLedger;
+  /** Omitted only for callers that genuinely have no Commission context; every real Commission view should pass this (spec Section 8a #7). */
+  publicTrustTally?: number;
 }
 
 /**
  * Universal live status bar: Revenue/Expenditures/Deficit-or-Surplus/
  * Reserves plus a Balanced indicator, shared across every role's view
- * (Facilitator dashboard, Manager/Administrator console, participant
- * Lobby) so nobody has to go looking for the numbers on someone else's
- * screen -- they update live off the same RTDB-subscribed ledger.
+ * (Facilitator dashboard, Manager/Administrator console, Commissioner/
+ * Chair view, Public Hearing Speaker view) so nobody has to go looking for
+ * the numbers on someone else's screen -- they update live off the same
+ * RTDB-subscribed ledger. Public Trust renders as a small secondary line
+ * beneath the main figures, deliberately understated rather than another
+ * headline number (spec Section 8a #7).
  */
-function LedgerStatusBar({ ledger }: Props) {
+function LedgerStatusBar({ ledger, publicTrustTally }: Props) {
   const reserveTier = getReserveTier(ledger.reserves);
   const balanced = ledger.deficitOrSurplus === 0;
 
@@ -64,6 +75,12 @@ function LedgerStatusBar({ ledger }: Props) {
       </div>
 
       <p className={`reserve-tier-note reserve-tier-${reserveTier}`}>Reserve tier: {RESERVE_TIER_LABELS[reserveTier]}</p>
+
+      {publicTrustTally !== undefined && (
+        <p className={`public-trust-note public-trust-${getPublicTrustTier(publicTrustTally)}`}>
+          Public Trust: {PUBLIC_TRUST_LABELS[getPublicTrustTier(publicTrustTally)]}
+        </p>
+      )}
     </div>
   );
 }

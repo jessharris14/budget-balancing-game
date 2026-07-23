@@ -8,8 +8,8 @@ import {
   triggerChallenge,
 } from "../services/facilitatorService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
-import { getReserveTier } from "../services/ledgerService";
 import DecisionsList from "./DecisionsList";
+import LedgerStatusBar from "./LedgerStatusBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
@@ -49,6 +49,12 @@ function FacilitatorConsole({ code, session }: Props) {
   const commissionEntries = Object.entries(session.commissions ?? {});
   const phaseIdx = SESSION_PHASE_ORDER.indexOf(session.phase);
   const isLastPhase = phaseIdx === SESSION_PHASE_ORDER.length - 1;
+
+  // Session-wide, not per-Commission, since Speakers aren't tied to one
+  // table (spec Section 8a #7/#8) -- this count is exact regardless of how
+  // many Commissions exist.
+  const speakers = Object.values(session.publicHearingSpeakers ?? {});
+  const speakersWithEndorsement = speakers.filter((s) => Object.keys(s.endorsementsUsed ?? {}).length > 0).length;
 
   async function handleNextPhase() {
     await advancePhase(code, session.phase);
@@ -131,17 +137,15 @@ function FacilitatorConsole({ code, session }: Props) {
         const chairName = members.chairId ? (session.participants[members.chairId]?.name ?? members.chairId) : null;
 
         const commissionerNames = commissionerUids.map((uid) => session.participants[uid]?.name ?? uid);
+        const decisionsCount = Object.keys(commission.decisionsLog ?? {}).length;
 
         return (
           <div key={id} className="lobby-commission">
             <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
             <p>Commissioners ({commissionerNames.length}): {commissionerNames.length > 0 ? commissionerNames.join(", ") : "none yet"}</p>
-            <p>
-              Revenue: ${commission.ledger.revenue} | Expenditures: ${commission.ledger.expenditures} |{" "}
-              {commission.ledger.deficitOrSurplus >= 0 ? "Surplus" : "Deficit"}: ${Math.abs(commission.ledger.deficitOrSurplus)} |{" "}
-              Reserves: ${commission.ledger.reserves} ({getReserveTier(commission.ledger.reserves)})
-            </p>
+            <p>Decisions made: {decisionsCount}</p>
+            <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
 
             {session.phase === "rollForChair" && (
               <div>
@@ -197,9 +201,14 @@ function FacilitatorConsole({ code, session }: Props) {
       })}
 
       <h2>Public Hearing Speakers</h2>
-      {Object.keys(session.publicHearingSpeakers ?? {}).length === 0 && <p>None yet.</p>}
+      {speakers.length === 0 && <p>None yet.</p>}
+      {speakers.length > 0 && (
+        <p>
+          {speakersWithEndorsement} of {speakers.length} Speakers have cast at least one endorsement.
+        </p>
+      )}
       <ul>
-        {Object.values(session.publicHearingSpeakers ?? {}).map((speaker) => (
+        {speakers.map((speaker) => (
           <li key={speaker.id}>{speaker.name}</li>
         ))}
       </ul>
