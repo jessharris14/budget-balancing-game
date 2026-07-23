@@ -4,6 +4,7 @@ import { applyCard, applyChairFreeCard, isCardAvailable, reconsiderCard, type Ca
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
 import "./session.css";
@@ -62,6 +63,10 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
     : null;
 
+  const speakerCount = Object.values(session.publicHearingSpeakers ?? {}).filter(
+    (s) => s.commissionId === commissionId,
+  ).length;
+
   const canUseFreeCard = session.phase === "mainGame" && !commission.chairFreeCardUsed;
   const dollarCards = [
     ...catalog.revenueCards
@@ -87,7 +92,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
       )}
 
-      <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
+      <LedgerStatusBar ledger={commission.ledger} />
+      <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
 
       {error && <p className="error">{error}</p>}
 

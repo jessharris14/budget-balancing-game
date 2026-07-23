@@ -5,6 +5,7 @@ import { advancePhase, rollForChair, triggerChallenge } from "../services/facili
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
@@ -142,7 +143,8 @@ function FacilitatorConsole({ code, session }: Props) {
                 {tableSpeakersWithEndorsement} of {tableSpeakers.length} Speakers at this table have cast at least one endorsement.
               </p>
             )}
-            <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
+            <LedgerStatusBar ledger={commission.ledger} />
+            <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={tableSpeakers.length} />
 
             {session.phase === "rollForChair" && (
               <div>

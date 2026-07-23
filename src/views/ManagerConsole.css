@@ -134,24 +134,32 @@
   font-weight: 400;
 }
 
-.public-trust-note {
-  font-size: 0.85rem;
-  font-weight: 500;
-  display: inline-block;
-  margin-top: 0.25rem;
-  opacity: 0.85;
+.public-trust-gauge {
+  max-width: 20rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
 }
 
-.public-trust-positive {
-  color: #1a7a1a;
+.public-trust-gauge h3 {
+  margin: 0 0 0.5rem;
 }
 
-.public-trust-neutral {
-  color: #806b00;
+.gauge-pole-label {
+  font-size: 9px;
+  fill: #888;
 }
 
-.public-trust-negative {
-  color: #b00020;
+.gauge-tally-readout {
+  font-size: 22px;
+  font-weight: 700;
+  fill: #222;
+}
+
+.gauge-tier-label {
+  font-size: 11px;
+  fill: #666;
 }
 
 .chair-timer-controls {

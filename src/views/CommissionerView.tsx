@@ -9,6 +9,7 @@ import {
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
 import "./session.css";
@@ -66,6 +67,10 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
     ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
       catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
     : null;
+
+  const speakerCount = Object.values(session.publicHearingSpeakers ?? {}).filter(
+    (s) => s.commissionId === commissionId,
+  ).length;
 
   async function handleHighlight(cardId: string) {
     setBusy(true);
@@ -157,7 +162,8 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
         </div>
       )}
 
-      <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
+      <LedgerStatusBar ledger={commission.ledger} />
+      <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
 
       {error && <p className="error">{error}</p>}
 

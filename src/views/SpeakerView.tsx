@@ -3,6 +3,7 @@ import { getCatalog } from "../services/catalogService";
 import { castEndorsement } from "../services/speakerService";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Session, type Speaker } from "../types/session";
 import "./session.css";
@@ -53,6 +54,9 @@ function SpeakerView({ code, session, speaker }: Props) {
   const remaining = MAX_ENDORSEMENTS - usedCount;
   const canCast = session.phase === "mainGame" && remaining > 0 && !casting;
   const commission = session.commissions[speaker.commissionId];
+  const speakerCount = Object.values(session.publicHearingSpeakers ?? {}).filter(
+    (s) => s.commissionId === speaker.commissionId,
+  ).length;
 
   async function handleCast(type: "endorse" | "oppose") {
     if (!canCast) return;
@@ -104,7 +108,8 @@ function SpeakerView({ code, session, speaker }: Props) {
 
       {commission && (
         <>
-          <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
+          <LedgerStatusBar ledger={commission.ledger} />
+          <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
           <DecisionsList commission={commission} catalog={catalog} />
         </>
       )}
