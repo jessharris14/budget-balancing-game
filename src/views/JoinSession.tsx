@@ -82,25 +82,24 @@ function JoinSession() {
     }
 
     try {
+      if (!commissionId) throw new Error("Please choose a Commission/table.");
+      if (jurisdictionName.trim()) {
+        await setCommissionJurisdictionName(code, commissionId, jurisdictionName.trim());
+      }
+
       if (role === "publicHearingSpeaker") {
         const catalog = await getCatalog(session.catalogVersion);
         if (!catalog) throw new Error(`Catalog "${session.catalogVersion}" not found.`);
-        await joinAsPublicHearingSpeaker(code, name, catalog.promptBank);
+        await joinAsPublicHearingSpeaker(code, name, commissionId, catalog.promptBank);
+      } else if (role === "managerAdmin") {
+        const claimed = await claimManagerAdminSeat(code, commissionId, name);
+        if (!claimed) {
+          setJoinError(`${ROLE_LABELS[role]} is already taken on this Commission. Pick a different role.`);
+          setJoining(false);
+          return;
+        }
       } else {
-        if (!commissionId) throw new Error("Please choose a Commission/table.");
-        if (jurisdictionName.trim()) {
-          await setCommissionJurisdictionName(code, commissionId, jurisdictionName.trim());
-        }
-        if (role === "managerAdmin") {
-          const claimed = await claimManagerAdminSeat(code, commissionId, name);
-          if (!claimed) {
-            setJoinError(`${ROLE_LABELS[role]} is already taken on this Commission. Pick a different role.`);
-            setJoining(false);
-            return;
-          }
-        } else {
-          await joinAsCommissioner(code, commissionId, name);
-        }
+        await joinAsCommissioner(code, commissionId, name);
       }
       navigate(`/session/${code}`);
     } catch (err) {
@@ -138,7 +137,6 @@ function JoinSession() {
   if (!session) return null;
 
   const commissionEntries = Object.entries(session.commissions ?? {});
-  const needsCommission = role !== "publicHearingSpeaker";
   const selectedCommission = commissionId ? session.commissions?.[commissionId] : undefined;
 
   return (
@@ -160,7 +158,7 @@ function JoinSession() {
         ))}
       </div>
 
-      {needsCommission && commissionEntries.length > 1 && (
+      {commissionEntries.length > 1 && (
         <label>
           Commission/table
           <select value={commissionId} onChange={(e) => setCommissionId(e.target.value)}>
@@ -173,17 +171,15 @@ function JoinSession() {
         </label>
       )}
 
-      {needsCommission && (
-        <label>
-          {selectedCommission?.name ? "Jurisdiction name (already set for this table)" : "Jurisdiction's name"}
-          <input
-            value={selectedCommission?.name ?? jurisdictionName}
-            disabled={!!selectedCommission?.name}
-            onChange={(e) => setJurisdictionName(e.target.value)}
-            placeholder="e.g. Kent County"
-          />
-        </label>
-      )}
+      <label>
+        {selectedCommission?.name ? "Jurisdiction name (already set for this table)" : "Jurisdiction's name"}
+        <input
+          value={selectedCommission?.name ?? jurisdictionName}
+          disabled={!!selectedCommission?.name}
+          onChange={(e) => setJurisdictionName(e.target.value)}
+          placeholder="e.g. Kent County"
+        />
+      </label>
 
       {joinError && <p className="error">{joinError}</p>}
 
