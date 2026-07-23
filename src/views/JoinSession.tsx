@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { getCatalog } from "../services/catalogService";
 import {
-  claimSingleSeatRole,
+  claimManagerAdminSeat,
   getSession,
   joinAsCommissioner,
   joinAsPublicHearingSpeaker,
@@ -14,9 +14,11 @@ import "./session.css";
 
 type Step = "code" | "details";
 
+// Chair isn't selectable here -- it's elected among Commissioners via Roll
+// for Chair, not chosen at join. Clerk was removed entirely (spec Section
+// 8a #1): the Chair now handles debate timing and highlighting directly.
 const ROLE_LABELS: Record<Exclude<ParticipantRole, "facilitator">, string> = {
   managerAdmin: "Manager/Administrator",
-  clerk: "Clerk",
   commissioner: "Commissioner",
   publicHearingSpeaker: "Public Hearing Speaker",
 };
@@ -89,8 +91,8 @@ function JoinSession() {
         if (jurisdictionName.trim()) {
           await setCommissionJurisdictionName(code, commissionId, jurisdictionName.trim());
         }
-        if (role === "managerAdmin" || role === "clerk") {
-          const claimed = await claimSingleSeatRole(code, commissionId, role, name);
+        if (role === "managerAdmin") {
+          const claimed = await claimManagerAdminSeat(code, commissionId, name);
           if (!claimed) {
             setJoinError(`${ROLE_LABELS[role]} is already taken on this Commission. Pick a different role.`);
             setJoining(false);
