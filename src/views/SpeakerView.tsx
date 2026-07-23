@@ -20,10 +20,9 @@ const MAX_ENDORSEMENTS = 3;
  * Public Hearing Speaker view. Per spec Section 8a #7: shows the Speaker's
  * assigned prompt(s) and their 3 lifetime Endorse/Oppose actions (permanent
  * once cast, usable any time during Main Game, not tied to a specific
- * card). Speakers are session-wide rather than tied to one Commission (see
- * Commission.publicTrustTally's doc comment), so this shows the single
- * Commission's full status bar/decisions directly when there's only one
- * table, or a per-Commission summary list when there are several.
+ * card). Each Speaker picks one Commission/table to watch at join, same as
+ * a Commissioner, so this shows just that one Commission's status bar and
+ * decisions log -- endorsements only ever affect that table's Public Trust.
  */
 function SpeakerView({ code, session, speaker }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
@@ -53,15 +52,14 @@ function SpeakerView({ code, session, speaker }: Props) {
   const usedCount = Object.keys(speaker.endorsementsUsed ?? {}).length;
   const remaining = MAX_ENDORSEMENTS - usedCount;
   const canCast = session.phase === "mainGame" && remaining > 0 && !casting;
-  const commissionIds = Object.keys(session.commissions ?? {});
-  const commissionEntries = Object.entries(session.commissions ?? {});
+  const commission = session.commissions[speaker.commissionId];
 
   async function handleCast(type: "endorse" | "oppose") {
     if (!canCast) return;
     setCasting(true);
     setCastError(null);
     try {
-      const result = await castEndorsement(code, speaker.id, type, commissionIds);
+      const result = await castEndorsement(code, speaker.id, type, speaker.commissionId);
       if (!result.ok) setCastError(result.reason ?? "Could not cast that action.");
     } catch (err) {
       setCastError(err instanceof Error ? err.message : String(err));
@@ -73,6 +71,7 @@ function SpeakerView({ code, session, speaker }: Props) {
   return (
     <div className="session-view manager-console">
       <h1>Public Hearing Speaker — {code}</h1>
+      <p>{commission?.name ?? `Table ${speaker.commissionId} (unnamed)`}</p>
       <p>
         Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
       </p>
@@ -103,19 +102,11 @@ function SpeakerView({ code, session, speaker }: Props) {
         {castError && <p className="error">{castError}</p>}
       </div>
 
-      {commissionEntries.length === 1 ? (
+      {commission && (
         <>
-          <LedgerStatusBar ledger={commissionEntries[0][1].ledger} publicTrustTally={commissionEntries[0][1].publicTrustTally} />
-          <DecisionsList commission={commissionEntries[0][1]} catalog={catalog} />
+          <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
+          <DecisionsList commission={commission} catalog={catalog} />
         </>
-      ) : (
-        commissionEntries.map(([id, commission]) => (
-          <div key={id} className="lobby-commission">
-            <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
-            <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
-            <DecisionsList commission={commission} catalog={catalog} />
-          </div>
-        ))
       )}
     </div>
   );

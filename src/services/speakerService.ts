@@ -23,18 +23,16 @@ const MAX_ENDORSEMENTS = 3;
  *    one new key rather than rewriting the whole map, so the RTDB rule for
  *    each slot can be a simple one-shot !data.exists() check instead of
  *    needing to count children.
- * 2. A transaction on publicTrustTally for every Commission in the session
- *    -- Speakers are session-wide, not tied to one table (see
- *    Commission.publicTrustTally's doc comment), so every table's tally
- *    receives the same +1/-1. Each Commission's increment is its own
- *    transaction so concurrent endorsements from different Speakers never
- *    clobber each other.
+ * 2. A transaction on publicTrustTally for the Speaker's own assigned
+ *    Commission only -- Speakers pick one table to watch at join, same as
+ *    a Commissioner (spec correction: was originally session-wide, which
+ *    incorrectly fanned one endorsement out to every Commission's tally).
  */
 export async function castEndorsement(
   code: string,
   uid: string,
   type: EndorsementType,
-  commissionIds: string[],
+  commissionId: string,
 ): Promise<CastEndorsementResult> {
   let claimed = false;
   for (let slot = 0; slot < MAX_ENDORSEMENTS; slot++) {
@@ -51,13 +49,9 @@ export async function castEndorsement(
   if (!claimed) return { ok: false, reason: "All 3 endorsements have already been used." };
 
   const delta = type === "endorse" ? 1 : -1;
-  await Promise.all(
-    commissionIds.map((commissionId) =>
-      runTransaction(ref(rtdb, `sessions/${code}/commissions/${commissionId}/publicTrustTally`), (current: number | null) => {
-        return (current ?? 0) + delta;
-      }),
-    ),
-  );
+  await runTransaction(ref(rtdb, `sessions/${code}/commissions/${commissionId}/publicTrustTally`), (current: number | null) => {
+    return (current ?? 0) + delta;
+  });
 
   return { ok: true };
 }
