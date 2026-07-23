@@ -85,7 +85,7 @@
 
             "publicTrustTally": {
               ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId",
-              ".validate": "newData.val() === data.val() + 1 || newData.val() === data.val() - 1"
+              ".validate": "(!data.exists() && newData.val() === 0) || (data.exists() && (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
             }
           }
         },
