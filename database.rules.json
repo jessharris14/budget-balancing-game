@@ -37,7 +37,7 @@
             },
             "priority": {
               "selectedCardId": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
               }
             },
             "activeChallenge": {

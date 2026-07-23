@@ -102,12 +102,6 @@ export async function rollForChair(
   return { rolls, chairId: winner };
 }
 
-export async function recordCommissionPriority(code: string, commissionId: string, cardId: string): Promise<void> {
-  await update(ref(rtdb), {
-    [`sessions/${code}/commissions/${commissionId}/priority/selectedCardId`]: cardId,
-  });
-}
-
 /**
  * Broadcasts a Challenge card to a Commission: marks it applied (audit
  * trail) and sets activeChallenge, which is what live-subscribed clients

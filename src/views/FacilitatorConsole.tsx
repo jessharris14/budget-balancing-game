@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { getCatalog } from "../services/catalogService";
-import {
-  advancePhase,
-  recordCommissionPriority,
-  rollForChair,
-  triggerChallenge,
-} from "../services/facilitatorService";
+import { advancePhase, rollForChair, triggerChallenge } from "../services/facilitatorService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -69,10 +64,6 @@ function FacilitatorConsole({ code, session }: Props) {
     } finally {
       setRolling(null);
     }
-  }
-
-  async function handleSelectPriority(commissionId: string, cardId: string) {
-    await recordCommissionPriority(code, commissionId, cardId);
   }
 
   async function handleTriggerChallenge(commissionId: string) {
@@ -175,19 +166,13 @@ function FacilitatorConsole({ code, session }: Props) {
             )}
 
             {session.phase === "rankPriorities" && catalog && (
-              <div className="role-options">
-                {catalog.priorityCards.map((card) => (
-                  <label key={card.id}>
-                    <input
-                      type="radio"
-                      name={`priority-${id}`}
-                      checked={commission.priority?.selectedCardId === card.id}
-                      onChange={() => handleSelectPriority(id, card.id)}
-                    />
-                    {card.title} — {card.description}
-                  </label>
-                ))}
-              </div>
+              <p>
+                Priority selected:{" "}
+                {commission.priority?.selectedCardId
+                  ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
+                    commission.priority.selectedCardId)
+                  : "not yet recorded by the Chair"}
+              </p>
             )}
 
             {session.phase === "mainGame" && (

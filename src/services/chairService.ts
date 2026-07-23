@@ -4,13 +4,14 @@ import { rtdb } from "../firebase/config";
 /**
  * Chair mechanics per spec Section 8a #2: the Chair is an elected
  * Commissioner status (via Roll for Chair), not a separate login, and gets
- * exactly two live controls -- which card is under debate, and the debate
- * timer. Neither writes anything that gates the Manager/Administrator's
- * apply/reconsider actions, and neither records a vote outcome of any kind.
- * Both fields live on the Commission node and are readable by every other
- * role in that Commission except the Facilitator (enforced by what each
- * view chooses to render, not by RTDB read rules -- read access is already
- * session-wide for every signed-in participant).
+ * exactly two live controls during Main Game -- which card is under
+ * debate, and the debate timer. Neither writes anything that gates the
+ * Manager/Administrator's apply/reconsider actions, and neither records a
+ * vote outcome of any kind. Both fields live on the Commission node and
+ * are readable by every other role in that Commission except the
+ * Facilitator (enforced by what each view chooses to render, not by RTDB
+ * read rules -- read access is already session-wide for every signed-in
+ * participant).
  */
 
 export async function setChairHighlightedCard(
@@ -35,5 +36,19 @@ export async function startDebateTimer(code: string, commissionId: string, debat
 export async function stopDebateTimer(code: string, commissionId: string): Promise<void> {
   await update(ref(rtdb), {
     [`sessions/${code}/commissions/${commissionId}/debateTimerEndsAt`]: null,
+  });
+}
+
+/**
+ * Records the Commission's Rank Priorities selection -- moved from the
+ * Facilitator to the Chair (spec Section 3/8a #6 update): the Commission
+ * verbally debates and votes on their Priority, same trust model as any
+ * other decision, and the Chair records the outcome, reusing this same
+ * "Chair records what the room verbally decided" pattern already used for
+ * highlighting cards during Main Game.
+ */
+export async function recordCommissionPriority(code: string, commissionId: string, cardId: string): Promise<void> {
+  await update(ref(rtdb), {
+    [`sessions/${code}/commissions/${commissionId}/priority/selectedCardId`]: cardId,
   });
 }

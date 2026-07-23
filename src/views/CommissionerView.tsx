@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
-import { setChairHighlightedCard, startDebateTimer, stopDebateTimer } from "../services/chairService";
+import {
+  recordCommissionPriority,
+  setChairHighlightedCard,
+  startDebateTimer,
+  stopDebateTimer,
+} from "../services/chairService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -89,6 +94,15 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
     }
   }
 
+  async function handleSelectPriority(cardId: string) {
+    setBusy(true);
+    try {
+      await recordCommissionPriority(code, commissionId, cardId);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="session-view manager-console">
       <h1>{isMyChair ? "Chair" : "Commissioner"} View — {code}</h1>
@@ -102,6 +116,45 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
       )}
       {session.phase === "mainGame" && mainGameMs !== null && (
         <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
+      )}
+
+      {session.phase === "rankPriorities" && (
+        <div className="lobby-commission">
+          <h3>Rank Priorities</h3>
+          {isMyChair ? (
+            <div className="role-options">
+              {catalog.priorityCards.map((card) => (
+                <label key={card.id}>
+                  <input
+                    type="radio"
+                    name="priority"
+                    checked={commission.priority?.selectedCardId === card.id}
+                    disabled={busy}
+                    onChange={() => handleSelectPriority(card.id)}
+                  />
+                  {card.title} — {card.description}
+                </label>
+              ))}
+            </div>
+          ) : (
+            <>
+              <ul>
+                {catalog.priorityCards.map((card) => (
+                  <li key={card.id}>
+                    {card.title} — {card.description}
+                  </li>
+                ))}
+              </ul>
+              <p>
+                Selected:{" "}
+                {commission.priority?.selectedCardId
+                  ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
+                    commission.priority.selectedCardId)
+                  : "not yet recorded by the Chair"}
+              </p>
+            </>
+          )}
+        </div>
       )}
 
       <LedgerStatusBar ledger={commission.ledger} publicTrustTally={commission.publicTrustTally} />
