@@ -2,7 +2,7 @@ import { get, onValue, ref, runTransaction, set } from "firebase/database";
 import { auth, rtdb } from "../firebase/config";
 import { getCatalog } from "./catalogService";
 import type { BudgetPicture, PromptBankEntry, ReservePolicy } from "../types/catalog";
-import type { Commission, Participant, ParticipantRole, Session, Speaker } from "../types/session";
+import type { Commission, Participant, Session, Speaker } from "../types/session";
 
 const CODE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const MAX_CREATE_ATTEMPTS = 20;
@@ -36,17 +36,20 @@ function buildInitialCommission(id: string, budgetPicture: BudgetPicture, reserv
   return {
     id,
     name: null,
-    members: { managerAdminId: null, clerkId: null, chairId: null, commissionerIds: {} },
+    members: { managerAdminId: null, chairId: null, commissionerIds: {} },
     chairRoll: null,
     ledger: { revenue, expenditures, reserves: reservePolicy.max, deficitOrSurplus: revenue - expenditures },
     priority: { selectedCardId: null, funded: false },
     chairFreeCardUsed: false,
+    chairHighlightedCardId: null,
+    debateTimerEndsAt: null,
     cardsInPlay: {},
     cardsLockedOut: {},
+    decisionsLog: {},
     challengesApplied: {},
     activeChallenge: null,
     challengeLedgerAppliedAt: null,
-    activeMotion: null,
+    publicTrustTally: 0,
     finalScore: null,
   };
 }
@@ -133,16 +136,10 @@ export async function setCommissionJurisdictionName(code: string, commissionId: 
   return result.committed;
 }
 
-/** Manager/Administrator and Clerk are single-seat per Commission; returns false if the seat was already taken. */
-export async function claimSingleSeatRole(
-  code: string,
-  commissionId: string,
-  role: Extract<ParticipantRole, "managerAdmin" | "clerk">,
-  displayName: string,
-): Promise<boolean> {
+/** Manager/Administrator is single-seat per Commission (Chair is elected via Roll for Chair, not claimed here); returns false if the seat was already taken. */
+export async function claimManagerAdminSeat(code: string, commissionId: string, displayName: string): Promise<boolean> {
   const uid = requireUid();
-  const field = role === "managerAdmin" ? "managerAdminId" : "clerkId";
-  const roleRef = ref(rtdb, `sessions/${code}/commissions/${commissionId}/members/${field}`);
+  const roleRef = ref(rtdb, `sessions/${code}/commissions/${commissionId}/members/managerAdminId`);
 
   const result = await runTransaction(roleRef, (current: string | null) => {
     if (current !== null) return undefined;
@@ -150,7 +147,7 @@ export async function claimSingleSeatRole(
   });
 
   if (result.committed) {
-    await writeParticipant(code, { uid, name: displayName, role, commissionId });
+    await writeParticipant(code, { uid, name: displayName, role: "managerAdmin", commissionId });
   }
   return result.committed;
 }
@@ -180,6 +177,7 @@ export async function joinAsPublicHearingSpeaker(
     name: displayName,
     assignedPrompts: drawPromptIds(promptBank),
     rerollCount: 0,
+    endorsementsUsed: {},
   };
   await set(ref(rtdb, `sessions/${code}/publicHearingSpeakers/${uid}`), speaker);
   await writeParticipant(code, { uid, name: displayName, role: "publicHearingSpeaker", commissionId: null });

@@ -38,9 +38,14 @@ export const SESSION_PHASE_LABELS: Record<SessionPhase, string> = {
   debrief: "Debrief",
 };
 
-export type VoteResult = "pass" | "fail";
-
-export type ParticipantRole = "facilitator" | "managerAdmin" | "clerk" | "commissioner" | "publicHearingSpeaker";
+/**
+ * Clerk removed post-Phase-4 (spec Section 8a #1): the Chair -- an elected
+ * Commissioner status, not a separate login -- highlights the active card
+ * and runs the debate timer instead. No role records vote outcomes; the
+ * real verbal vote plus the Manager/Administrator's own judgment is the
+ * actual mechanism.
+ */
+export type ParticipantRole = "facilitator" | "managerAdmin" | "commissioner" | "publicHearingSpeaker";
 
 /**
  * Session-wide roster keyed by uid. Not part of the spec's Section 4 model as
@@ -57,17 +62,31 @@ export interface Participant {
   commissionId: string | null;
 }
 
+export type EndorsementType = "endorse" | "oppose";
+
+export interface EndorsementAction {
+  type: EndorsementType;
+  timestamp: number;
+}
+
 export interface Speaker {
   id: string;
   name: string;
   /** 1-2 prompt IDs, randomly drawn from the catalog's promptBank. */
   assignedPrompts: string[];
   rerollCount: number;
+  /**
+   * Keyed "0"/"1"/"2" (not push-ids): each cast is part of one atomic
+   * read-modify-write transaction against this whole map, so sequential
+   * integer keys are simplest and can't collide. Max 3, lifetime, permanent
+   * -- no undo, no reconsideration.
+   */
+  endorsementsUsed: Record<string, EndorsementAction>;
 }
 
 export interface CommissionMembers {
   managerAdminId: string | null;
-  clerkId: string | null;
+  /** Elected via Roll for Chair, not claimed at join -- always a member of commissionerIds too. */
   chairId: string | null;
   /**
    * Keyed by uid rather than an array: RTDB has no safe way to append to an
@@ -95,20 +114,32 @@ export interface CardInPlay {
   appliedAmount: number;
   /** When this card was played -- lets the "Decisions So Far" list show them in order. */
   playedAt: number;
+  /** Which decisionsLog entry corresponds to this play, so reconsiderCard can mark the right one reconsidered. */
+  logEntryId: string;
 }
 
-export interface ActiveMotion {
+/**
+ * Permanent, ordered history of every applied Revenue/Expenditure card --
+ * distinct from cardsInPlay (current state only). A reconsidered entry
+ * gets reconsideredAt set rather than being removed, so "Decisions So Far"
+ * can show a reversal marker instead of silently erasing history. The same
+ * card can appear more than once across a session (played, reconsidered,
+ * played again), which is why this is keyed by a generated entry id, not
+ * by cardId.
+ */
+export interface DecisionLogEntry {
   cardId: string;
-  proposedBy: string;
-  seconded: boolean;
-  debateEndsAt: number | null;
-  voteResult: VoteResult | null;
+  cardType: "revenue" | "expenditure";
+  appliedAmount: number;
+  appliedAt: number;
+  reconsideredAt: number | null;
 }
 
 export interface FinalScore {
   balanced: boolean;
   priorityFunded: boolean;
   reserveTier: number;
+  publicTrustTier: number;
   total: number;
 }
 
@@ -130,23 +161,37 @@ export interface Commission {
   priority: CommissionPriority;
   /** One-time privilege: the Chair may apply one $1 card directly at the start of Main Game. */
   chairFreeCardUsed: boolean;
-  /** Keyed by a client-generated id; empty until Phase 4. */
+  /** The card currently under debate, per the Chair -- visible to every other role in this Commission except the Facilitator. */
+  chairHighlightedCardId: string | null;
+  /** When the Chair's current debate timer ends; null if not running. */
+  debateTimerEndsAt: number | null;
+  /** Keyed by cardId; current state only (use decisionsLog for history). */
   cardsInPlay: Record<string, CardInPlay>;
   /** IDs of cards locked out by mutual-exclusivity rules (e.g. the R2/R3/R4 group), keyed by cardId. */
   cardsLockedOut: Record<string, true>;
+  /** Keyed by a generated entry id (not cardId -- the same card can be played more than once across a session). */
+  decisionsLog: Record<string, DecisionLogEntry>;
   /** Keyed by challengeCardId -- audit trail of every challenge ever triggered for this Commission. */
   challengesApplied: Record<string, true>;
   activeChallenge: ActiveChallenge | null;
   /**
    * The triggeredAt of the activeChallenge whose dollar impact was most
-   * recently applied to the ledger, written by the Manager/Administrator.
-   * Compared against activeChallenge.triggeredAt (facilitator-written) to
-   * tell "already applied" from "needs applying" -- kept as its own field,
-   * rather than a flag inside activeChallenge, so the two roles never need
-   * write access to the same node.
+   * recently applied to the ledger. Compared against
+   * activeChallenge.triggeredAt to tell "already applied" from "needs
+   * applying" -- kept as its own field so the Facilitator (who now applies
+   * Challenges automatically) and the Manager/Administrator never need
+   * write access to the same node for different reasons.
    */
   challengeLedgerAppliedAt: number | null;
-  activeMotion: ActiveMotion | null;
+  /**
+   * Running sum of every Speaker's endorse(+1)/oppose(-1) action. Speakers
+   * are session-wide, not per-Commission (see Session.publicHearingSpeakers
+   * below), so in a multi-Commission session every Commission's tally
+   * receives the same increment from a given endorsement -- there's no
+   * data to say which single table a Speaker is "assigned to." See
+   * castEndorsement in speakerService.ts.
+   */
+  publicTrustTally: number;
   finalScore: FinalScore | null;
 }
 
