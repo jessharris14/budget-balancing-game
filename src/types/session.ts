@@ -58,7 +58,7 @@ export interface Participant {
   uid: string;
   name: string;
   role: ParticipantRole;
-  /** Null for the Facilitator and Public Hearing Speakers, who aren't tied to one Commission. */
+  /** Null only for the Facilitator, who isn't tied to one Commission. Public Hearing Speakers now pick a Commission at join, same as Commissioners. */
   commissionId: string | null;
 }
 
@@ -72,14 +72,22 @@ export interface EndorsementAction {
 export interface Speaker {
   id: string;
   name: string;
+  /**
+   * The Commission/table this Speaker is assigned to watch -- chosen at
+   * join, same as a Commissioner's table. Corrects an original data-model
+   * gap (Speaker was left session-wide from Phase 1, before multi-
+   * Commission specifics were worked out): endorsements now only affect
+   * this one Commission's publicTrustTally, not every Commission's.
+   */
+  commissionId: string;
   /** 1-2 prompt IDs, randomly drawn from the catalog's promptBank. */
   assignedPrompts: string[];
   rerollCount: number;
   /**
-   * Keyed "0"/"1"/"2" (not push-ids): each cast is part of one atomic
-   * read-modify-write transaction against this whole map, so sequential
-   * integer keys are simplest and can't collide. Max 3, lifetime, permanent
-   * -- no undo, no reconsideration.
+   * Keyed "0"/"1"/"2" (not push-ids): each cast claims its own slot via a
+   * transaction scoped to that single key (write-only-if-absent), so
+   * concurrent casts can't collide. Max 3, lifetime, permanent -- no undo,
+   * no reconsideration.
    */
   endorsementsUsed: Record<string, EndorsementAction>;
 }
@@ -184,12 +192,10 @@ export interface Commission {
    */
   challengeLedgerAppliedAt: number | null;
   /**
-   * Running sum of every Speaker's endorse(+1)/oppose(-1) action. Speakers
-   * are session-wide, not per-Commission (see Session.publicHearingSpeakers
-   * below), so in a multi-Commission session every Commission's tally
-   * receives the same increment from a given endorsement -- there's no
-   * data to say which single table a Speaker is "assigned to." See
-   * castEndorsement in speakerService.ts.
+   * Running sum of endorse(+1)/oppose(-1) actions from Speakers assigned to
+   * this Commission (Speaker.commissionId) -- not session-wide; each
+   * Speaker watches one table, same as a Commissioner. See castEndorsement
+   * in speakerService.ts.
    */
   publicTrustTally: number;
   finalScore: FinalScore | null;

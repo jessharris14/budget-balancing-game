@@ -165,20 +165,22 @@ function drawPromptIds(promptBank: PromptBankEntry[]): string[] {
   return shuffled.slice(0, count).map((entry) => entry.id);
 }
 
-/** Public Hearing Speaker is session-wide (not tied to a Commission) and multi-seat, per spec Section 3/8. */
+/** Public Hearing Speaker picks one Commission/table to watch at join, same as a Commissioner -- multi-seat, per spec Section 3/8. */
 export async function joinAsPublicHearingSpeaker(
   code: string,
   displayName: string,
+  commissionId: string,
   promptBank: PromptBankEntry[],
 ): Promise<void> {
   const uid = requireUid();
   const speaker: Speaker = {
     id: uid,
     name: displayName,
+    commissionId,
     assignedPrompts: drawPromptIds(promptBank),
     rerollCount: 0,
     endorsementsUsed: {},
   };
   await set(ref(rtdb, `sessions/${code}/publicHearingSpeakers/${uid}`), speaker);
-  await writeParticipant(code, { uid, name: displayName, role: "publicHearingSpeaker", commissionId: null });
+  await writeParticipant(code, { uid, name: displayName, role: "publicHearingSpeaker", commissionId });
 }
