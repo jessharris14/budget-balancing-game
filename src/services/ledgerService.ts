@@ -76,29 +76,35 @@ export function isSelectedPriorityCard(
 }
 
 /**
- * Flips this Commission's Priority funded status the instant the specific
- * card it's linked to (PriorityCard.linkedCardId/linkedCardType -- a
- * stable catalog ID, never matched by title text) is applied or
- * reconsidered through the normal Manager/Administrator apply/reconsider
- * flow. There's no separate "mark as funded" action; funding is always a
- * direct consequence of applying the one real card the Priority refers
- * to, same as every other ledger effect in this app.
+ * Computes the priority/funded update fragment (if any) for applying or
+ * reconsidering this specific card -- a pure read, no write of its own,
+ * so the caller can fold it into the SAME update() call as the
+ * decisionsLog mutation it belongs with. That's what makes the two
+ * atomic: RTDB rejects a multi-location update() as a whole if any one of
+ * its paths fails security-rule validation, so a Priority's matching card
+ * can no longer end up "applied" in Decisions So Far while its funded
+ * flip silently failed (the exact partial-state bug this was built to
+ * close). There's no separate "mark as funded" action; funding is always
+ * a direct consequence of applying the one real card the Priority refers
+ * to (PriorityCard.linkedCardId/linkedCardType -- a stable catalog ID,
+ * never matched by title text), same as every other ledger effect here.
  */
-async function syncPriorityFunded(
+async function priorityFundedUpdateFragment(
   base: string,
   catalog: CardCatalog,
   cardType: CardType,
   cardId: string,
   funded: boolean,
-): Promise<void> {
+): Promise<Record<string, unknown>> {
   const selectedCardIdSnapshot = await get(ref(rtdb, `${base}/priority/selectedCardId`));
   const selectedCardId: string | null = selectedCardIdSnapshot.val();
-  if (!selectedCardId) return;
+  if (!selectedCardId) return {};
   const priorityCard = catalog.priorityCards.find((p) => p.id === selectedCardId);
-  if (!priorityCard) return;
+  if (!priorityCard) return {};
   if (priorityCard.linkedCardId === cardId && priorityCard.linkedCardType === cardType) {
-    await update(ref(rtdb), { [`${base}/priority/funded`]: funded });
+    return { [`${base}/priority/funded`]: funded };
   }
+  return {};
 }
 
 /**
@@ -129,6 +135,13 @@ async function syncPriorityFunded(
  * within the same instant from two open tabs, which could transiently lock
  * out fewer cards than it should. Accepted as a known limitation given a
  * single trusted Manager/Administrator seat, not defended against further.
+ *
+ * extraUpdates (e.g. a Priority's funded flip) is folded into the SAME
+ * update() call as the decisionsLog entry, so the two either land
+ * together or neither does. If that combined write is rejected, the
+ * cardsInPlay claim is rolled back too -- otherwise the card would be
+ * stuck "Played" with no decisionsLog entry to show for it, trading one
+ * partial-state bug for another.
  */
 async function claimAndApplyLedgerDelta(
   base: string,
@@ -136,6 +149,7 @@ async function claimAndApplyLedgerDelta(
   cardType: CardType,
   appliedAmount: number,
   deltas: { revenueDelta: number; expenditureDelta: number; deficitDelta: number },
+  extraUpdates: Record<string, unknown>,
 ): Promise<ActionResult> {
   const logEntryId = push(ref(rtdb, `${base}/decisionsLog`)).key;
   if (!logEntryId) return { ok: false, reason: "Could not generate a decision log entry." };
@@ -150,7 +164,15 @@ async function claimAndApplyLedgerDelta(
   if (!claim.committed) return { ok: false, reason: "This card has already been played." };
 
   const logEntry: DecisionLogEntry = { cardId, cardType, appliedAmount, appliedAt: now, reconsideredAt: null };
-  await update(ref(rtdb), { [`${base}/decisionsLog/${logEntryId}`]: logEntry });
+  try {
+    await update(ref(rtdb), { [`${base}/decisionsLog/${logEntryId}`]: logEntry, ...extraUpdates });
+  } catch (err) {
+    await runTransaction(ref(rtdb, `${base}/cardsInPlay/${cardId}`), (current: CardInPlay | null) => {
+      if (current?.logEntryId === logEntryId) return null;
+      return current;
+    });
+    throw err;
+  }
 
   await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
     if (current === null) return current;
@@ -189,12 +211,14 @@ export async function applyCard(
   const appliedAmount = cardType === "revenue" ? revenueDelta : expenditureDelta;
 
   const base = `sessions/${code}/commissions/${commissionId}`;
+  const fundedUpdate = await priorityFundedUpdateFragment(base, catalog, cardType, cardId, true);
   const result = await claimAndApplyLedgerDelta(
     base,
     cardId,
     cardType,
     appliedAmount,
     { revenueDelta, expenditureDelta, deficitDelta },
+    fundedUpdate,
   );
   if (!result.ok) return result;
 
@@ -213,8 +237,6 @@ export async function applyCard(
   if (motionSnapshot.exists() && motionSnapshot.val()?.cardId === cardId) {
     await update(ref(rtdb), { [`${base}/activeMotion`]: null });
   }
-
-  await syncPriorityFunded(base, catalog, cardType, cardId, true);
 
   return { ok: true };
 }
@@ -251,7 +273,23 @@ export async function reconsiderCard(
   if (!claim.committed || !claimed) return { ok: false, reason: "This card is not currently played." };
 
   const { cardType, appliedAmount, logEntryId } = claimed;
-  await update(ref(rtdb), { [`${base}/decisionsLog/${logEntryId}/reconsideredAt`]: Date.now() });
+
+  // Bundled into one update() so the reconsideredAt marker and the
+  // Priority's funded flip either land together or neither does -- same
+  // atomicity reasoning as claimAndApplyLedgerDelta's extraUpdates. If
+  // this is rejected, restore the cardsInPlay entry just deleted above
+  // rather than leaving the card "Available" again with no reversal
+  // marker on its decisionsLog entry.
+  const fundedUpdate = await priorityFundedUpdateFragment(base, catalog, cardType, cardId, false);
+  try {
+    await update(ref(rtdb), { [`${base}/decisionsLog/${logEntryId}/reconsideredAt`]: Date.now(), ...fundedUpdate });
+  } catch (err) {
+    await runTransaction(ref(rtdb, `${base}/cardsInPlay/${cardId}`), (current: CardInPlay | null) => {
+      if (current !== null) return undefined;
+      return claimed;
+    });
+    throw err;
+  }
 
   await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
     if (current === null) return current;
@@ -269,8 +307,6 @@ export async function reconsiderCard(
     for (const siblingId of siblings) updates[`${base}/cardsLockedOut/${siblingId}`] = null;
     await update(ref(rtdb), updates);
   }
-
-  await syncPriorityFunded(base, catalog, cardType, cardId, false);
 
   return { ok: true };
 }
@@ -357,12 +393,14 @@ export async function applyChairFreeCard(
 
   const { revenueDelta, expenditureDelta, deficitDelta } = resolved;
   const appliedAmount = cardType === "revenue" ? revenueDelta : expenditureDelta;
+  const fundedUpdate = await priorityFundedUpdateFragment(base, catalog, cardType, cardId, true);
   const result = await claimAndApplyLedgerDelta(
     base,
     cardId,
     cardType,
     appliedAmount,
     { revenueDelta, expenditureDelta, deficitDelta },
+    fundedUpdate,
   );
   if (!result.ok) return result;
 
@@ -372,8 +410,6 @@ export async function applyChairFreeCard(
     for (const siblingId of siblings) updates[`${base}/cardsLockedOut/${siblingId}`] = true;
     await update(ref(rtdb), updates);
   }
-
-  await syncPriorityFunded(base, catalog, cardType, cardId, true);
 
   return { ok: true };
 }

@@ -15,7 +15,7 @@ interface Props {
  * set here or by any dedicated control; it flips automatically the
  * instant the Manager/Administrator applies the one card
  * (PriorityCard.linkedCardId) that fulfills it, via the normal
- * apply/reconsider flow (see syncPriorityFunded in ledgerService.ts).
+ * apply/reconsider flow (see priorityFundedUpdateFragment in ledgerService.ts).
  */
 function PriorityTile({ priority, priorityCards, catalog }: Props) {
   if (!priority?.selectedCardId) return null;
