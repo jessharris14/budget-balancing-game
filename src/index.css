@@ -71,12 +71,21 @@ h2 {
   font-family: var(--heading);
   font-weight: 500;
   color: var(--text-h);
+  /*
+   * "Manager/Administrator" (and similar slash-joined titles) has no
+   * space for the browser to wrap at, so at mobile font sizes it doesn't
+   * fit the viewport and was forcing the whole page wider instead of
+   * wrapping (confirmed live: this single rule was the entire cause of a
+   * ~30-50px horizontal overflow on every view whose title used it).
+   */
+  overflow-wrap: break-word;
 }
 
 h1 {
   font-size: 56px;
   letter-spacing: -1.68px;
   margin: 32px 0;
+  line-height: 1.15;
   @media (max-width: 1024px) {
     font-size: 36px;
     margin: 20px 0;

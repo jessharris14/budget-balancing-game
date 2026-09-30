@@ -1,5 +1,7 @@
 .session-view {
   max-width: 40rem;
+  width: 100%;
+  box-sizing: border-box;
   margin: 3rem auto;
   padding: 0 1.5rem;
   font-family: system-ui, sans-serif;
@@ -119,4 +121,66 @@
   padding: 0.4rem 0.6rem;
   text-align: left;
   vertical-align: top;
+}
+
+/* Base table styling for the Commissioner/Manager catalog tables, which
+   otherwise get no styling at all (only .facilitator-console table did). */
+.session-view table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.session-view th,
+.session-view td {
+  border: 1px solid #ccc;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+/*
+ * Phase 6 mobile readability pass: a fixed-column table forces the whole
+ * page wider than the viewport on a phone (confirmed live -- "Impact
+ * Bullets" text squeezed into a narrow column ballooned every card to
+ * dozens of lines and pushed the page to ~500-600px wide against a 375px
+ * viewport). Below this breakpoint, each row becomes its own bordered
+ * block and each cell stacks with a small label above it (from the cell's
+ * own data-label attribute) instead of relying on the (now-hidden) header
+ * row -- same information, no horizontal scroll anywhere.
+ */
+@media (max-width: 480px) {
+  .session-view table {
+    border: none;
+  }
+
+  .session-view table thead {
+    display: none;
+  }
+
+  .session-view table tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .session-view table td {
+    display: block;
+    width: auto;
+    border: none;
+    padding: 0.35rem 0;
+  }
+
+  .session-view table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #888;
+  }
 }
