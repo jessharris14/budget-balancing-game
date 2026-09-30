@@ -69,18 +69,30 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
   // The moment a motion has both a mover and a seconder, auto-highlight
   // that card as "Card Under Debate" -- no separate manual step for the
-  // Chair. Only ever runs on the Chair's own client, since chairHighlighted
-  // CardId is writable only by the Chair (RTDB rule), and only writes when
-  // the highlight doesn't already match, so it can't fight a manual
-  // dropdown change. A table that skips motion/second and highlights
-  // verbally instead never produces a seconded motion, so this never
-  // interferes with that fallback.
+  // Chair -- and clear the motion itself, since its job (capturing who
+  // moved/seconded) is done and Card Under Debate is now the single
+  // source of truth for what's being discussed. Without this, Pending
+  // Motion kept showing the same card as a stale duplicate alongside Card
+  // Under Debate with no visible relationship between the two (matches
+  // this app's existing motion/second design: a motion is only ever a
+  // pointer to what the room is currently debating, not a permanent
+  // record -- applyCard already clears it the same way once the card is
+  // actually applied; this just moves that same "resolved" moment earlier,
+  // to promotion time). Only ever runs on the Chair's own client, since
+  // both chairHighlightedCardId and activeMotion are writable by the
+  // Chair (activeMotion by any Commissioner, chairHighlightedCardId by the
+  // Chair alone per RTDB rules), and only writes when the highlight
+  // doesn't already match, so it can't fight a manual dropdown change. A
+  // table that skips motion/second and highlights verbally instead never
+  // produces a seconded motion, so this never interferes with that
+  // fallback.
   useEffect(() => {
     if (!isMyChair) return;
     const activeMotion = commission.activeMotion;
     if (!activeMotion?.secondedBy) return;
     if (commission.chairHighlightedCardId === activeMotion.cardId) return;
     void setChairHighlightedCard(code, commissionId, activeMotion.cardId);
+    void clearMotion(code, commissionId);
   }, [
     isMyChair,
     commission.activeMotion?.cardId,
@@ -89,6 +101,21 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     code,
     commissionId,
   ]);
+
+  // The debate is over once the highlighted card is actually applied --
+  // clear Card Under Debate automatically rather than leaving it to show
+  // an already-decided card until the Chair notices and clicks Clear.
+  // Only ever runs on the Chair's own client (same write-access reason as
+  // above); applyCard already clears a matching activeMotion on its own
+  // (it has legitimate write access there), so this only needs to handle
+  // the highlight side.
+  useEffect(() => {
+    if (!isMyChair) return;
+    const highlighted = commission.chairHighlightedCardId;
+    if (!highlighted) return;
+    if (!commission.cardsInPlay?.[highlighted]) return;
+    void setChairHighlightedCard(code, commissionId, null);
+  }, [isMyChair, commission.chairHighlightedCardId, commission.cardsInPlay, code, commissionId]);
 
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading catalog…</p>;
