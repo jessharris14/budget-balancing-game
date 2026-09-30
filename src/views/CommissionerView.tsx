@@ -114,7 +114,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
 
   return (
     <div className="session-view manager-console">
-      <h1>{isMyChair ? "Chair" : "Commissioner"} View — {code}</h1>
+      <h1>{isMyChair ? "Board Chair" : "Commissioner"} View — {code}</h1>
       <p>{commission.name ?? `Table ${commissionId} (unnamed)`}</p>
 
       <p>
