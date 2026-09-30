@@ -67,6 +67,29 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     setSelectedCardId(commission.chairHighlightedCardId ?? "");
   }, [commission.chairHighlightedCardId]);
 
+  // The moment a motion has both a mover and a seconder, auto-highlight
+  // that card as "Card Under Debate" -- no separate manual step for the
+  // Chair. Only ever runs on the Chair's own client, since chairHighlighted
+  // CardId is writable only by the Chair (RTDB rule), and only writes when
+  // the highlight doesn't already match, so it can't fight a manual
+  // dropdown change. A table that skips motion/second and highlights
+  // verbally instead never produces a seconded motion, so this never
+  // interferes with that fallback.
+  useEffect(() => {
+    if (!isMyChair) return;
+    const activeMotion = commission.activeMotion;
+    if (!activeMotion?.secondedBy) return;
+    if (commission.chairHighlightedCardId === activeMotion.cardId) return;
+    void setChairHighlightedCard(code, commissionId, activeMotion.cardId);
+  }, [
+    isMyChair,
+    commission.activeMotion?.cardId,
+    commission.activeMotion?.secondedBy,
+    commission.chairHighlightedCardId,
+    code,
+    commissionId,
+  ]);
+
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading catalog…</p>;
 
@@ -148,6 +171,14 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
   async function handleClearMotion() {
     setBusy(true);
     try {
+      // Clearing a resolved motion shouldn't leave its auto-highlighted
+      // card lingering as "Card Under Debate" until the next motion starts.
+      // Only the Chair's client can write chairHighlightedCardId, and only
+      // when it still matches the motion being cleared (an unrelated
+      // manual highlight is left alone).
+      if (isMyChair && motion && commission.chairHighlightedCardId === motion.cardId) {
+        await setChairHighlightedCard(code, commissionId, null);
+      }
       await clearMotion(code, commissionId);
     } finally {
       setBusy(false);
