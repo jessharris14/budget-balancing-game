@@ -77,7 +77,7 @@
             },
 
             "chairHighlightedCardId": {
-              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
+              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val())"
             },
             "debateTimerEndsAt": {
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"

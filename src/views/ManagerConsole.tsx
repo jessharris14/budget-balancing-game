@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
+import { setChairHighlightedCard } from "../services/chairService";
 import {
   applyCard,
   applyChairFreeCard,
@@ -8,6 +9,7 @@ import {
   reconsiderCard,
   type CardType,
 } from "../services/ledgerService";
+import { clearMotion } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -65,6 +67,38 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading ledger…</p>;
+
+  const highlightedCardType: CardType | null = commission.chairHighlightedCardId
+    ? (catalog.revenueCards.some((c) => c.id === commission.chairHighlightedCardId) ? "revenue" : "expenditure")
+    : null;
+
+  /** Applies the card currently under debate via the exact same applyCard used by the catalog table's own per-card buttons -- not a reimplementation. */
+  function handleMotionPasses() {
+    const cardId = commission.chairHighlightedCardId;
+    if (!cardId || !highlightedCardType) return;
+    void runAction(cardId, () => applyCard(code, commissionId, catalog!, highlightedCardType, cardId));
+  }
+
+  /**
+   * Clears Card Under Debate without applying anything -- same clearing
+   * behavior as the Chair's own resolved-motion Clear button, just
+   * reachable from the Administrator's panel. Only clears the pending
+   * motion too if it's actually for this same card; an unrelated motion
+   * at another table/card is left alone.
+   */
+  async function handleMotionFails() {
+    const cardId = commission.chairHighlightedCardId;
+    if (!cardId) return;
+    setBusyCardId(cardId);
+    try {
+      await setChairHighlightedCard(code, commissionId, null);
+      if (commission.activeMotion?.cardId === cardId) {
+        await clearMotion(code, commissionId);
+      }
+    } finally {
+      setBusyCardId(null);
+    }
+  }
 
   const highlightedCard = commission.chairHighlightedCardId
     ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
@@ -133,8 +167,17 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
       {commission.chairHighlightedCardId && (
         <div className="lobby-commission chair-highlight">
-          <h3>Chair has highlighted: {highlightedCard?.title ?? commission.chairHighlightedCardId}</h3>
+          <h3>Card Under Debate</h3>
+          <p>{highlightedCard?.title ?? commission.chairHighlightedCardId}</p>
           {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
+          <div className="chair-timer-controls">
+            <button onClick={handleMotionPasses} disabled={busyCardId === commission.chairHighlightedCardId}>
+              Motion Passes
+            </button>
+            <button onClick={() => void handleMotionFails()} disabled={busyCardId === commission.chairHighlightedCardId}>
+              Motion Fails
+            </button>
+          </div>
         </div>
       )}
 
