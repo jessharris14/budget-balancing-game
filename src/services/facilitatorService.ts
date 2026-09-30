@@ -1,7 +1,8 @@
 import { ref, runTransaction, update } from "firebase/database";
 import { rtdb } from "../firebase/config";
 import { applyChallengeToLedger } from "./ledgerService";
-import type { ChallengeCard } from "../types/catalog";
+import { drawPromptIds } from "./sessionService";
+import type { ChallengeCard, PromptBankEntry } from "../types/catalog";
 import { SESSION_PHASE_ORDER, type SessionPhase } from "../types/session";
 
 const RANK_PRIORITIES_MS = 3 * 60 * 1000;
@@ -137,4 +138,18 @@ export async function triggerChallenge(
 
   await update(ref(rtdb), updates);
   await applyChallengeToLedger(code, commissionId, card, now);
+}
+
+/**
+ * Facilitator-only (spec Section 8 #3): re-draws 1-2 fresh prompts for a
+ * Speaker whose assigned prompt is a poor fit for the room, and bumps
+ * rerollCount as an audit trail. Reuses the exact same draw logic as the
+ * initial join-time assignment, so a reroll is statistically identical to
+ * getting a fresh draw at join.
+ */
+export async function rerollSpeakerPrompts(code: string, speakerUid: string, promptBank: PromptBankEntry[], currentRerollCount: number): Promise<void> {
+  await update(ref(rtdb), {
+    [`sessions/${code}/publicHearingSpeakers/${speakerUid}/assignedPrompts`]: drawPromptIds(promptBank),
+    [`sessions/${code}/publicHearingSpeakers/${speakerUid}/rerollCount`]: currentRerollCount + 1,
+  });
 }

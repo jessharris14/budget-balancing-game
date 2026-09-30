@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { getCatalog } from "../services/catalogService";
-import { advancePhase, rollForChair, triggerChallenge } from "../services/facilitatorService";
+import { advancePhase, rerollSpeakerPrompts, rollForChair, triggerChallenge } from "../services/facilitatorService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -22,6 +22,7 @@ function FacilitatorConsole({ code, session }: Props) {
   const [rollError, setRollError] = useState<string | null>(null);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
   const [triggeringCommissionId, setTriggeringCommissionId] = useState<string | null>(null);
+  const [rerollingUid, setRerollingUid] = useState<string | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -92,6 +93,16 @@ function FacilitatorConsole({ code, session }: Props) {
       await triggerChallenge(code, commissionId, card, clock.mainGameTimer);
     } finally {
       setTriggeringCommissionId(null);
+    }
+  }
+
+  async function handleReroll(speakerUid: string, currentRerollCount: number) {
+    if (!catalog) return;
+    setRerollingUid(speakerUid);
+    try {
+      await rerollSpeakerPrompts(code, speakerUid, catalog.promptBank, currentRerollCount);
+    } finally {
+      setRerollingUid(null);
     }
   }
 
@@ -232,6 +243,22 @@ function FacilitatorConsole({ code, session }: Props) {
         {speakers.map((speaker) => (
           <li key={speaker.id}>
             {speaker.name} — {session.commissions[speaker.commissionId]?.name ?? `Table ${speaker.commissionId}`}
+            {catalog && (
+              <>
+                {" "}
+                — prompt{speaker.assignedPrompts.length > 1 ? "s" : ""}:{" "}
+                {speaker.assignedPrompts
+                  .map((id) => catalog.promptBank.find((p) => p.id === id)?.text ?? id)
+                  .join(" / ")}
+              </>
+            )}
+            {speaker.rerollCount > 0 && ` (rerolled ${speaker.rerollCount}×)`}{" "}
+            <button
+              onClick={() => handleReroll(speaker.id, speaker.rerollCount)}
+              disabled={!catalog || rerollingUid === speaker.id}
+            >
+              {rerollingUid === speaker.id ? "Rerolling…" : "Reroll prompt"}
+            </button>
           </li>
         ))}
       </ul>
@@ -252,7 +279,7 @@ function FacilitatorConsole({ code, session }: Props) {
             <tbody>
               {catalog.challengeCards.map((card) => (
                 <tr key={card.id}>
-                  <td>
+                  <td data-label="Select">
                     <input
                       type="radio"
                       name="challenge"
@@ -260,9 +287,9 @@ function FacilitatorConsole({ code, session }: Props) {
                       onChange={() => setSelectedChallengeId(card.id)}
                     />
                   </td>
-                  <td>{card.title}</td>
-                  <td>{card.facilitatorNarrative}</td>
-                  <td>
+                  <td data-label="Title">{card.title}</td>
+                  <td data-label="Facilitator Narrative">{card.facilitatorNarrative}</td>
+                  <td data-label="Amount">
                     ${card.amount} {card.target} ({card.direction})
                   </td>
                 </tr>
