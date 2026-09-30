@@ -47,6 +47,15 @@ function FacilitatorConsole({ code, session }: Props) {
   const phaseIdx = SESSION_PHASE_ORDER.indexOf(session.phase);
   const isLastPhase = phaseIdx === SESSION_PHASE_ORDER.length - 1;
 
+  // A Chair is required for the rest of the game (Rank Priorities recording,
+  // debate highlighting, the free card) -- block leaving this phase until
+  // every table has one, so it can't silently be skipped by clicking Next
+  // Phase before rolling.
+  const missingChairTables = commissionEntries
+    .filter(([, c]) => !c.members?.chairId)
+    .map(([id, c]) => c.name ?? `Table ${id}`);
+  const blockedOnChair = session.phase === "rollForChair" && missingChairTables.length > 0;
+
   // Speakers each pick one Commission/table to watch at join, same as a
   // Commissioner, so this tracker is scoped per-Commission below rather
   // than session-wide (spec Section 8a #7/#8 correction).
@@ -104,10 +113,16 @@ function FacilitatorConsole({ code, session }: Props) {
         <p>
           Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
         </p>
-        <button onClick={handleNextPhase} disabled={isLastPhase}>
+        <button onClick={handleNextPhase} disabled={isLastPhase || blockedOnChair}>
           {isLastPhase ? "Session Complete" : "Next Phase →"}
         </button>
       </div>
+
+      {blockedOnChair && (
+        <p className="error">
+          Can't advance yet -- no Chair elected for: {missingChairTables.join(", ")}. Roll for Chair at each table below first.
+        </p>
+      )}
 
       {session.phase === "rankPriorities" && phaseTimerMs !== null && (
         <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>
@@ -154,14 +169,12 @@ function FacilitatorConsole({ code, session }: Props) {
             <LedgerStatusBar ledger={commission.ledger} />
             <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={tableSpeakers.length} />
 
-            {session.phase === "rollForChair" && (
+            {!members.chairId && (
               <div>
-                {!members.chairId && (
-                  <button onClick={() => handleRoll(id)} disabled={rolling === id || commissionerUids.length === 0}>
-                    {rolling === id ? "Rolling…" : "Roll for Chair"}
-                  </button>
-                )}
-                {!members.chairId && commissionerUids.length === 0 && (
+                <button onClick={() => handleRoll(id)} disabled={rolling === id || commissionerUids.length === 0}>
+                  {rolling === id ? "Rolling…" : "Roll for Chair"}
+                </button>
+                {commissionerUids.length === 0 && (
                   <p className="error">No Commissioners have joined this table yet -- at least one is needed to roll.</p>
                 )}
                 {rollError && <p className="error">{rollError}</p>}
