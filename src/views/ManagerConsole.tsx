@@ -63,6 +63,10 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
     : null;
 
+  const chairName = commission.members?.chairId
+    ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
+    : null;
+
   const speakerCount = Object.values(session.publicHearingSpeakers ?? {}).filter(
     (s) => s.commissionId === commissionId,
   ).length;
@@ -91,6 +95,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       {session.phase === "mainGame" && mainGameMs !== null && (
         <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
       )}
+      <p>Chair: {chairName ?? "not yet elected"}</p>
 
       <LedgerStatusBar ledger={commission.ledger} />
       <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />

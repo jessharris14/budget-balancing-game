@@ -77,6 +77,12 @@ function SpeakerView({ code, session, speaker }: Props) {
       <h1>Public Hearing Speaker — {code}</h1>
       <p>{commission?.name ?? `Table ${speaker.commissionId} (unnamed)`}</p>
       <p>
+        Chair:{" "}
+        {commission?.members?.chairId
+          ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
+          : "not yet elected"}
+      </p>
+      <p>
         Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
       </p>
 

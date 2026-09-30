@@ -137,6 +137,7 @@ function FacilitatorConsole({ code, session }: Props) {
             <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
             <p>Commissioners ({commissionerNames.length}): {commissionerNames.length > 0 ? commissionerNames.join(", ") : "none yet"}</p>
+            <p>Chair: {chairName ?? "not yet elected"}</p>
             <p>Decisions made: {decisionsCount}</p>
             {tableSpeakers.length > 0 && (
               <p>
@@ -148,9 +149,7 @@ function FacilitatorConsole({ code, session }: Props) {
 
             {session.phase === "rollForChair" && (
               <div>
-                {members.chairId ? (
-                  <p>Chair: {chairName}</p>
-                ) : (
+                {!members.chairId && (
                   <button onClick={() => handleRoll(id)} disabled={rolling === id || commissionerUids.length === 0}>
                     {rolling === id ? "Rolling…" : "Roll for Chair"}
                   </button>

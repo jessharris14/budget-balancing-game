@@ -68,6 +68,10 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
       catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
     : null;
 
+  const chairName = commission.members?.chairId
+    ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
+    : null;
+
   const speakerCount = Object.values(session.publicHearingSpeakers ?? {}).filter(
     (s) => s.commissionId === commissionId,
   ).length;
@@ -122,6 +126,10 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
       {session.phase === "mainGame" && mainGameMs !== null && (
         <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
       )}
+      <p>
+        Chair: {chairName ?? "not yet elected"}
+        {isMyChair && " (you)"}
+      </p>
 
       {session.phase === "rankPriorities" && (
         <div className="lobby-commission">
