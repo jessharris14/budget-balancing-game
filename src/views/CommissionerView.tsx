@@ -11,6 +11,7 @@ import { clearMotion, signalMotion, signalSecond } from "../services/motionServi
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
@@ -198,38 +199,48 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           <h3>Rank Priorities</h3>
           {isMyChair ? (
             <div className="role-options">
-              {catalog.priorityCards.map((card) => (
-                <label key={card.id}>
-                  <input
-                    type="radio"
-                    name="priority"
-                    checked={commission.priority?.selectedCardId === card.id}
-                    disabled={busy}
-                    onChange={() => handleSelectPriority(card.id)}
-                  />
-                  {card.title} — {card.description}
-                </label>
-              ))}
+              {catalog.priorityCards.map((card) => {
+                const selected = commission.priority?.selectedCardId === card.id;
+                return (
+                  <label key={card.id} className={selected ? "priority-option-selected" : undefined}>
+                    <input
+                      type="radio"
+                      name="priority"
+                      checked={selected}
+                      disabled={busy}
+                      onChange={() => handleSelectPriority(card.id)}
+                    />
+                    {card.title} — {card.description}
+                    {selected && <span className="priority-selected-check"> ✓ Selected</span>}
+                  </label>
+                );
+              })}
             </div>
           ) : (
-            <>
-              <ul>
-                {catalog.priorityCards.map((card) => (
-                  <li key={card.id}>
+            <ul>
+              {catalog.priorityCards.map((card) => {
+                const selected = commission.priority?.selectedCardId === card.id;
+                return (
+                  <li key={card.id} className={selected ? "priority-option-selected" : undefined}>
                     {card.title} — {card.description}
+                    {selected && <span className="priority-selected-check"> ✓ Selected</span>}
                   </li>
-                ))}
-              </ul>
-              <p>
-                Selected:{" "}
-                {commission.priority?.selectedCardId
-                  ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
-                    commission.priority.selectedCardId)
-                  : "not yet recorded by the Chair"}
-              </p>
-            </>
+                );
+              })}
+            </ul>
           )}
+          <p className="priority-selected-line">
+            Selected:{" "}
+            {commission.priority?.selectedCardId
+              ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
+                commission.priority.selectedCardId)
+              : "not yet recorded by the Chair"}
+          </p>
         </div>
+      )}
+
+      {session.phase === "mainGame" && (
+        <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} />
       )}
 
       <LedgerStatusBar ledger={commission.ledger} />

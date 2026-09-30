@@ -3,6 +3,7 @@ import { getCatalog } from "../services/catalogService";
 import { castEndorsement } from "../services/speakerService";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Session, type Speaker } from "../types/session";
@@ -116,6 +117,9 @@ function SpeakerView({ code, session, speaker }: Props) {
         <>
           <LedgerStatusBar ledger={commission.ledger} />
           <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+          {session.phase === "mainGame" && (
+            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} />
+          )}
           <DecisionsList commission={commission} catalog={catalog} />
         </>
       )}

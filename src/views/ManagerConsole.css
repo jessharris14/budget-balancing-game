@@ -162,6 +162,37 @@
   fill: #666;
 }
 
+.priority-option-selected {
+  background: rgba(26, 122, 26, 0.12);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.4rem;
+}
+
+.priority-selected-check {
+  color: #1a7a1a;
+  font-weight: 700;
+}
+
+.priority-selected-line {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.priority-tile.priority-funded {
+  border-color: rgba(26, 122, 26, 0.5);
+  background: rgba(26, 122, 26, 0.08);
+}
+
+.priority-tile.priority-unfunded {
+  border-color: rgba(176, 96, 0, 0.5);
+  background: rgba(176, 96, 0, 0.06);
+}
+
+.priority-status {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
 .chair-timer-controls {
   display: flex;
   align-items: center;

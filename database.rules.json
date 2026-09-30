@@ -38,6 +38,9 @@
             "priority": {
               "selectedCardId": {
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
+              },
+              "funded": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
               }
             },
             "activeChallenge": {

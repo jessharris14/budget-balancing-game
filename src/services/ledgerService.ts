@@ -333,6 +333,23 @@ export async function applyChairFreeCard(
   return { ok: true };
 }
 
+/**
+ * Manual funded/not-yet-funded toggle for the Commission's selected
+ * Priority. priorityCards have no reliable catalog-level mapping to the
+ * specific Revenue/Expenditure card(s) that fulfill them in a given
+ * session's real deliberation, so -- matching this app's existing trust
+ * model (the Chair's highlight and motion/second signals are human
+ * judgment calls too, never derived from card data) -- the
+ * Manager/Administrator flips this by hand the moment they judge the
+ * Priority funded, rather than the app inferring it from any one card
+ * being applied.
+ */
+export async function setPriorityFunded(code: string, commissionId: string, funded: boolean): Promise<void> {
+  await update(ref(rtdb), {
+    [`sessions/${code}/commissions/${commissionId}/priority/funded`]: funded,
+  });
+}
+
 export type ReserveTier = "safe" | "neutral" | "warning" | "critical";
 
 /** Section 6 scoring tiers -- live indicator only, not the authoritative final score (Phase 7). */

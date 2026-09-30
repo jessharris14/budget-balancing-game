@@ -5,6 +5,7 @@ import { advancePhase, rerollSpeakerPrompts, rollForChair, triggerChallenge } fr
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
@@ -219,6 +220,10 @@ function FacilitatorConsole({ code, session }: Props) {
                     commission.priority.selectedCardId)
                   : "not yet recorded by the Chair"}
               </p>
+            )}
+
+            {session.phase === "mainGame" && catalog && (
+              <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} />
             )}
 
             {session.phase === "mainGame" && (

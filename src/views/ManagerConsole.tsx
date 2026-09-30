@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
-import { applyCard, applyChairFreeCard, isCardAvailable, reconsiderCard, type CardType } from "../services/ledgerService";
+import {
+  applyCard,
+  applyChairFreeCard,
+  isCardAvailable,
+  reconsiderCard,
+  setPriorityFunded,
+  type CardType,
+} from "../services/ledgerService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
+import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
@@ -22,6 +30,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busyCardId, setBusyCardId] = useState<string | null>(null);
   const [freeCardChoice, setFreeCardChoice] = useState<{ type: CardType; id: string } | null>(null);
+  const [togglingFunded, setTogglingFunded] = useState(false);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -57,6 +66,15 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading ledger…</p>;
+
+  async function handleToggleFunded() {
+    setTogglingFunded(true);
+    try {
+      await setPriorityFunded(code, commissionId, !commission.priority?.funded);
+    } finally {
+      setTogglingFunded(false);
+    }
+  }
 
   const highlightedCard = commission.chairHighlightedCardId
     ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
@@ -107,6 +125,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
       <LedgerStatusBar ledger={commission.ledger} />
       <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+      {session.phase === "mainGame" && (
+        <PriorityTile
+          priority={commission.priority}
+          priorityCards={catalog.priorityCards}
+          onToggleFunded={handleToggleFunded}
+          toggling={togglingFunded}
+        />
+      )}
 
       {error && <p className="error">{error}</p>}
 
