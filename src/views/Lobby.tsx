@@ -79,6 +79,7 @@ function Lobby() {
         commissionId={myParticipant.commissionId}
         commission={myCommission}
         isMyChair={isMyChair}
+        myUid={user?.uid ?? ""}
       />
     );
   }

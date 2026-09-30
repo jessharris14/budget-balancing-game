@@ -48,6 +48,7 @@ function buildInitialCommission(id: string, budgetPicture: BudgetPicture, reserv
     decisionsLog: {},
     challengesApplied: {},
     activeChallenge: null,
+    activeMotion: null,
     challengeLedgerAppliedAt: null,
     publicTrustTally: 0,
     finalScore: null,
@@ -159,7 +160,8 @@ export async function joinAsCommissioner(code: string, commissionId: string, dis
   await writeParticipant(code, { uid, name: displayName, role: "commissioner", commissionId });
 }
 
-function drawPromptIds(promptBank: PromptBankEntry[]): string[] {
+/** Exported for facilitatorService.rerollSpeakerPrompts, which draws fresh prompts the same way. */
+export function drawPromptIds(promptBank: PromptBankEntry[]): string[] {
   const count = Math.random() < 0.5 ? 1 : 2;
   const shuffled = [...promptBank].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count).map((entry) => entry.id);

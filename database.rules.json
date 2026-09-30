@@ -43,6 +43,9 @@
             "activeChallenge": {
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
             },
+            "activeMotion": {
+              ".write": "auth != null && (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val())"
+            },
             "challengesApplied": {
               "$cardId": {
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()",
@@ -93,6 +96,12 @@
         "publicHearingSpeakers": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid",
+            "assignedPrompts": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+            },
+            "rerollCount": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+            },
             "endorsementsUsed": {
               "0": {
                 ".validate": "!data.exists() && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"

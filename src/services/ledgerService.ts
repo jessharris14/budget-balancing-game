@@ -166,6 +166,15 @@ export async function applyCard(
     await update(ref(rtdb), updates);
   }
 
+  // The pending motion (if any) is resolved the instant its own card is
+  // applied -- a stale "moved by X" banner for an already-decided card
+  // would just be confusing, since a motion is only ever a pointer to what
+  // the room is currently debating, not a record of what happened.
+  const motionSnapshot = await get(ref(rtdb, `${base}/activeMotion`));
+  if (motionSnapshot.exists() && motionSnapshot.val()?.cardId === cardId) {
+    await update(ref(rtdb), { [`${base}/activeMotion`]: null });
+  }
+
   return { ok: true };
 }
 

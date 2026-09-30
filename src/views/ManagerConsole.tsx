@@ -71,6 +71,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     (s) => s.commissionId === commissionId,
   ).length;
 
+  const motion = commission.activeMotion;
+  const motionCard = motion
+    ? (catalog.revenueCards.find((c) => c.id === motion.cardId) ??
+      catalog.expenditureCards.find((c) => c.id === motion.cardId))
+    : null;
+  const moverName = motion ? (session.participants[motion.movedBy]?.name ?? motion.movedBy) : null;
+  const seconderName = motion?.secondedBy ? (session.participants[motion.secondedBy]?.name ?? motion.secondedBy) : null;
+
   const canUseFreeCard = session.phase === "mainGame" && !commission.chairFreeCardUsed;
   const dollarCards = [
     ...catalog.revenueCards
@@ -101,6 +109,16 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
 
       {error && <p className="error">{error}</p>}
+
+      {session.phase === "mainGame" && motion && (
+        <div className="lobby-commission">
+          <h3>Pending Motion</h3>
+          <p>
+            {motionCard?.title ?? motion.cardId} — moved by {moverName}
+          </p>
+          <p>{seconderName ? `Seconded by ${seconderName}` : "— awaiting second —"}</p>
+        </div>
+      )}
 
       {commission.chairHighlightedCardId && (
         <div className="lobby-commission chair-highlight">
@@ -168,13 +186,13 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
             const lockedOut = commission.cardsLockedOut?.[card.id];
             return (
               <tr key={card.id}>
-                <td>{card.id}</td>
-                <td>{card.title}</td>
-                <td>{card.impactBullets.join("; ")}</td>
-                <td>
+                <td data-label="ID">{card.id}</td>
+                <td data-label="Title">{card.title}</td>
+                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
+                <td data-label="Amount">
                   ${card.amount} ({card.direction})
                 </td>
-                <td>{played ? "Played" : lockedOut ? "Locked out" : "Available"}</td>
+                <td data-label="Status">{played ? "Played" : lockedOut ? "Locked out" : "Available"}</td>
                 <td>
                   {played ? (
                     <button
@@ -215,13 +233,13 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
             const played = commission.cardsInPlay?.[card.id];
             return (
               <tr key={card.id}>
-                <td>{card.id}</td>
-                <td>{card.title}</td>
-                <td>{card.impactBullets.join("; ")}</td>
-                <td>
+                <td data-label="ID">{card.id}</td>
+                <td data-label="Title">{card.title}</td>
+                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
+                <td data-label="Amount">
                   ${card.amount} ({card.direction})
                 </td>
-                <td>{played ? "Played" : "Available"}</td>
+                <td data-label="Status">{played ? "Played" : "Available"}</td>
                 <td>
                   {played ? (
                     <button

@@ -6,6 +6,8 @@ import {
   startDebateTimer,
   stopDebateTimer,
 } from "../services/chairService";
+import { isCardAvailable, type CardType } from "../services/ledgerService";
+import { clearMotion, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -21,6 +23,7 @@ interface Props {
   commissionId: string;
   commission: Commission;
   isMyChair: boolean;
+  myUid: string;
 }
 
 /**
@@ -31,13 +34,16 @@ interface Props {
  * The Chair additionally gets two live controls -- highlighting a card as
  * "currently under debate" and running the debate timer -- but records no
  * vote outcome of any kind and doesn't gate the Manager/Administrator's own
- * apply/reconsider actions.
+ * apply/reconsider actions. During Main Game, any Commissioner can also
+ * signal a motion/second (Phase 6 #1) -- a lightweight, non-gating signal,
+ * same trust model as everything else here.
  */
-function CommissionerView({ code, session, commissionId, commission, isMyChair }: Props) {
+function CommissionerView({ code, session, commissionId, commission, isMyChair, myUid }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [motionBusyCardId, setMotionBusyCardId] = useState<string | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -76,6 +82,14 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
     (s) => s.commissionId === commissionId,
   ).length;
 
+  const motion = commission.activeMotion;
+  const motionCard = motion
+    ? (catalog.revenueCards.find((c) => c.id === motion.cardId) ??
+      catalog.expenditureCards.find((c) => c.id === motion.cardId))
+    : null;
+  const moverName = motion ? (session.participants[motion.movedBy]?.name ?? motion.movedBy) : null;
+  const seconderName = motion?.secondedBy ? (session.participants[motion.secondedBy]?.name ?? motion.secondedBy) : null;
+
   async function handleHighlight(cardId: string) {
     setBusy(true);
     try {
@@ -110,6 +124,54 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleMotion(cardId: string, cardType: CardType) {
+    setMotionBusyCardId(cardId);
+    try {
+      await signalMotion(code, commissionId, cardId, cardType);
+    } finally {
+      setMotionBusyCardId(null);
+    }
+  }
+
+  async function handleSecond() {
+    setBusy(true);
+    try {
+      await signalSecond(code, commissionId);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleClearMotion() {
+    setBusy(true);
+    try {
+      await clearMotion(code, commissionId);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Shared Motion/Second cell for both catalog tables -- Main Game only, and only for cards not already played or locked out. */
+  function renderMotionCell(cardId: string, cardType: CardType) {
+    if (session.phase !== "mainGame") return null;
+    if (!isCardAvailable(commission, cardId)) return <span>—</span>;
+    if (motion?.cardId === cardId) {
+      if (!motion.secondedBy && motion.movedBy !== myUid) {
+        return (
+          <button onClick={handleSecond} disabled={busy}>
+            Second
+          </button>
+        );
+      }
+      return <span>Motioned</span>;
+    }
+    return (
+      <button onClick={() => handleMotion(cardId, cardType)} disabled={motionBusyCardId === cardId}>
+        {motionBusyCardId === cardId ? "Motioning…" : "I move to adopt"}
+      </button>
+    );
   }
 
   return (
@@ -182,6 +244,26 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
         </div>
       )}
 
+      {session.phase === "mainGame" && motion && (
+        <div className="lobby-commission">
+          <h3>Pending Motion</h3>
+          <p>
+            {motionCard?.title ?? motion.cardId} — moved by {moverName}
+          </p>
+          <p>{seconderName ? `Seconded by ${seconderName}` : "— awaiting second —"}</p>
+          {!motion.secondedBy && motion.movedBy !== myUid && (
+            <button onClick={handleSecond} disabled={busy}>
+              Second
+            </button>
+          )}
+          {(motion.movedBy === myUid || isMyChair) && (
+            <button onClick={handleClearMotion} disabled={busy}>
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="lobby-commission chair-highlight">
         <h3>Card Under Debate</h3>
         {isMyChair ? (
@@ -230,16 +312,18 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
             <th>Title</th>
             <th>Impact Bullets</th>
             <th>Amount</th>
+            {session.phase === "mainGame" && <th></th>}
           </tr>
         </thead>
         <tbody>
           {catalog.revenueCards.map((card) => (
             <tr key={card.id}>
-              <td>{card.title}</td>
-              <td>{card.impactBullets.join("; ")}</td>
-              <td>
+              <td data-label="Title">{card.title}</td>
+              <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
+              <td data-label="Amount">
                 ${card.amount} ({card.direction})
               </td>
+              {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "revenue")}</td>}
             </tr>
           ))}
         </tbody>
@@ -252,16 +336,18 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair }
             <th>Title</th>
             <th>Impact Bullets</th>
             <th>Amount</th>
+            {session.phase === "mainGame" && <th></th>}
           </tr>
         </thead>
         <tbody>
           {catalog.expenditureCards.map((card) => (
             <tr key={card.id}>
-              <td>{card.title}</td>
-              <td>{card.impactBullets.join("; ")}</td>
-              <td>
+              <td data-label="Title">{card.title}</td>
+              <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
+              <td data-label="Amount">
                 ${card.amount} ({card.direction})
               </td>
+              {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "expenditure")}</td>}
             </tr>
           ))}
         </tbody>

@@ -158,6 +158,24 @@ export interface ActiveChallenge {
   triggeredAt: number;
 }
 
+/**
+ * A lightweight motion/second signal (Phase 6 #1) -- purely informational,
+ * so the room can see "who's moving what" at a glance. Not a gate: it
+ * never blocks or enables the Chair's highlight action or the Manager/
+ * Administrator's apply action, matching the app's existing trust model
+ * (the room's real verbal process is what matters; the app just helps
+ * surface it). Any Commissioner (including the Chair, who is one) can
+ * move or second; a new motion simply replaces whatever was pending.
+ */
+export interface ActiveMotion {
+  cardId: string;
+  cardType: "revenue" | "expenditure";
+  movedBy: string;
+  movedAt: number;
+  secondedBy: string | null;
+  secondedAt: number | null;
+}
+
 export interface Commission {
   id: string;
   /** Jurisdiction name (free text), set by the first participant to join this table. Null until then. */
@@ -182,6 +200,8 @@ export interface Commission {
   /** Keyed by challengeCardId -- audit trail of every challenge ever triggered for this Commission. */
   challengesApplied: Record<string, true>;
   activeChallenge: ActiveChallenge | null;
+  /** Pending motion/second signal, if any -- see ActiveMotion. */
+  activeMotion: ActiveMotion | null;
   /**
    * The triggeredAt of the activeChallenge whose dollar impact was most
    * recently applied to the ledger. Compared against
