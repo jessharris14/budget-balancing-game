@@ -118,10 +118,41 @@ function FacilitatorConsole({ code, session }: Props) {
         </button>
       </div>
 
-      {blockedOnChair && (
-        <p className="error">
-          Can't advance yet -- no Chair elected for: {missingChairTables.join(", ")}. Roll for Chair at each table below first.
-        </p>
+      {missingChairTables.length > 0 && (
+        <div className="lobby-commission">
+          <h2>Roll for Chair</h2>
+          <p>
+            {blockedOnChair
+              ? "Every table needs a Chair before the game can move on to Rank Priorities."
+              : "The game has already moved past Roll for Chair, but the table(s) below still don't have one -- you can still roll now."}
+          </p>
+          {commissionEntries
+            .filter(([, c]) => !c.members?.chairId)
+            .map(([id, c]) => {
+              const commissionerUids = Object.keys(c.members?.commissionerIds ?? {});
+              return (
+                <div key={id}>
+                  <h3>{c.name ?? `Table ${id} (unnamed)`}</h3>
+                  <button onClick={() => handleRoll(id)} disabled={rolling === id || commissionerUids.length === 0}>
+                    {rolling === id ? "Rolling…" : "Roll for Chair"}
+                  </button>
+                  {commissionerUids.length === 0 && (
+                    <p className="error">No Commissioners have joined this table yet -- at least one is needed to roll.</p>
+                  )}
+                  {c.chairRoll && (
+                    <ul>
+                      {Object.entries(c.chairRoll).map(([uid, roll]) => (
+                        <li key={uid}>
+                          {session.participants[uid]?.name ?? uid}: {roll}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          {rollError && <p className="error">{rollError}</p>}
+        </div>
       )}
 
       {session.phase === "rankPriorities" && phaseTimerMs !== null && (
@@ -168,27 +199,6 @@ function FacilitatorConsole({ code, session }: Props) {
             )}
             <LedgerStatusBar ledger={commission.ledger} />
             <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={tableSpeakers.length} />
-
-            {!members.chairId && (
-              <div>
-                <button onClick={() => handleRoll(id)} disabled={rolling === id || commissionerUids.length === 0}>
-                  {rolling === id ? "Rolling…" : "Roll for Chair"}
-                </button>
-                {commissionerUids.length === 0 && (
-                  <p className="error">No Commissioners have joined this table yet -- at least one is needed to roll.</p>
-                )}
-                {rollError && <p className="error">{rollError}</p>}
-                {commission.chairRoll && (
-                  <ul>
-                    {Object.entries(commission.chairRoll).map(([uid, roll]) => (
-                      <li key={uid}>
-                        {session.participants[uid]?.name ?? uid}: {roll}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
 
             {session.phase === "rankPriorities" && catalog && (
               <p>
