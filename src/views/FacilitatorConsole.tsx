@@ -19,6 +19,7 @@ function FacilitatorConsole({ code, session }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [rolling, setRolling] = useState<string | null>(null);
+  const [rollError, setRollError] = useState<string | null>(null);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
   const [triggeringCommissionId, setTriggeringCommissionId] = useState<string | null>(null);
 
@@ -60,8 +61,14 @@ function FacilitatorConsole({ code, session }: Props) {
     const commissionerUids = Object.keys(commission.members?.commissionerIds ?? {});
     if (commissionerUids.length === 0) return;
     setRolling(commissionId);
+    setRollError(null);
     try {
-      await rollForChair(code, commissionId, commissionerUids);
+      const result = await rollForChair(code, commissionId, commissionerUids);
+      if (!result) {
+        setRollError("Roll for Chair didn't take -- a Chair may already be set for this table, or the write was rejected.");
+      }
+    } catch (err) {
+      setRollError(err instanceof Error ? err.message : String(err));
     } finally {
       setRolling(null);
     }
@@ -154,6 +161,10 @@ function FacilitatorConsole({ code, session }: Props) {
                     {rolling === id ? "Rolling…" : "Roll for Chair"}
                   </button>
                 )}
+                {!members.chairId && commissionerUids.length === 0 && (
+                  <p className="error">No Commissioners have joined this table yet -- at least one is needed to roll.</p>
+                )}
+                {rollError && <p className="error">{rollError}</p>}
                 {commission.chairRoll && (
                   <ul>
                     {Object.entries(commission.chairRoll).map(([uid, roll]) => (
