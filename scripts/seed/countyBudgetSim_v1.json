@@ -16,37 +16,49 @@
       "id": "P1",
       "title": "Economic Development",
       "description": "$1 incentive for Company XYZ (30 jobs, $50k+ min salary)",
-      "amount": 1
+      "amount": 1,
+      "linkedCardId": "E7",
+      "linkedCardType": "expenditure"
     },
     {
       "id": "P2",
       "title": "Human Services",
       "description": "$1 to Helping Hands agency (outreach for abused women/children)",
-      "amount": 1
+      "amount": 1,
+      "linkedCardId": "E5",
+      "linkedCardType": "expenditure"
     },
     {
       "id": "P3",
       "title": "Cultural",
       "description": "$1 to non-profit building a county history museum",
-      "amount": 1
+      "amount": 1,
+      "linkedCardId": "E14",
+      "linkedCardType": "expenditure"
     },
     {
       "id": "P4",
       "title": "Environmental Sustainability",
       "description": "$1 for solar panels at the Courthouse",
-      "amount": 1
+      "amount": 1,
+      "linkedCardId": "E15",
+      "linkedCardType": "expenditure"
     },
     {
       "id": "P5",
       "title": "Libraries",
       "description": "$1 for a summer enrichment program at all libraries",
-      "amount": 1
+      "amount": 1,
+      "linkedCardId": "E9",
+      "linkedCardType": "expenditure"
     },
     {
       "id": "P6",
       "title": "Parks & Recreation",
       "description": "$1 to build new athletic fields",
-      "amount": 1
+      "amount": 1,
+      "linkedCardId": "E16",
+      "linkedCardType": "expenditure"
     }
   ],
   "revenueCards": [
@@ -344,6 +356,36 @@
       "impactBullets": [
         "Provide greater incentives to develop community gardens within the County.",
         "Encourages the community to eat healthy."
+      ],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "E14",
+      "title": "Fund County History Museum",
+      "impactBullets": [
+        "Supports a non-profit building a county history museum, preserving local heritage and drawing visitors.",
+        "Will increase expenditures with no direct new revenue."
+      ],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "E15",
+      "title": "Install Solar Panels at the Courthouse",
+      "impactBullets": [
+        "Reduces the Courthouse's long-term energy costs and the County's carbon footprint.",
+        "Requires upfront capital expenditure before any energy savings are realized."
+      ],
+      "amount": 1,
+      "direction": "increase"
+    },
+    {
+      "id": "E16",
+      "title": "Build New Athletic Fields",
+      "impactBullets": [
+        "New athletic fields expand recreational access and could host community events.",
+        "Will increase expenditures for construction and ongoing maintenance."
       ],
       "amount": 1,
       "direction": "increase"

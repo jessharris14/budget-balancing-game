@@ -230,7 +230,7 @@ function FacilitatorConsole({ code, session }: Props) {
             )}
 
             {session.phase === "mainGame" && catalog && (
-              <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} />
+              <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
             )}
 
             {session.phase === "mainGame" && (

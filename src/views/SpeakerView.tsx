@@ -118,7 +118,7 @@ function SpeakerView({ code, session, speaker }: Props) {
           <LedgerStatusBar ledger={commission.ledger} />
           <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
           {session.phase === "mainGame" && (
-            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} />
+            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
           )}
           <DecisionsList commission={commission} catalog={catalog} />
         </>

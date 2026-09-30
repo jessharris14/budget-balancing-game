@@ -62,6 +62,45 @@ export function isCardAvailable(commission: Commission, cardId: string): boolean
   return !commission.cardsInPlay?.[cardId] && !commission.cardsLockedOut?.[cardId];
 }
 
+/** True if this card is the one PriorityCard.linkedCardId the Commission's currently-selected Priority refers to -- used to badge it in the catalog tables so every role can find it. */
+export function isSelectedPriorityCard(
+  catalog: CardCatalog,
+  commission: Commission,
+  cardType: CardType,
+  cardId: string,
+): boolean {
+  const selectedCardId = commission.priority?.selectedCardId;
+  if (!selectedCardId) return false;
+  const priorityCard = catalog.priorityCards.find((p) => p.id === selectedCardId);
+  return !!priorityCard && priorityCard.linkedCardId === cardId && priorityCard.linkedCardType === cardType;
+}
+
+/**
+ * Flips this Commission's Priority funded status the instant the specific
+ * card it's linked to (PriorityCard.linkedCardId/linkedCardType -- a
+ * stable catalog ID, never matched by title text) is applied or
+ * reconsidered through the normal Manager/Administrator apply/reconsider
+ * flow. There's no separate "mark as funded" action; funding is always a
+ * direct consequence of applying the one real card the Priority refers
+ * to, same as every other ledger effect in this app.
+ */
+async function syncPriorityFunded(
+  base: string,
+  catalog: CardCatalog,
+  cardType: CardType,
+  cardId: string,
+  funded: boolean,
+): Promise<void> {
+  const selectedCardIdSnapshot = await get(ref(rtdb, `${base}/priority/selectedCardId`));
+  const selectedCardId: string | null = selectedCardIdSnapshot.val();
+  if (!selectedCardId) return;
+  const priorityCard = catalog.priorityCards.find((p) => p.id === selectedCardId);
+  if (!priorityCard) return;
+  if (priorityCard.linkedCardId === cardId && priorityCard.linkedCardType === cardType) {
+    await update(ref(rtdb), { [`${base}/priority/funded`]: funded });
+  }
+}
+
 /**
  * Applies a resolved card's ledger delta, marks it played, and appends a
  * permanent decisionsLog entry.
@@ -175,6 +214,8 @@ export async function applyCard(
     await update(ref(rtdb), { [`${base}/activeMotion`]: null });
   }
 
+  await syncPriorityFunded(base, catalog, cardType, cardId, true);
+
   return { ok: true };
 }
 
@@ -228,6 +269,8 @@ export async function reconsiderCard(
     for (const siblingId of siblings) updates[`${base}/cardsLockedOut/${siblingId}`] = null;
     await update(ref(rtdb), updates);
   }
+
+  await syncPriorityFunded(base, catalog, cardType, cardId, false);
 
   return { ok: true };
 }
@@ -330,24 +373,9 @@ export async function applyChairFreeCard(
     await update(ref(rtdb), updates);
   }
 
-  return { ok: true };
-}
+  await syncPriorityFunded(base, catalog, cardType, cardId, true);
 
-/**
- * Manual funded/not-yet-funded toggle for the Commission's selected
- * Priority. priorityCards have no reliable catalog-level mapping to the
- * specific Revenue/Expenditure card(s) that fulfill them in a given
- * session's real deliberation, so -- matching this app's existing trust
- * model (the Chair's highlight and motion/second signals are human
- * judgment calls too, never derived from card data) -- the
- * Manager/Administrator flips this by hand the moment they judge the
- * Priority funded, rather than the app inferring it from any one card
- * being applied.
- */
-export async function setPriorityFunded(code: string, commissionId: string, funded: boolean): Promise<void> {
-  await update(ref(rtdb), {
-    [`sessions/${code}/commissions/${commissionId}/priority/funded`]: funded,
-  });
+  return { ok: true };
 }
 
 export type ReserveTier = "safe" | "neutral" | "warning" | "critical";

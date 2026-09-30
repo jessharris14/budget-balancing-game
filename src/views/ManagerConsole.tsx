@@ -4,8 +4,8 @@ import {
   applyCard,
   applyChairFreeCard,
   isCardAvailable,
+  isSelectedPriorityCard,
   reconsiderCard,
-  setPriorityFunded,
   type CardType,
 } from "../services/ledgerService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
@@ -30,7 +30,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busyCardId, setBusyCardId] = useState<string | null>(null);
   const [freeCardChoice, setFreeCardChoice] = useState<{ type: CardType; id: string } | null>(null);
-  const [togglingFunded, setTogglingFunded] = useState(false);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -66,15 +65,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading ledger…</p>;
-
-  async function handleToggleFunded() {
-    setTogglingFunded(true);
-    try {
-      await setPriorityFunded(code, commissionId, !commission.priority?.funded);
-    } finally {
-      setTogglingFunded(false);
-    }
-  }
 
   const highlightedCard = commission.chairHighlightedCardId
     ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
@@ -126,12 +116,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       <LedgerStatusBar ledger={commission.ledger} />
       <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
       {session.phase === "mainGame" && (
-        <PriorityTile
-          priority={commission.priority}
-          priorityCards={catalog.priorityCards}
-          onToggleFunded={handleToggleFunded}
-          toggling={togglingFunded}
-        />
+        <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
       )}
 
       {error && <p className="error">{error}</p>}
@@ -210,10 +195,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           {catalog.revenueCards.map((card) => {
             const played = commission.cardsInPlay?.[card.id];
             const lockedOut = commission.cardsLockedOut?.[card.id];
+            const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
             return (
-              <tr key={card.id}>
+              <tr key={card.id} className={isPriority ? "priority-card-row" : undefined}>
                 <td data-label="ID">{card.id}</td>
-                <td data-label="Title">{card.title}</td>
+                <td data-label="Title">
+                  {card.title}
+                  {isPriority && <span className="priority-badge">Priority</span>}
+                </td>
                 <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
                 <td data-label="Amount">
                   ${card.amount} ({card.direction})
@@ -257,10 +246,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         <tbody>
           {catalog.expenditureCards.map((card) => {
             const played = commission.cardsInPlay?.[card.id];
+            const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
             return (
-              <tr key={card.id}>
+              <tr key={card.id} className={isPriority ? "priority-card-row" : undefined}>
                 <td data-label="ID">{card.id}</td>
-                <td data-label="Title">{card.title}</td>
+                <td data-label="Title">
+                  {card.title}
+                  {isPriority && <span className="priority-badge">Priority</span>}
+                </td>
                 <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
                 <td data-label="Amount">
                   ${card.amount} ({card.direction})

@@ -193,6 +193,24 @@
   font-size: 1.1rem;
 }
 
+.priority-card-row {
+  background: rgba(26, 122, 26, 0.08);
+}
+
+.priority-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  background: #1a7a1a;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
 .chair-timer-controls {
   display: flex;
   align-items: center;

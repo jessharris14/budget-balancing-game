@@ -6,7 +6,7 @@ import {
   startDebateTimer,
   stopDebateTimer,
 } from "../services/chairService";
-import { isCardAvailable, type CardType } from "../services/ledgerService";
+import { isCardAvailable, isSelectedPriorityCard, type CardType } from "../services/ledgerService";
 import { clearMotion, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import DecisionsList from "./DecisionsList";
@@ -271,7 +271,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
       )}
 
       {session.phase === "mainGame" && (
-        <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} />
+        <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
       )}
 
       <LedgerStatusBar ledger={commission.ledger} />
@@ -358,16 +358,22 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           </tr>
         </thead>
         <tbody>
-          {catalog.revenueCards.map((card) => (
-            <tr key={card.id}>
-              <td data-label="Title">{card.title}</td>
-              <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
-              <td data-label="Amount">
-                ${card.amount} ({card.direction})
-              </td>
-              {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "revenue")}</td>}
-            </tr>
-          ))}
+          {catalog.revenueCards.map((card) => {
+            const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
+            return (
+              <tr key={card.id} className={isPriority ? "priority-card-row" : undefined}>
+                <td data-label="Title">
+                  {card.title}
+                  {isPriority && <span className="priority-badge">Priority</span>}
+                </td>
+                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
+                <td data-label="Amount">
+                  ${card.amount} ({card.direction})
+                </td>
+                {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "revenue")}</td>}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -382,16 +388,22 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           </tr>
         </thead>
         <tbody>
-          {catalog.expenditureCards.map((card) => (
-            <tr key={card.id}>
-              <td data-label="Title">{card.title}</td>
-              <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
-              <td data-label="Amount">
-                ${card.amount} ({card.direction})
-              </td>
-              {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "expenditure")}</td>}
-            </tr>
-          ))}
+          {catalog.expenditureCards.map((card) => {
+            const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
+            return (
+              <tr key={card.id} className={isPriority ? "priority-card-row" : undefined}>
+                <td data-label="Title">
+                  {card.title}
+                  {isPriority && <span className="priority-badge">Priority</span>}
+                </td>
+                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
+                <td data-label="Amount">
+                  ${card.amount} ({card.direction})
+                </td>
+                {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "expenditure")}</td>}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

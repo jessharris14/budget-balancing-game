@@ -37,6 +37,15 @@ export interface PriorityCard {
   title: string;
   description: string;
   amount: number;
+  /**
+   * The one real Revenue/Expenditure card that fulfills this Priority --
+   * stable catalog IDs, never matched by title text. Lets the app find the
+   * card in the shared catalog table (to badge it for Commissioners to
+   * motion on and the Manager/Administrator to apply) and detect, by ID,
+   * when applying it should flip this Commission's Priority to funded.
+   */
+  linkedCardId: string;
+  linkedCardType: "revenue" | "expenditure";
 }
 
 export interface BudgetPicture {
