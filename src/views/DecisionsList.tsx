@@ -29,7 +29,12 @@ function DecisionsList({ commission, catalog }: Props) {
               entry.cardType === "revenue"
                 ? catalog.revenueCards.find((c) => c.id === entry.cardId)
                 : catalog.expenditureCards.find((c) => c.id === entry.cardId);
-            const reversed = entry.reconsideredAt !== null;
+            // RTDB prunes a field written as null entirely from storage, so
+            // a never-reconsidered entry (written with reconsideredAt:
+            // null) reads back as *undefined*, not null -- `!== null` was
+            // true for every entry regardless of actual reconsideration.
+            // `!= null` (loose) catches both.
+            const reversed = entry.reconsideredAt != null;
             return (
               <li key={`${entry.cardId}-${entry.appliedAt}-${idx}`} className={reversed ? "decision-reversed" : undefined}>
                 {card?.title ?? entry.cardId} ({entry.cardType}) —{" "}
