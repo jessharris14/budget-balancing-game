@@ -57,6 +57,13 @@ function FacilitatorConsole({ code, session }: Props) {
     .filter(([, c]) => !c.members?.chairId)
     .map(([id, c]) => c.name ?? `Table ${id}`);
   const blockedOnChair = session.phase === "rollForChair" && missingChairTables.length > 0;
+  // missingChairTables is true from session creation (every table starts
+  // with chairId: null) straight through Lobby/Overview/Game Overview/
+  // Public Hearing -- phases that all come BEFORE Roll for Chair -- so it
+  // alone can't gate the panel below. Compare phase order explicitly:
+  // the panel (and its "already moved past" copy) may only appear once
+  // the session has actually reached Roll for Chair.
+  const reachedRollForChair = phaseIdx >= SESSION_PHASE_ORDER.indexOf("rollForChair");
 
   // Speakers each pick one Commission/table to watch at join, same as a
   // Commissioner, so this tracker is scoped per-Commission below rather
@@ -130,7 +137,7 @@ function FacilitatorConsole({ code, session }: Props) {
         </button>
       </div>
 
-      {missingChairTables.length > 0 && (
+      {reachedRollForChair && missingChairTables.length > 0 && (
         <div className="lobby-commission">
           <h2>Roll for Chair</h2>
           <p>
