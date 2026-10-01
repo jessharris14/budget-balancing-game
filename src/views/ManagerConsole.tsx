@@ -85,19 +85,26 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
    * reachable from the Administrator's panel. Only clears the pending
    * motion too if it's actually for this same card; an unrelated motion
    * at another table/card is left alone.
+   *
+   * Previously had no catch block: if setChairHighlightedCard's write was
+   * rejected (e.g. the chairHighlightedCardId RTDB rule widening from
+   * last round not actually being deployed yet), the error propagated
+   * uncaught while `finally` still cleared busyCardId -- from the
+   * Administrator's side that looked exactly like "starts processing,
+   * then resets itself" with no visible explanation. Routing through
+   * runAction surfaces that failure the same way every other action here
+   * does.
    */
   async function handleMotionFails() {
     const cardId = commission.chairHighlightedCardId;
     if (!cardId) return;
-    setBusyCardId(cardId);
-    try {
+    await runAction(cardId, async () => {
       await setChairHighlightedCard(code, commissionId, null);
       if (commission.activeMotion?.cardId === cardId) {
         await clearMotion(code, commissionId);
       }
-    } finally {
-      setBusyCardId(null);
-    }
+      return { ok: true };
+    });
   }
 
   const highlightedCard = commission.chairHighlightedCardId
