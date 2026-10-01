@@ -227,8 +227,20 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         </div>
       )}
 
-      <DecisionsList commission={commission} catalog={catalog} />
+      <DecisionsList
+        commission={commission}
+        catalog={catalog}
+        onReconsider={(cardId) => void runAction(cardId, () => reconsiderCard(code, commissionId, catalog, cardId))}
+        reconsideringCardId={busyCardId}
+      />
 
+      {/*
+        No per-card Apply button here anymore (spec change): the only way
+        to apply a normal card is Motion Passes on Card Under Debate, once
+        a motion has been moved and seconded. These tables are now
+        read-only reference -- find the card, see its status, see the
+        Priority badge -- same as every other role already sees them.
+      */}
       <h2>Revenue Cards</h2>
       <table>
         <thead>
@@ -238,7 +250,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
             <th>Impact Bullets</th>
             <th>Amount</th>
             <th>Status</th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -258,23 +269,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                   ${card.amount} ({card.direction})
                 </td>
                 <td data-label="Status">{played ? "Played" : lockedOut ? "Locked out" : "Available"}</td>
-                <td>
-                  {played ? (
-                    <button
-                      onClick={() => runAction(card.id, () => reconsiderCard(code, commissionId, catalog, card.id))}
-                      disabled={busyCardId === card.id}
-                    >
-                      Reconsider
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => runAction(card.id, () => applyCard(code, commissionId, catalog, "revenue", card.id))}
-                      disabled={!!lockedOut || busyCardId === card.id}
-                    >
-                      Apply
-                    </button>
-                  )}
-                </td>
               </tr>
             );
           })}
@@ -290,7 +284,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
             <th>Impact Bullets</th>
             <th>Amount</th>
             <th>Status</th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -309,23 +302,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                   ${card.amount} ({card.direction})
                 </td>
                 <td data-label="Status">{played ? "Played" : "Available"}</td>
-                <td>
-                  {played ? (
-                    <button
-                      onClick={() => runAction(card.id, () => reconsiderCard(code, commissionId, catalog, card.id))}
-                      disabled={busyCardId === card.id}
-                    >
-                      Reconsider
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => runAction(card.id, () => applyCard(code, commissionId, catalog, "expenditure", card.id))}
-                      disabled={busyCardId === card.id}
-                    >
-                      Apply
-                    </button>
-                  )}
-                </td>
               </tr>
             );
           })}

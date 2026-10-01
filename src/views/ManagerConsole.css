@@ -134,6 +134,11 @@
   font-weight: 400;
 }
 
+.decisions-list li button {
+  margin-left: 0.75rem;
+  font-size: 0.85rem;
+}
+
 .public-trust-gauge {
   max-width: 20rem;
   margin: 1.5rem 0;

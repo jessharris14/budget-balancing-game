@@ -5,6 +5,17 @@ import "./ManagerConsole.css";
 interface Props {
   commission: Commission;
   catalog: CardCatalog;
+  /**
+   * Only passed by ManagerConsole: reconsidering stays exclusive to the
+   * Manager/Administrator (same role split as applying always has been),
+   * so every other view renders this list purely read-only by simply not
+   * passing these two props. Relocated here from a per-row button in the
+   * catalog tables, which are now read-only everywhere -- the only way to
+   * apply a card is Motion Passes on Card Under Debate, so the only way to
+   * undo one belongs next to the permanent record of it having happened.
+   */
+  onReconsider?: (cardId: string) => void;
+  reconsideringCardId?: string | null;
 }
 
 /**
@@ -15,7 +26,7 @@ interface Props {
  * of disappearing, since decisionsLog is a permanent history distinct from
  * cardsInPlay (which only tracks current state).
  */
-function DecisionsList({ commission, catalog }: Props) {
+function DecisionsList({ commission, catalog, onReconsider, reconsideringCardId }: Props) {
   const entries = Object.values(commission.decisionsLog ?? {}).sort((a, b) => a.appliedAt - b.appliedAt);
 
   return (
@@ -43,6 +54,11 @@ function DecisionsList({ commission, catalog }: Props) {
                   {entry.appliedAmount}
                 </span>
                 {reversed && <span className="decision-reversed"> (reversed)</span>}
+                {!reversed && onReconsider && (
+                  <button onClick={() => onReconsider(entry.cardId)} disabled={reconsideringCardId === entry.cardId}>
+                    Reconsider
+                  </button>
+                )}
               </li>
             );
           })}
