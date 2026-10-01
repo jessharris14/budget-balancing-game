@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { castBallotVote } from "../services/ballotService";
 import { getCatalog } from "../services/catalogService";
 import { castEndorsement } from "../services/speakerService";
+import BallotMeasuresList from "./BallotMeasuresList";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
@@ -31,6 +33,8 @@ function SpeakerView({ code, session, speaker }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [casting, setCasting] = useState(false);
   const [castError, setCastError] = useState<string | null>(null);
+  const [voting, setVoting] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -58,6 +62,28 @@ function SpeakerView({ code, session, speaker }: Props) {
   const speakerCount = Object.values(session.publicHearingSpeakers ?? {}).filter(
     (s) => s.commissionId === speaker.commissionId,
   ).length;
+
+  const activeBallot = commission?.activeBallotId ? commission.ballotMeasures?.[commission.activeBallotId] : null;
+  const ballotOpen = !!activeBallot && activeBallot.openedAt != null && activeBallot.closedAt == null;
+  const myVote = activeBallot?.votes?.[speaker.id];
+  const ballotCard = activeBallot
+    ? (activeBallot.cardType === "revenue"
+        ? catalog.revenueCards.find((c) => c.id === activeBallot.cardId)
+        : catalog.expenditureCards.find((c) => c.id === activeBallot.cardId))
+    : null;
+
+  async function handleVote(vote: "yes" | "no") {
+    if (!activeBallot || myVote || voting) return;
+    setVoting(true);
+    setVoteError(null);
+    try {
+      await castBallotVote(code, speaker.commissionId, activeBallot.id, speaker.id, vote);
+    } catch (err) {
+      setVoteError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setVoting(false);
+    }
+  }
 
   async function handleCast(type: "endorse" | "oppose") {
     if (!canCast) return;
@@ -113,6 +139,30 @@ function SpeakerView({ code, session, speaker }: Props) {
         {castError && <p className="error">{castError}</p>}
       </div>
 
+      {ballotOpen && ballotCard && (
+        <div className="lobby-commission">
+          <h3>Ballot Measure: {ballotCard.title}</h3>
+          <ul>
+            {ballotCard.impactBullets.map((bullet, idx) => (
+              <li key={idx}>{bullet}</li>
+            ))}
+          </ul>
+          {myVote ? (
+            <p>You voted. Thanks for participating — results will be announced once voting closes.</p>
+          ) : (
+            <div className="chair-timer-controls">
+              <button onClick={() => handleVote("yes")} disabled={voting}>
+                Yes
+              </button>
+              <button onClick={() => handleVote("no")} disabled={voting}>
+                No
+              </button>
+            </div>
+          )}
+          {voteError && <p className="error">{voteError}</p>}
+        </div>
+      )}
+
       {commission && (
         <>
           <LedgerStatusBar ledger={commission.ledger} />
@@ -121,6 +171,7 @@ function SpeakerView({ code, session, speaker }: Props) {
             <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
           )}
           <DecisionsList commission={commission} catalog={catalog} />
+          <BallotMeasuresList commission={commission} catalog={catalog} />
         </>
       )}
     </div>

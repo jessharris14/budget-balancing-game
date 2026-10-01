@@ -52,6 +52,8 @@ function buildInitialCommission(id: string, budgetPicture: BudgetPicture, reserv
     challengeLedgerAppliedAt: null,
     publicTrustTally: 0,
     finalScore: null,
+    activeBallotId: null,
+    ballotMeasures: {},
   };
 }
 

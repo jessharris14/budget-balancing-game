@@ -92,6 +92,21 @@
             "publicTrustTally": {
               ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId",
               ".validate": "(!data.exists() && newData.val() === 0) || (data.exists() && (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
+            },
+
+            "activeBallotId": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+            },
+            "ballotMeasures": {
+              "$ballotId": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()",
+                "votes": {
+                  "$speakerUid": {
+                    ".write": "auth != null && auth.uid === $speakerUid && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === $ballotId && root.child('sessions').child($code).child('commissions').child($commissionId).child('ballotMeasures').child($ballotId).child('openedAt').val() !== null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId",
+                    ".validate": "!data.exists() && (newData.val() === 'yes' || newData.val() === 'no')"
+                  }
+                }
+              }
             }
           }
         },

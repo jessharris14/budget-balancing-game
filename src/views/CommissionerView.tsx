@@ -9,6 +9,7 @@ import {
 import { isCardAvailable, isSelectedPriorityCard, type CardType } from "../services/ledgerService";
 import { clearMotion, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import BallotMeasuresList from "./BallotMeasuresList";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
@@ -373,6 +374,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
       </div>
 
       <DecisionsList commission={commission} catalog={catalog} />
+      <BallotMeasuresList commission={commission} catalog={catalog} />
 
       <h2>Revenue Cards</h2>
       <table>

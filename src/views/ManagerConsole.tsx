@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
+import { createBallotMeasure, isMillageCard } from "../services/ballotService";
 import { setChairHighlightedCard } from "../services/chairService";
 import {
   applyCard,
@@ -11,6 +12,8 @@ import {
 } from "../services/ledgerService";
 import { clearMotion } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import BallotMeasureModal from "./BallotMeasureModal";
+import BallotMeasuresList from "./BallotMeasuresList";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
@@ -32,6 +35,13 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busyCardId, setBusyCardId] = useState<string | null>(null);
   const [freeCardChoice, setFreeCardChoice] = useState<{ type: CardType; id: string } | null>(null);
+  // Tracks the last ballot that was active, so the modal can keep showing
+  // its final result after activeBallotId clears back to null on
+  // resolution -- the ballot record itself (and so the result shown)
+  // still comes entirely from server state, this just remembers which
+  // one to keep looking up until the Administrator dismisses it.
+  const [lastBallotId, setLastBallotId] = useState<string | null>(null);
+  const [ballotDismissed, setBallotDismissed] = useState(false);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -51,6 +61,13 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const phaseTimerMs = useCountdown(clock.phaseTimer);
   const mainGameMs = useCountdown(clock.mainGameTimer);
   const debateMs = useCountdown(commission.debateTimerEndsAt ?? null);
+
+  useEffect(() => {
+    if (commission.activeBallotId && commission.activeBallotId !== lastBallotId) {
+      setLastBallotId(commission.activeBallotId);
+      setBallotDismissed(false);
+    }
+  }, [commission.activeBallotId, lastBallotId]);
 
   async function runAction(cardId: string, action: () => Promise<{ ok: boolean; reason?: string }>) {
     setBusyCardId(cardId);
@@ -72,10 +89,25 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     ? (catalog.revenueCards.some((c) => c.id === commission.chairHighlightedCardId) ? "revenue" : "expenditure")
     : null;
 
-  /** Applies the card currently under debate via the exact same applyCard used by the catalog table's own per-card buttons -- not a reimplementation. */
+  /**
+   * Applies the card currently under debate via the exact same applyCard
+   * used by the catalog table's own per-card buttons -- not a
+   * reimplementation. For a millage card, applying it directly would skip
+   * the Board's actual decision mechanism for a millage rate: instead of
+   * applying it, this opens a Ballot Measure for the room to vote on --
+   * the card only actually gets applied if that ballot later passes, via
+   * closeBallotMeasure calling this exact same applyCard.
+   */
   function handleMotionPasses() {
     const cardId = commission.chairHighlightedCardId;
     if (!cardId || !highlightedCardType) return;
+    if (isMillageCard(catalog!, highlightedCardType, cardId)) {
+      void runAction(cardId, async () => {
+        await createBallotMeasure(code, commissionId, highlightedCardType, cardId);
+        return { ok: true };
+      });
+      return;
+    }
     void runAction(cardId, () => applyCard(code, commissionId, catalog!, highlightedCardType, cardId));
   }
 
@@ -111,6 +143,17 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
       catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
     : null;
+
+  // Keeps showing the ballot (including its final result) until the
+  // Administrator dismisses it, even after activeBallotId clears back to
+  // null on resolution -- see the lastBallotId effect above.
+  const visibleBallotId = !ballotDismissed ? lastBallotId : null;
+  const visibleBallot = visibleBallotId ? commission.ballotMeasures?.[visibleBallotId] : null;
+  const visibleBallotCard = visibleBallot
+    ? (visibleBallot.cardType === "revenue"
+        ? catalog.revenueCards.find((c) => c.id === visibleBallot.cardId)
+        : catalog.expenditureCards.find((c) => c.id === visibleBallot.cardId))
+    : undefined;
 
   const chairName = commission.members?.chairId
     ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
@@ -177,15 +220,29 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           <h3>Card Under Debate</h3>
           <p>{highlightedCard?.title ?? commission.chairHighlightedCardId}</p>
           {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
-          <div className="chair-timer-controls">
-            <button onClick={handleMotionPasses} disabled={busyCardId === commission.chairHighlightedCardId}>
-              Motion Passes
-            </button>
-            <button onClick={() => void handleMotionFails()} disabled={busyCardId === commission.chairHighlightedCardId}>
-              Motion Fails
-            </button>
-          </div>
+          {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over -- Motion Passes/Fails no longer apply until the ballot resolves. */}
+          {!commission.activeBallotId && (
+            <div className="chair-timer-controls">
+              <button onClick={handleMotionPasses} disabled={busyCardId === commission.chairHighlightedCardId}>
+                Motion Passes
+              </button>
+              <button onClick={() => void handleMotionFails()} disabled={busyCardId === commission.chairHighlightedCardId}>
+                Motion Fails
+              </button>
+            </div>
+          )}
         </div>
+      )}
+
+      {visibleBallot && (
+        <BallotMeasureModal
+          code={code}
+          commissionId={commissionId}
+          catalog={catalog}
+          card={visibleBallotCard}
+          ballot={visibleBallot}
+          onDismiss={() => setBallotDismissed(true)}
+        />
       )}
 
       {commission.activeChallenge && (
@@ -233,6 +290,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         onReconsider={(cardId) => void runAction(cardId, () => reconsiderCard(code, commissionId, catalog, cardId))}
         reconsideringCardId={busyCardId}
       />
+      <BallotMeasuresList commission={commission} catalog={catalog} />
 
       {/*
         No per-card Apply button here anymore (spec change): the only way

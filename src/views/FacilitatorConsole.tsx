@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { getCatalog } from "../services/catalogService";
 import { advancePhase, rerollSpeakerPrompts, rollForChair, triggerChallenge } from "../services/facilitatorService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
+import BallotMeasuresList from "./BallotMeasuresList";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
@@ -245,6 +246,7 @@ function FacilitatorConsole({ code, session }: Props) {
             )}
 
             {catalog && <DecisionsList commission={commission} catalog={catalog} />}
+            {catalog && <BallotMeasuresList commission={commission} catalog={catalog} />}
           </div>
         );
       })}

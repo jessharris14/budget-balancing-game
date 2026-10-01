@@ -176,6 +176,39 @@ export interface ActiveMotion {
   secondedAt: number | null;
 }
 
+export type BallotVote = "yes" | "no";
+
+/**
+ * Ballot Measure flow for millage-rate cards (identified by the catalog's
+ * existing "millage-rate" exclusivityGroup -- the one existing, reusable,
+ * non-hardcoded signal for this; there's no separate "millage" catalog
+ * field): a Board vote (Motion Passes) on one of these doesn't apply the
+ * card directly, it instead opens this record for the room to actually
+ * vote on. openedAt stays null while the Administrator's "Run the
+ * Election" modal is up but voting hasn't started yet (so a Speaker can't
+ * vote on a ballot that's merely been created); closedAt locks voting;
+ * outcome stays null until the tally is computed and (if passed) applied.
+ * Kept permanently in Commission.ballotMeasures once resolved, as the
+ * only record of a FAILED measure -- unlike a passed one, it never gets a
+ * decisionsLog entry, since nothing was actually applied.
+ */
+export interface BallotMeasure {
+  id: string;
+  cardId: string;
+  cardType: "revenue" | "expenditure";
+  openedAt: number | null;
+  closedAt: number | null;
+  outcome: "passed" | "failed" | null;
+  /**
+   * Keyed by the voting Speaker's own uid -- same "owned by the voter,
+   * never exposed as a speaker-to-vote mapping in the UI" privacy pattern
+   * as Speaker.endorsementsUsed, not literal database-level anonymity.
+   * Write-once per key (RTDB .validate rule), so a vote can never be
+   * changed after casting.
+   */
+  votes: Record<string, BallotVote>;
+}
+
 export interface Commission {
   id: string;
   /** Jurisdiction name (free text), set by the first participant to join this table. Null until then. */
@@ -219,6 +252,10 @@ export interface Commission {
    */
   publicTrustTally: number;
   finalScore: FinalScore | null;
+  /** Which ballotMeasures entry (if any) is currently open/in-progress for this Commission -- null once resolved (passed or failed) or cancelled before voting opened. */
+  activeBallotId: string | null;
+  /** Permanent history of every Ballot Measure ever opened for this Commission, keyed by a generated id -- including failed ones, which never get a decisionsLog entry. */
+  ballotMeasures: Record<string, BallotMeasure>;
 }
 
 export interface SessionClock {
