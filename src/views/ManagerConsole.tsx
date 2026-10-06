@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
 import { createBallotMeasure, isMillageCard } from "../services/ballotService";
-import { setChairHighlightedCard } from "../services/chairService";
+import { setChairHighlightedCard, stopDebateTimer } from "../services/chairService";
 import {
   applyCard,
   applyChairFreeCard,
@@ -97,6 +97,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
    * applying it, this opens a Ballot Measure for the room to vote on --
    * the card only actually gets applied if that ballot later passes, via
    * closeBallotMeasure calling this exact same applyCard.
+   *
+   * Phase 7 A1: stops the Chair's debate timer the instant the motion is
+   * resolved (or, for a millage card, handed off to the Ballot Measure
+   * flow -- the Board's debate is over once it has voted, not once the
+   * ballot itself later closes). debateTimerEndsAt is a shared field, so
+   * clearing it here updates every role watching it, not just the Chair's
+   * own screen; the Chair's manual Start/Restart/Stop controls are
+   * untouched.
    */
   function handleMotionPasses() {
     const cardId = commission.chairHighlightedCardId;
@@ -104,11 +112,16 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     if (isMillageCard(catalog!, highlightedCardType, cardId)) {
       void runAction(cardId, async () => {
         await createBallotMeasure(code, commissionId, highlightedCardType, cardId);
+        await stopDebateTimer(code, commissionId);
         return { ok: true };
       });
       return;
     }
-    void runAction(cardId, () => applyCard(code, commissionId, catalog!, highlightedCardType, cardId));
+    void runAction(cardId, async () => {
+      const result = await applyCard(code, commissionId, catalog!, highlightedCardType, cardId);
+      if (result.ok) await stopDebateTimer(code, commissionId);
+      return result;
+    });
   }
 
   /**
@@ -135,6 +148,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       if (commission.activeMotion?.cardId === cardId) {
         await clearMotion(code, commissionId);
       }
+      await stopDebateTimer(code, commissionId);
       return { ok: true };
     });
   }

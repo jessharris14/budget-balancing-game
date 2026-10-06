@@ -1,4 +1,4 @@
-import { ref, update } from "firebase/database";
+import { ref, runTransaction, update } from "firebase/database";
 import { auth, rtdb } from "../firebase/config";
 import type { ActiveMotion, Commission } from "../types/session";
 
@@ -19,19 +19,26 @@ export interface ActionResult {
  * blocks or enables the Chair's highlight action or the Manager/
  * Administrator's apply action, matching this app's trust model (the
  * room's real verbal process is what matters, not an in-app vote or
- * approval). Plain updates rather than transactions: unlike a single-seat
- * claim or a ledger delta, there's no "first write wins" invariant to
- * protect here -- a Commissioner motioning a moment after another simply
- * replaces the pending one, same as a real room moving on.
+ * approval).
  */
 
-/** Any Commissioner (including the Chair) signals "I move to adopt [card]." Replaces whatever motion was already pending. */
+/**
+ * Any Commissioner (including the Chair) signals "I move to adopt [card]."
+ * Phase 7 change: only one motion may be pending at a time (previously a
+ * later motion silently replaced an earlier one, which let two
+ * Commissioners tap different cards nearly simultaneously and leave the
+ * room debating two things at once). Claimed transactionally -- "first
+ * write wins," same pattern as every other single-seat claim in this app
+ * -- so a losing second tap aborts cleanly client-side without ever
+ * reaching the server, rather than racing a plain update() against the
+ * RTDB rule's own (defense-in-depth) rejection of the same case.
+ */
 export async function signalMotion(
   code: string,
   commissionId: string,
   cardId: string,
   cardType: "revenue" | "expenditure",
-): Promise<void> {
+): Promise<ActionResult> {
   const uid = requireUid();
   const motion: ActiveMotion = {
     cardId,
@@ -41,9 +48,17 @@ export async function signalMotion(
     secondedBy: null,
     secondedAt: null,
   };
-  await update(ref(rtdb), {
-    [`sessions/${code}/commissions/${commissionId}/activeMotion`]: motion,
-  });
+  const result = await runTransaction(
+    ref(rtdb, `sessions/${code}/commissions/${commissionId}/activeMotion`),
+    (current: ActiveMotion | null) => {
+      if (current !== null) return undefined;
+      return motion;
+    },
+  );
+  if (!result.committed) {
+    return { ok: false, reason: "Someone else just moved to adopt a different card. Wait for that motion to resolve first." };
+  }
+  return { ok: true };
 }
 
 /** Any Commissioner other than the mover signals "I second." No-op guards are client-side (this is a signal, not a gate). */

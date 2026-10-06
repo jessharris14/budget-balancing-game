@@ -180,8 +180,10 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
   async function handleMotion(cardId: string, cardType: CardType) {
     setMotionBusyCardId(cardId);
+    setError(null);
     try {
-      await signalMotion(code, commissionId, cardId, cardType);
+      const result = await signalMotion(code, commissionId, cardId, cardType);
+      if (!result.ok) setError(result.reason ?? "Could not move to adopt that card.");
     } finally {
       setMotionBusyCardId(null);
     }
@@ -196,14 +198,19 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     }
   }
 
-  async function handleClearMotion() {
+  /**
+   * Phase 7 A3: resets a motion that moved but never got a second --
+   * Chair-only, and only while unseconded (enforced both by the button's
+   * own render condition below and, more importantly, by the activeMotion
+   * RTDB rule itself). Replaces the old generic "Clear" button, which used
+   * to be available to the mover too and at any seconded state; once
+   * seconded, resolution is exclusively the Administrator's Motion
+   * Passes/Fails now, so a manual clear option there would just be a
+   * second, overlapping control.
+   */
+  async function handleResetUnsecondedMotion() {
     setBusy(true);
     try {
-      // Clearing a resolved motion shouldn't leave its auto-highlighted
-      // card lingering as "Card Under Debate" until the next motion starts.
-      // Only the Chair's client can write chairHighlightedCardId, and only
-      // when it still matches the motion being cleared (an unrelated
-      // manual highlight is left alone).
       if (isMyChair && motion && commission.chairHighlightedCardId === motion.cardId) {
         await setChairHighlightedCard(code, commissionId, null);
       }
@@ -213,7 +220,15 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     }
   }
 
-  /** Shared Motion/Second cell for both catalog tables -- Main Game only, and only for cards not already played or locked out. */
+  /**
+   * Shared Motion/Second cell for both catalog tables -- Main Game only,
+   * and only for cards not already played or locked out. Phase 7 A2: once
+   * any card has a pending motion, "I move to adopt" disappears from
+   * every OTHER card for every Commissioner and the Chair, until that
+   * motion resolves -- a table can only ever be debating one card at a
+   * time now, matching signalMotion's own transactional "only one
+   * pending motion" guarantee.
+   */
   function renderMotionCell(cardId: string, cardType: CardType) {
     if (session.phase !== "mainGame") return null;
     if (!isCardAvailable(commission, cardId)) return <span>—</span>;
@@ -227,6 +242,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
       }
       return <span>Motioned</span>;
     }
+    if (motion) return null;
     return (
       <button onClick={() => handleMotion(cardId, cardType)} disabled={motionBusyCardId === cardId}>
         {motionBusyCardId === cardId ? "Motioning…" : "I move to adopt"}
@@ -326,10 +342,13 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
               Second
             </button>
           )}
-          {(motion.movedBy === myUid || isMyChair) && (
-            <button onClick={handleClearMotion} disabled={busy}>
-              Clear
-            </button>
+          {!motion.secondedBy && isMyChair && (
+            <>
+              <p>No second? As Chair, you decide when to move on.</p>
+              <button onClick={() => void handleResetUnsecondedMotion()} disabled={busy}>
+                No Second — Reset Motion
+              </button>
+            </>
           )}
         </div>
       )}

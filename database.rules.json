@@ -47,7 +47,7 @@
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
             },
             "activeMotion": {
-              ".write": "auth != null && (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val())"
+              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true && !data.exists() && newData.exists()) || (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true && data.exists() && !data.child('secondedBy').val() && newData.child('secondedBy').val() != null) || (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() && data.exists() && !newData.exists()))"
             },
             "challengesApplied": {
               "$cardId": {
@@ -80,7 +80,7 @@
               ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val())"
             },
             "debateTimerEndsAt": {
-              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
+              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val())"
             },
 
             "decisionsLog": {
