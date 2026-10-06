@@ -3,6 +3,7 @@ import { castBallotVote } from "../services/ballotService";
 import { getCatalog } from "../services/catalogService";
 import { castEndorsement } from "../services/speakerService";
 import BallotMeasuresList from "./BallotMeasuresList";
+import DebriefScorecard from "./DebriefScorecard";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
@@ -64,7 +65,7 @@ function SpeakerView({ code, session, speaker }: Props) {
   ).length;
 
   const activeBallot = commission?.activeBallotId ? commission.ballotMeasures?.[commission.activeBallotId] : null;
-  const ballotOpen = !!activeBallot && activeBallot.openedAt != null && activeBallot.closedAt == null;
+  const ballotOpen = session.phase === "mainGame" && !!activeBallot && activeBallot.openedAt != null && activeBallot.closedAt == null;
   const myVote = activeBallot?.votes?.[speaker.id];
   const ballotCard = activeBallot
     ? (activeBallot.cardType === "revenue"
@@ -121,23 +122,25 @@ function SpeakerView({ code, session, speaker }: Props) {
         ))}
       </ul>
 
-      <div className="lobby-commission">
-        <h3>Endorse / Oppose</h3>
-        <p>
-          You have <strong>{remaining}</strong> of {MAX_ENDORSEMENTS} lifetime actions remaining. Each is permanent
-          once cast -- there's no undo, and it doesn't need to target a specific card.
-        </p>
-        {session.phase !== "mainGame" && <p>Available once Main Game begins.</p>}
-        <div className="chair-timer-controls">
-          <button onClick={() => handleCast("endorse")} disabled={!canCast}>
-            👍 Endorse
-          </button>
-          <button onClick={() => handleCast("oppose")} disabled={!canCast}>
-            👎 Oppose
-          </button>
+      {session.phase !== "debrief" && (
+        <div className="lobby-commission">
+          <h3>Endorse / Oppose</h3>
+          <p>
+            You have <strong>{remaining}</strong> of {MAX_ENDORSEMENTS} lifetime actions remaining. Each is permanent
+            once cast -- there's no undo, and it doesn't need to target a specific card.
+          </p>
+          {session.phase !== "mainGame" && <p>Available once Main Game begins.</p>}
+          <div className="chair-timer-controls">
+            <button onClick={() => handleCast("endorse")} disabled={!canCast}>
+              👍 Endorse
+            </button>
+            <button onClick={() => handleCast("oppose")} disabled={!canCast}>
+              👎 Oppose
+            </button>
+          </div>
+          {castError && <p className="error">{castError}</p>}
         </div>
-        {castError && <p className="error">{castError}</p>}
-      </div>
+      )}
 
       {ballotOpen && ballotCard && (
         <div className="lobby-commission">
@@ -163,7 +166,11 @@ function SpeakerView({ code, session, speaker }: Props) {
         </div>
       )}
 
-      {commission && (
+      {commission && session.phase === "debrief" && (
+        <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
+      )}
+
+      {commission && session.phase !== "debrief" && (
         <>
           <LedgerStatusBar ledger={commission.ledger} />
           <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />

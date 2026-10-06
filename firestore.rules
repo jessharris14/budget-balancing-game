@@ -8,5 +8,21 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if false;
     }
+
+    // Final game results (Phase 7 B5): a permanent record that survives
+    // the ephemeral RTDB session data being cleaned up later. Write-once
+    // by the Facilitator -- create is allowed only by whoever's uid is
+    // self-asserted as facilitatorId on the document being written (same
+    // client-asserted-identity trust model as RTDB's own
+    // members/managerAdminId claim elsewhere in this app, not something
+    // this rule can independently verify against the RTDB session), and
+    // update/delete are always denied, so a second attempt to write the
+    // same sessionCode (persistGameResults's own doc path) is rejected
+    // here regardless of who's writing.
+    match /gameResults/{sessionCode} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.facilitatorId == request.auth.uid;
+      allow update, delete: if false;
+    }
   }
 }

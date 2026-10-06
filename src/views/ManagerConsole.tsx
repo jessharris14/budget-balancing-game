@@ -14,6 +14,7 @@ import { clearMotion } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import BallotMeasureModal from "./BallotMeasureModal";
 import BallotMeasuresList from "./BallotMeasuresList";
+import DebriefScorecard from "./DebriefScorecard";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
@@ -211,10 +212,16 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       )}
       <p>Chair: {chairName ?? "not yet elected"}</p>
 
-      <LedgerStatusBar ledger={commission.ledger} />
-      <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
-      {session.phase === "mainGame" && (
-        <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+      {session.phase === "debrief" ? (
+        <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
+      ) : (
+        <>
+          <LedgerStatusBar ledger={commission.ledger} />
+          <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+          {session.phase === "mainGame" && (
+            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+          )}
+        </>
       )}
 
       {error && <p className="error">{error}</p>}
@@ -234,8 +241,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           <h3>Card Under Debate</h3>
           <p>{highlightedCard?.title ?? commission.chairHighlightedCardId}</p>
           {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
-          {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over -- Motion Passes/Fails no longer apply until the ballot resolves. */}
-          {!commission.activeBallotId && (
+          {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over -- Motion Passes/Fails no longer apply until the ballot resolves. Phase 7 B2: also frozen once Debrief starts. */}
+          {session.phase === "mainGame" && !commission.activeBallotId && (
             <div className="chair-timer-controls">
               <button onClick={handleMotionPasses} disabled={busyCardId === commission.chairHighlightedCardId}>
                 Motion Passes
@@ -298,13 +305,17 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         </div>
       )}
 
-      <DecisionsList
-        commission={commission}
-        catalog={catalog}
-        onReconsider={(cardId) => void runAction(cardId, () => reconsiderCard(code, commissionId, catalog, cardId))}
-        reconsideringCardId={busyCardId}
-      />
-      <BallotMeasuresList commission={commission} catalog={catalog} />
+      {session.phase !== "debrief" && (
+        <>
+          <DecisionsList
+            commission={commission}
+            catalog={catalog}
+            onReconsider={(cardId) => void runAction(cardId, () => reconsiderCard(code, commissionId, catalog, cardId))}
+            reconsideringCardId={busyCardId}
+          />
+          <BallotMeasuresList commission={commission} catalog={catalog} />
+        </>
+      )}
 
       {/*
         No per-card Apply button here anymore (spec change): the only way

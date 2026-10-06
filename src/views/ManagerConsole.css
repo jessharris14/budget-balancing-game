@@ -278,3 +278,22 @@
   font-size: 1.2rem;
   font-weight: 700;
 }
+
+.scorecard-table {
+  margin: 1rem 0;
+}
+
+.scorecard-total-row {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  text-align: center;
+}
+
+.comparison-table th:nth-child(2),
+.comparison-table td:nth-child(2) {
+  text-align: left;
+}

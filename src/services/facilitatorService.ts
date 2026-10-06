@@ -1,9 +1,10 @@
 import { ref, runTransaction, update } from "firebase/database";
 import { rtdb } from "../firebase/config";
 import { applyChallengeToLedger } from "./ledgerService";
+import { computeFinalScore } from "./scoringService";
 import { drawPromptIds } from "./sessionService";
 import type { ChallengeCard, PromptBankEntry } from "../types/catalog";
-import { SESSION_PHASE_ORDER, type SessionPhase } from "../types/session";
+import { SESSION_PHASE_ORDER, type Session, type SessionPhase } from "../types/session";
 
 const RANK_PRIORITIES_MS = 3 * 60 * 1000;
 const MAIN_GAME_MS = 45 * 60 * 1000;
@@ -48,6 +49,35 @@ export async function advancePhase(code: string, currentPhase: SessionPhase): Pr
   }
 
   await update(ref(rtdb), updates);
+}
+
+/**
+ * Phase 7 B1/B2: computes and stores finalScore for every Commission that
+ * doesn't have one yet. Called from the Facilitator's client -- the
+ * project stays on the Spark plan (no billing account linked, confirmed
+ * this round via the Cloud Billing API returning SERVICE_DISABLED), so
+ * Cloud Functions aren't deployable here; this is the documented
+ * fallback, structured so computeFinalScore itself (the actual scoring
+ * logic) could move into a Cloud Function later with no changes -- only
+ * this orchestration layer would need to move.
+ *
+ * Idempotent by construction: only commissions missing a finalScore get
+ * one written, so calling this again (e.g. the Facilitator's device
+ * refreshes mid-debrief, re-mounting the component that triggers it)
+ * is always safe and never recomputes or overwrites an existing score.
+ * finalScore's own RTDB rule additionally enforces write-once
+ * server-side, as a second line of defense.
+ */
+export async function computeAndStoreFinalScores(code: string, session: Session): Promise<void> {
+  const updates: Record<string, unknown> = {};
+  for (const [commissionId, commission] of Object.entries(session.commissions ?? {})) {
+    if (commission.finalScore != null) continue;
+    const breakdown = computeFinalScore(commission.ledger, commission.priority, commission.publicTrustTally);
+    updates[`sessions/${code}/commissions/${commissionId}/finalScore`] = { ...breakdown, computedAt: Date.now() };
+  }
+  if (Object.keys(updates).length > 0) {
+    await update(ref(rtdb), updates);
+  }
 }
 
 export interface RollForChairResult {

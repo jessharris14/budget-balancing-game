@@ -40,40 +40,40 @@
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
               },
               "funded": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
               }
             },
             "activeChallenge": {
-              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
             },
             "activeMotion": {
-              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true && !data.exists() && newData.exists()) || (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true && data.exists() && !data.child('secondedBy').val() && newData.child('secondedBy').val() != null) || (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() && data.exists() && !newData.exists()))"
+              ".write": "auth != null && root.child('sessions').child($code).child('phase').val() !== 'debrief' && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true && !data.exists() && newData.exists()) || (root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('commissionerIds').child(auth.uid).val() === true && data.exists() && !data.child('secondedBy').val() && newData.child('secondedBy').val() != null) || (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() && data.exists() && !newData.exists()))"
             },
             "challengesApplied": {
               "$cardId": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()",
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'",
                 ".validate": "newData.val() === true"
               }
             },
 
             "ledger": {
-              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || auth.uid === root.child('sessions').child($code).child('facilitatorId').val())"
+              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || auth.uid === root.child('sessions').child($code).child('facilitatorId').val()) && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
             },
             "cardsInPlay": {
               "$cardId": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
               }
             },
             "cardsLockedOut": {
               "$cardId": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
               }
             },
             "challengeLedgerAppliedAt": {
-              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || auth.uid === root.child('sessions').child($code).child('facilitatorId').val())"
+              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() || auth.uid === root.child('sessions').child($code).child('facilitatorId').val()) && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
             },
             "chairFreeCardUsed": {
-              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && data.val() === false && newData.val() === true"
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && data.val() === false && newData.val() === true && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
             },
 
             "chairHighlightedCardId": {
@@ -85,28 +85,33 @@
 
             "decisionsLog": {
               "$entryId": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
               }
             },
 
             "publicTrustTally": {
-              ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId",
+              ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId && root.child('sessions').child($code).child('phase').val() !== 'debrief'",
               ".validate": "(!data.exists() && newData.val() === 0) || (data.exists() && (newData.val() === data.val() + 1 || newData.val() === data.val() - 1))"
             },
 
             "activeBallotId": {
-              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()"
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
             },
             "ballotMeasures": {
               "$ballotId": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()",
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'",
                 "votes": {
                   "$speakerUid": {
-                    ".write": "auth != null && auth.uid === $speakerUid && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === $ballotId && root.child('sessions').child($code).child('commissions').child($commissionId).child('ballotMeasures').child($ballotId).child('openedAt').val() !== null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId",
+                    ".write": "auth != null && auth.uid === $speakerUid && root.child('sessions').child($code).child('phase').val() !== 'debrief' && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === $ballotId && root.child('sessions').child($code).child('commissions').child($commissionId).child('ballotMeasures').child($ballotId).child('openedAt').val() !== null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId",
                     ".validate": "!data.exists() && (newData.val() === 'yes' || newData.val() === 'no')"
                   }
                 }
               }
+            },
+
+            "finalScore": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val() && root.child('sessions').child($code).child('phase').val() === 'debrief'",
+              ".validate": "!data.exists()"
             }
           }
         },
@@ -122,13 +127,13 @@
             },
             "endorsementsUsed": {
               "0": {
-                ".validate": "!data.exists() && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+                ".validate": "!data.exists() && root.child('sessions').child($code).child('phase').val() !== 'debrief' && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
               },
               "1": {
-                ".validate": "!data.exists() && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+                ".validate": "!data.exists() && root.child('sessions').child($code).child('phase').val() !== 'debrief' && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
               },
               "2": {
-                ".validate": "!data.exists() && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
+                ".validate": "!data.exists() && root.child('sessions').child($code).child('phase').val() !== 'debrief' && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
               },
               "$other": {
                 ".validate": false

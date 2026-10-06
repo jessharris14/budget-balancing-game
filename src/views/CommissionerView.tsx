@@ -10,6 +10,7 @@ import { isCardAvailable, isSelectedPriorityCard, type CardType } from "../servi
 import { clearMotion, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import BallotMeasuresList from "./BallotMeasuresList";
+import DebriefScorecard from "./DebriefScorecard";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
@@ -314,12 +315,17 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
         </div>
       )}
 
-      {session.phase === "mainGame" && (
-        <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+      {session.phase === "debrief" ? (
+        <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
+      ) : (
+        <>
+          {session.phase === "mainGame" && (
+            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+          )}
+          <LedgerStatusBar ledger={commission.ledger} />
+          <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+        </>
       )}
-
-      <LedgerStatusBar ledger={commission.ledger} />
-      <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
 
       {error && <p className="error">{error}</p>}
 
@@ -353,47 +359,53 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
         </div>
       )}
 
-      <div className="lobby-commission chair-highlight">
-        <h3>Card Under Debate</h3>
-        {isMyChair ? (
-          <>
-            <select value={selectedCardId} onChange={(e) => handleHighlight(e.target.value)} disabled={busy}>
-              <option value="">— none highlighted —</option>
-              <optgroup label="Revenue">
-                {catalog.revenueCards.map((card) => (
-                  <option key={card.id} value={card.id}>
-                    {card.title}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Expenditure">
-                {catalog.expenditureCards.map((card) => (
-                  <option key={card.id} value={card.id}>
-                    {card.title}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-            <div className="chair-timer-controls">
-              <button onClick={handleStartTimer} disabled={busy}>
-                {commission.debateTimerEndsAt !== null ? "Restart Timer" : "Start Timer"}
-              </button>
-              <button onClick={handleStopTimer} disabled={busy || commission.debateTimerEndsAt === null}>
-                Stop Timer
-              </button>
-              {debateMs !== null && <span className="debate-timer-remaining">{formatDuration(debateMs)}</span>}
-            </div>
-          </>
-        ) : (
-          <>
-            <p>{highlightedCard ? highlightedCard.title : "No card currently highlighted by the Chair."}</p>
-            {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
-          </>
-        )}
-      </div>
+      {session.phase !== "debrief" && (
+        <div className="lobby-commission chair-highlight">
+          <h3>Card Under Debate</h3>
+          {isMyChair ? (
+            <>
+              <select value={selectedCardId} onChange={(e) => handleHighlight(e.target.value)} disabled={busy}>
+                <option value="">— none highlighted —</option>
+                <optgroup label="Revenue">
+                  {catalog.revenueCards.map((card) => (
+                    <option key={card.id} value={card.id}>
+                      {card.title}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Expenditure">
+                  {catalog.expenditureCards.map((card) => (
+                    <option key={card.id} value={card.id}>
+                      {card.title}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+              <div className="chair-timer-controls">
+                <button onClick={handleStartTimer} disabled={busy}>
+                  {commission.debateTimerEndsAt !== null ? "Restart Timer" : "Start Timer"}
+                </button>
+                <button onClick={handleStopTimer} disabled={busy || commission.debateTimerEndsAt === null}>
+                  Stop Timer
+                </button>
+                {debateMs !== null && <span className="debate-timer-remaining">{formatDuration(debateMs)}</span>}
+              </div>
+            </>
+          ) : (
+            <>
+              <p>{highlightedCard ? highlightedCard.title : "No card currently highlighted by the Chair."}</p>
+              {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
+            </>
+          )}
+        </div>
+      )}
 
-      <DecisionsList commission={commission} catalog={catalog} />
-      <BallotMeasuresList commission={commission} catalog={catalog} />
+      {session.phase !== "debrief" && (
+        <>
+          <DecisionsList commission={commission} catalog={catalog} />
+          <BallotMeasuresList commission={commission} catalog={catalog} />
+        </>
+      )}
 
       <h2>Revenue Cards</h2>
       <table>

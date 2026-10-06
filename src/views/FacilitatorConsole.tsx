@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { getCatalog } from "../services/catalogService";
-import { advancePhase, rerollSpeakerPrompts, rollForChair, triggerChallenge } from "../services/facilitatorService";
+import {
+  advancePhase,
+  computeAndStoreFinalScores,
+  rerollSpeakerPrompts,
+  rollForChair,
+  triggerChallenge,
+} from "../services/facilitatorService";
+import { persistGameResults } from "../services/resultsService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import BallotMeasuresList from "./BallotMeasuresList";
+import DebriefScorecard from "./DebriefScorecard";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
+import ScoreComparisonTable from "./ScoreComparisonTable";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
@@ -25,6 +34,7 @@ function FacilitatorConsole({ code, session }: Props) {
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
   const [triggeringCommissionId, setTriggeringCommissionId] = useState<string | null>(null);
   const [rerollingUid, setRerollingUid] = useState<string | null>(null);
+  const [resultsError, setResultsError] = useState<string | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -45,6 +55,36 @@ function FacilitatorConsole({ code, session }: Props) {
   const phaseTimerMs = useCountdown(clock.phaseTimer);
   const mainGameMs = useCountdown(clock.mainGameTimer);
   const nextChallengeMs = useCountdown(clock.nextChallengeDue);
+
+  // Phase 7 B2: compute scores the instant the session reaches Debrief --
+  // and every time this mounts/re-renders while already in Debrief with
+  // any Commission still missing one, so a refreshed Facilitator device
+  // self-heals instead of getting stuck. computeAndStoreFinalScores only
+  // ever writes the commissions that are actually missing a score, so
+  // re-firing this on every session update is harmless.
+  useEffect(() => {
+    if (session.phase !== "debrief") return;
+    const needsScoring = Object.values(session.commissions ?? {}).some((c) => c.finalScore == null);
+    if (needsScoring) void computeAndStoreFinalScores(code, session);
+  }, [session.phase, session.commissions, code]);
+
+  // Phase 7 B5: once every Commission has a finalScore, persist the
+  // permanent Firestore results record -- separately from the above,
+  // since this should only fire after scoring has actually landed, not
+  // race ahead of it. persistGameResults checks for an existing doc
+  // itself (and firestore.rules independently rejects a second write
+  // either way), so this re-firing on every session update while already
+  // persisted is a harmless no-op read, not a duplicate write.
+  const [resultsPersisted, setResultsPersisted] = useState(false);
+  useEffect(() => {
+    if (session.phase !== "debrief" || resultsPersisted) return;
+    const commissions = Object.values(session.commissions ?? {});
+    const allScored = commissions.length > 0 && commissions.every((c) => c.finalScore != null);
+    if (!allScored) return;
+    persistGameResults(session)
+      .then(() => setResultsPersisted(true))
+      .catch((err: unknown) => setResultsError(err instanceof Error ? err.message : String(err)));
+  }, [session, resultsPersisted]);
 
   const commissionEntries = Object.entries(session.commissions ?? {});
   const phaseIdx = SESSION_PHASE_ORDER.indexOf(session.phase);
@@ -181,7 +221,14 @@ function FacilitatorConsole({ code, session }: Props) {
 
       {session.phase === "mainGame" && mainGameMs !== null && (
         <>
-          <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
+          {mainGameMs > 0 ? (
+            <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
+          ) : (
+            // Phase 7 B2: the timer hitting 0:00 never auto-advances the
+            // phase on its own -- just a clear prompt so the Facilitator
+            // decides when the room is actually ready to move on.
+            <p className="challenge-due">⏰ Main Game time is up — move to Debrief when ready.</p>
+          )}
           {challengeReminderDue && <p className="challenge-due">⏰ Challenge due — trigger one when ready.</p>}
           {!challengeReminderDue && nextChallengeMs !== null && (
             <p>Next challenge reminder in: {formatDuration(nextChallengeMs)}</p>
@@ -193,6 +240,26 @@ function FacilitatorConsole({ code, session }: Props) {
       )}
 
       {catalogError && <p className="error">{catalogError}</p>}
+
+      {session.phase === "debrief" && catalog && (
+        <>
+          {resultsPersisted && <p>✅ Final results saved.</p>}
+          {resultsError && <p className="error">Could not save final results: {resultsError}</p>}
+          {commissionEntries.length > 1 ? (
+            <ScoreComparisonTable session={session} />
+          ) : (
+            // Phase 7 B4: a one-row comparison table is pointless with a
+            // single Commission -- show its own scorecard directly instead.
+            commissionEntries.length === 1 && (
+              <DebriefScorecard
+                commission={commissionEntries[0][1]}
+                catalog={catalog}
+                speakerCount={speakers.filter((s) => s.commissionId === commissionEntries[0][0]).length}
+              />
+            )
+          )}
+        </>
+      )}
 
       <h2>Commissions</h2>
       {commissionEntries.map(([id, commission]) => {
