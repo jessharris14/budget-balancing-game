@@ -143,12 +143,25 @@ export interface DecisionLogEntry {
   reconsideredAt: number | null;
 }
 
+/** One scoring dimension's point value plus the plain-language reason for it (Section 6), e.g. {points: -1, reason: "Reserves $12 -> -1"}. */
+export interface ScoreDimension {
+  points: number;
+  reason: string;
+}
+
+/**
+ * Authoritative end-of-game score (Phase 7 / spec Section 6), computed
+ * once by computeFinalScore (scoringService.ts) and written here so every
+ * role sees the same frozen result rather than each client recomputing
+ * live numbers that could drift once the ledger stops changing.
+ */
 export interface FinalScore {
-  balanced: boolean;
-  priorityFunded: boolean;
-  reserveTier: number;
-  publicTrustTier: number;
+  balanced: ScoreDimension;
+  priorityFunded: ScoreDimension;
+  reserves: ScoreDimension;
+  publicTrust: ScoreDimension;
   total: number;
+  computedAt: number;
 }
 
 /** Currently broadcast Challenge card for this Commission -- what makes the trigger a live push, not just a log entry. */
