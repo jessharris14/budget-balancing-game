@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, firestore } from "../firebase/config";
-import type { BallotMeasure, Commission, DecisionLogEntry, FinalScore, Session } from "../types/session";
+import type { BallotMeasure, Commission, DecisionLogEntry, FailedMotionEntry, FinalScore, Session } from "../types/session";
 
 export interface GameResultBallotMeasure {
   cardId: string;
@@ -16,6 +16,8 @@ export interface GameResultCommission {
   ledger: Commission["ledger"];
   priority: Commission["priority"];
   decisionsLog: Record<string, DecisionLogEntry>;
+  /** See Commission.failedMotionsLog (Change 3) -- every card whose motion reached Motion Fails (not a reset for lack of a second). */
+  failedMotionsLog: Record<string, FailedMotionEntry>;
   /** card id -> triggeredAt timestamp. See Commission.challengesApplied (Change 2). */
   challengesApplied: Record<string, number>;
   publicTrustTally: number;
@@ -92,6 +94,7 @@ export async function persistGameResults(session: Session): Promise<void> {
       ledger: commission.ledger,
       priority: commission.priority,
       decisionsLog: commission.decisionsLog ?? {},
+      failedMotionsLog: commission.failedMotionsLog ?? {},
       challengesApplied: commission.challengesApplied ?? {},
       publicTrustTally: commission.publicTrustTally,
       ballotMeasures,

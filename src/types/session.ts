@@ -143,6 +143,23 @@ export interface DecisionLogEntry {
   reconsideredAt: number | null;
 }
 
+/**
+ * Change 3: a permanent record of every card whose motion reached Motion
+ * Fails -- NOT one reset by the Chair for lack of a second, which never
+ * reached a vote and leaves no record at all, by design. A failed Ballot
+ * Measure needs no equivalent entry here: it's already fully recorded in
+ * Commission.ballotMeasures (outcome: "failed", closedAt as its
+ * timestamp), so getCardStatus (ledgerService.ts) reads that directly
+ * instead of duplicating it here. Keyed by a generated entry id, same
+ * reasoning as decisionsLog: the same card can fail more than once
+ * across a session.
+ */
+export interface FailedMotionEntry {
+  cardId: string;
+  cardType: "revenue" | "expenditure";
+  failedAt: number;
+}
+
 /** One scoring dimension's point value plus the plain-language reason for it (Section 6), e.g. {points: -1, reason: "Reserves $12 -> -1"}. */
 export interface ScoreDimension {
   points: number;
@@ -243,6 +260,8 @@ export interface Commission {
   cardsLockedOut: Record<string, true>;
   /** Keyed by a generated entry id (not cardId -- the same card can be played more than once across a session). */
   decisionsLog: Record<string, DecisionLogEntry>;
+  /** Keyed by a generated entry id -- see FailedMotionEntry (Change 3). */
+  failedMotionsLog: Record<string, FailedMotionEntry>;
   /**
    * Keyed by challengeCardId -- audit trail of every challenge ever
    * triggered for this Commission. Value is the server timestamp it was

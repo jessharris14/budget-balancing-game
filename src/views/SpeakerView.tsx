@@ -4,8 +4,8 @@ import { getCatalog } from "../services/catalogService";
 import { castEndorsement } from "../services/speakerService";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
+import CompactCardStatusList from "./CompactCardStatusList";
 import DebriefScorecard from "./DebriefScorecard";
-import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
@@ -179,7 +179,7 @@ function SpeakerView({ code, session, speaker }: Props) {
             <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
           )}
           <AppliedChallengesPanel commission={commission} catalog={catalog} />
-          <DecisionsList commission={commission} catalog={catalog} />
+          <CompactCardStatusList commission={commission} catalog={catalog} />
           <BallotMeasuresList commission={commission} catalog={catalog} />
         </>
       )}

@@ -5,9 +5,10 @@ import { setChairHighlightedCard, stopDebateTimer } from "../services/chairServi
 import {
   applyCard,
   applyChairFreeCard,
+  getCardStatus,
   isCardAvailable,
   isSelectedPriorityCard,
-  reconsiderCard,
+  recordFailedMotion,
   type CardType,
 } from "../services/ledgerService";
 import { clearMotion } from "../services/motionService";
@@ -15,8 +16,9 @@ import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
 import BallotMeasuresList from "./BallotMeasuresList";
+import { cardStatusRowClass } from "./cardStatusDisplay";
+import CardStatusLegend from "./CardStatusLegend";
 import DebriefScorecard from "./DebriefScorecard";
-import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
@@ -144,13 +146,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
    */
   async function handleMotionFails() {
     const cardId = commission.chairHighlightedCardId;
-    if (!cardId) return;
+    if (!cardId || !highlightedCardType) return;
     await runAction(cardId, async () => {
       await setChairHighlightedCard(code, commissionId, null);
       if (commission.activeMotion?.cardId === cardId) {
         await clearMotion(code, commissionId);
       }
       await stopDebateTimer(code, commissionId);
+      await recordFailedMotion(code, commissionId, cardId, highlightedCardType);
       return { ok: true };
     });
   }
@@ -307,25 +310,17 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         </div>
       )}
 
-      {session.phase !== "debrief" && (
-        <>
-          <DecisionsList
-            commission={commission}
-            catalog={catalog}
-            onReconsider={(cardId) => void runAction(cardId, () => reconsiderCard(code, commissionId, catalog, cardId))}
-            reconsideringCardId={busyCardId}
-          />
-          <BallotMeasuresList commission={commission} catalog={catalog} />
-        </>
-      )}
+      {session.phase !== "debrief" && <BallotMeasuresList commission={commission} catalog={catalog} />}
 
       {/*
-        No per-card Apply button here anymore (spec change): the only way
-        to apply a normal card is Motion Passes on Card Under Debate, once
-        a motion has been moved and seconded. These tables are now
-        read-only reference -- find the card, see its status, see the
-        Priority badge -- same as every other role already sees them.
+        Change 3: Decisions So Far is gone -- status now lives directly on
+        each row below (Applied/Did not pass/Locked out, Priority still
+        green). No per-card Apply button here either (earlier change): the
+        only way to apply a normal card is Motion Passes on Card Under
+        Debate, once a motion has been moved and seconded.
       */}
+      <CardStatusLegend />
+
       <h2>Revenue Cards</h2>
       <table>
         <thead>
@@ -339,11 +334,11 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         </thead>
         <tbody>
           {catalog.revenueCards.map((card) => {
-            const played = commission.cardsInPlay?.[card.id];
-            const lockedOut = commission.cardsLockedOut?.[card.id];
+            const { status, label } = getCardStatus(commission, card.id, "revenue");
             const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
+            const underDebate = commission.chairHighlightedCardId === card.id;
             return (
-              <tr key={card.id} className={isPriority ? "priority-card-row" : undefined}>
+              <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="ID">{card.id}</td>
                 <td data-label="Title">
                   {card.title}
@@ -353,7 +348,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                 <td data-label="Amount">
                   ${card.amount} ({card.direction})
                 </td>
-                <td data-label="Status">{played ? "Played" : lockedOut ? "Locked out" : "Available"}</td>
+                <td data-label="Status">
+                  <span className={`card-status-badge status-${status}`}>{label}</span>
+                </td>
               </tr>
             );
           })}
@@ -373,10 +370,11 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         </thead>
         <tbody>
           {catalog.expenditureCards.map((card) => {
-            const played = commission.cardsInPlay?.[card.id];
+            const { status, label } = getCardStatus(commission, card.id, "expenditure");
             const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
+            const underDebate = commission.chairHighlightedCardId === card.id;
             return (
-              <tr key={card.id} className={isPriority ? "priority-card-row" : undefined}>
+              <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="ID">{card.id}</td>
                 <td data-label="Title">
                   {card.title}
@@ -386,7 +384,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                 <td data-label="Amount">
                   ${card.amount} ({card.direction})
                 </td>
-                <td data-label="Status">{played ? "Played" : "Available"}</td>
+                <td data-label="Status">
+                  <span className={`card-status-badge status-${status}`}>{label}</span>
+                </td>
               </tr>
             );
           })}

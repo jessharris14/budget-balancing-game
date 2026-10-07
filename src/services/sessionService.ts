@@ -46,6 +46,7 @@ function buildInitialCommission(id: string, budgetPicture: BudgetPicture, reserv
     cardsInPlay: {},
     cardsLockedOut: {},
     decisionsLog: {},
+    failedMotionsLog: {},
     challengesApplied: {},
     activeChallenge: null,
     activeMotion: null,

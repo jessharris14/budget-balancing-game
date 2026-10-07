@@ -62,6 +62,71 @@ export function isCardAvailable(commission: Commission, cardId: string): boolean
   return !commission.cardsInPlay?.[cardId] && !commission.cardsLockedOut?.[cardId];
 }
 
+export type CardStatus = "applied" | "didNotPass" | "lockedOut" | "available";
+
+export interface CardStatusInfo {
+  status: CardStatus;
+  label: string;
+}
+
+/**
+ * Change 3: a card's current status for the catalog tables' Status
+ * column/row color, replacing the removed "Decisions So Far" list.
+ * Currently played always wins (blue, "Applied"). Otherwise, a card that
+ * once failed (Motion Fails, or a failed Ballot Measure) shows yellow,
+ * "Did not pass" / "Failed ballot" -- EXCEPT a card reset by the Chair
+ * for lack of a second never reaches this function as a failure at all
+ * (no failedMotionsLog entry is ever written for that case), so it's
+ * simply never yellow for that reason.
+ *
+ * "If a card is reconsidered after being applied, it returns to a
+ * normal unhighlighted row" even when an OLDER failure exists for the
+ * same card (fail, then later moved again and passed, then later
+ * reconsidered) -- handled by comparing timestamps: the most recent of
+ * (every reconsideredAt recorded for this card) vs (every failedAt
+ * recorded for this card, motion or ballot) wins. A reconsideration more
+ * recent than any failure means "available again, not yellow"; a
+ * failure more recent than any reconsideration (or than ever having been
+ * applied at all) means "yellow."
+ */
+export function getCardStatus(commission: Commission, cardId: string, cardType: CardType): CardStatusInfo {
+  if (commission.cardsInPlay?.[cardId]) {
+    return { status: "applied", label: "Applied" };
+  }
+  if (commission.cardsLockedOut?.[cardId]) {
+    return { status: "lockedOut", label: "Locked out" };
+  }
+
+  let lastReconsideredAt = -Infinity;
+  for (const entry of Object.values(commission.decisionsLog ?? {})) {
+    if (entry.cardId === cardId && entry.cardType === cardType && entry.reconsideredAt != null) {
+      lastReconsideredAt = Math.max(lastReconsideredAt, entry.reconsideredAt);
+    }
+  }
+
+  let lastMotionFailedAt = -Infinity;
+  for (const entry of Object.values(commission.failedMotionsLog ?? {})) {
+    if (entry.cardId === cardId && entry.cardType === cardType) {
+      lastMotionFailedAt = Math.max(lastMotionFailedAt, entry.failedAt);
+    }
+  }
+  let lastBallotFailedAt = -Infinity;
+  for (const ballot of Object.values(commission.ballotMeasures ?? {})) {
+    if (ballot.cardId === cardId && ballot.cardType === cardType && ballot.outcome === "failed" && ballot.closedAt != null) {
+      lastBallotFailedAt = Math.max(lastBallotFailedAt, ballot.closedAt);
+    }
+  }
+
+  const lastFailedAt = Math.max(lastMotionFailedAt, lastBallotFailedAt);
+  if (lastFailedAt > lastReconsideredAt && lastFailedAt > -Infinity) {
+    return lastBallotFailedAt >= lastMotionFailedAt
+      ? { status: "didNotPass", label: "Failed ballot" }
+      : { status: "didNotPass", label: "Did not pass" };
+  }
+
+  return { status: "available", label: "Available" };
+}
+
 /** True if this card is the one PriorityCard.linkedCardId the Commission's currently-selected Priority refers to -- used to badge it in the catalog tables so every role can find it. */
 export function isSelectedPriorityCard(
   catalog: CardCatalog,
@@ -185,6 +250,27 @@ async function claimAndApplyLedgerDelta(
   });
 
   return { ok: true };
+}
+
+/**
+ * Change 3: records a card's motion reaching Motion Fails -- never called
+ * for the Chair's "No Second -- Reset Motion" (that motion never reached
+ * a vote, so it leaves no record at all, by design). This is what lets
+ * getCardStatus show "Did not pass" for this card until it's moved again
+ * and either passes (Applied) or is superseded by a later reconsideration.
+ */
+export async function recordFailedMotion(
+  code: string,
+  commissionId: string,
+  cardId: string,
+  cardType: CardType,
+): Promise<void> {
+  const base = `sessions/${code}/commissions/${commissionId}`;
+  const entryId = push(ref(rtdb, `${base}/failedMotionsLog`)).key;
+  if (!entryId) return;
+  await update(ref(rtdb), {
+    [`${base}/failedMotionsLog/${entryId}`]: { cardId, cardType, failedAt: Date.now() },
+  });
 }
 
 /**

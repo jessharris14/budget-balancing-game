@@ -88,6 +88,11 @@
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
               }
             },
+            "failedMotionsLog": {
+              "$entryId": {
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
+              }
+            },
 
             "publicTrustTally": {
               ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId && root.child('sessions').child($code).child('phase').val() !== 'debrief'",

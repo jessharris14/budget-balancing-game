@@ -202,6 +202,120 @@
   background: rgba(26, 122, 26, 0.08);
 }
 
+/*
+ * Change 3: card status row highlighting. Priority (green) always wins
+ * the row background when a card is both Priority and Applied/Did-not-
+ * pass -- see isSelectedPriorityCard's callers -- but the text status
+ * badge in the Status column still shows the real underlying state
+ * regardless, so it's never silently lost. Locked-out gets a diagonal
+ * hatch, not just a flat tint, so it reads as structurally different
+ * from Applied/Did-not-pass even to someone who can't distinguish the
+ * colors.
+ */
+.card-applied-row {
+  background: rgba(0, 110, 220, 0.1);
+}
+
+.card-did-not-pass-row {
+  background: rgba(230, 170, 0, 0.18);
+}
+
+.card-locked-out-row {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.06),
+    rgba(0, 0, 0, 0.06) 6px,
+    rgba(0, 0, 0, 0.11) 6px,
+    rgba(0, 0, 0, 0.11) 12px
+  );
+  color: #666;
+}
+
+.card-under-debate-row {
+  outline: 2px solid #333;
+  outline-offset: -2px;
+}
+
+.card-status-badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 0.4rem;
+  white-space: nowrap;
+}
+
+.card-status-badge.status-applied {
+  background: rgba(0, 110, 220, 0.18);
+  color: #0a4e9e;
+}
+
+.card-status-badge.status-didNotPass {
+  background: rgba(230, 170, 0, 0.3);
+  color: #7a5900;
+}
+
+.card-status-badge.status-lockedOut {
+  background: rgba(0, 0, 0, 0.12);
+  color: #555;
+}
+
+.compact-card-status-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+.compact-card-status-list li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.card-status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.85rem;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 0.2rem;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+
+.legend-swatch.legend-applied {
+  background: rgba(0, 110, 220, 0.25);
+}
+
+.legend-swatch.legend-did-not-pass {
+  background: rgba(230, 170, 0, 0.4);
+}
+
+.legend-swatch.legend-priority {
+  background: rgba(26, 122, 26, 0.25);
+}
+
+.legend-swatch.legend-locked-out {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 3px,
+    rgba(0, 0, 0, 0.3) 3px,
+    rgba(0, 0, 0, 0.3) 6px
+  );
+}
+
 .priority-badge {
   display: inline-block;
   margin-left: 0.5rem;
