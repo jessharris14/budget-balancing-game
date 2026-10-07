@@ -12,6 +12,7 @@ import {
 } from "../services/ledgerService";
 import { clearMotion } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
 import BallotMeasuresList from "./BallotMeasuresList";
 import DebriefScorecard from "./DebriefScorecard";
@@ -273,13 +274,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         />
       )}
 
-      {commission.activeChallenge && (
-        <div className="lobby-commission">
-          <h3>Active Challenge</h3>
-          <p>{commission.activeChallenge.printedText}</p>
-          <p>Applied to the ledger automatically when triggered -- Challenges can't be debated or declined.</p>
-        </div>
-      )}
+      <AppliedChallengesPanel commission={commission} catalog={catalog} />
 
       {canUseFreeCard && (
         <div className="lobby-commission">

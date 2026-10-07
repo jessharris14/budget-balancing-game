@@ -312,6 +312,22 @@ export async function reconsiderCard(
 }
 
 /**
+ * Pure dollar math for a Challenge card's effect, split out so the Applied
+ * Challenges table (Change 2) can show each challenge's effect on deficit
+ * and reserves -- and a running total across all of them -- using the
+ * exact same computation applyChallengeToLedger uses, instead of a second
+ * copy of these sign rules living in a view component.
+ */
+export function computeChallengeDeltas(card: ChallengeCard): { reservesDelta: number; deficitDelta: number } {
+  if (card.target === "reserves") {
+    const delta = card.direction === "decrease" ? -card.amount : card.amount;
+    return { reservesDelta: delta, deficitDelta: 0 };
+  }
+  const delta = card.direction === "decrease" ? card.amount : -card.amount;
+  return { reservesDelta: 0, deficitDelta: delta };
+}
+
+/**
  * Applies a Challenge's dollar impact -- to deficit or to reserves, per the
  * card's `target` -- the instant it's triggered, with no manual step:
  * unlike Revenue/Expenditure cards, Challenges cannot be debated or
@@ -340,19 +356,15 @@ export async function applyChallengeToLedger(
   });
   if (!claim.committed) return { ok: false, reason: "Already applied to the ledger." };
 
-  if (card.target === "reserves") {
-    const delta = card.direction === "decrease" ? -card.amount : card.amount;
-    await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
-      if (current === null) return current;
-      return { ...current, reserves: current.reserves + delta };
-    });
-  } else {
-    const delta = card.direction === "decrease" ? card.amount : -card.amount;
-    await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
-      if (current === null) return current;
-      return { ...current, deficitOrSurplus: current.deficitOrSurplus + delta };
-    });
-  }
+  const { reservesDelta, deficitDelta } = computeChallengeDeltas(card);
+  await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
+    if (current === null) return current;
+    return {
+      ...current,
+      reserves: current.reserves + reservesDelta,
+      deficitOrSurplus: current.deficitOrSurplus + deficitDelta,
+    };
+  });
 
   return { ok: true };
 }

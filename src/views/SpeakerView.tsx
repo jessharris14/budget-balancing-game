@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { castBallotVote } from "../services/ballotService";
 import { getCatalog } from "../services/catalogService";
 import { castEndorsement } from "../services/speakerService";
+import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import DebriefScorecard from "./DebriefScorecard";
 import DecisionsList from "./DecisionsList";
@@ -177,6 +178,7 @@ function SpeakerView({ code, session, speaker }: Props) {
           {session.phase === "mainGame" && (
             <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
           )}
+          <AppliedChallengesPanel commission={commission} catalog={catalog} />
           <DecisionsList commission={commission} catalog={catalog} />
           <BallotMeasuresList commission={commission} catalog={catalog} />
         </>

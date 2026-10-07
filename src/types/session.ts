@@ -243,8 +243,18 @@ export interface Commission {
   cardsLockedOut: Record<string, true>;
   /** Keyed by a generated entry id (not cardId -- the same card can be played more than once across a session). */
   decisionsLog: Record<string, DecisionLogEntry>;
-  /** Keyed by challengeCardId -- audit trail of every challenge ever triggered for this Commission. */
-  challengesApplied: Record<string, true>;
+  /**
+   * Keyed by challengeCardId -- audit trail of every challenge ever
+   * triggered for this Commission. Value is the server timestamp it was
+   * triggered at (not just `true`, as it was before Change 2), which is
+   * what lets the Applied Challenges table show them in the order
+   * triggered and compute a running total -- the smallest change that
+   * makes "in order" and "running total" correct, rather than a parallel
+   * log. If the same challenge card is ever triggered twice, this still
+   * only keeps the one most recent timestamp (same single-entry-per-card
+   * shape as before); nothing in this app currently re-triggers a card.
+   */
+  challengesApplied: Record<string, number>;
   activeChallenge: ActiveChallenge | null;
   /** Pending motion/second signal, if any -- see ActiveMotion. */
   activeMotion: ActiveMotion | null;

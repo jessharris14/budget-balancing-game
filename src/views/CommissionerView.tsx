@@ -9,6 +9,7 @@ import {
 import { isCardAvailable, isSelectedPriorityCard, type CardType } from "../services/ledgerService";
 import { clearMotion, isMotionLocked, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import DebriefScorecard from "./DebriefScorecard";
 import DecisionsList from "./DecisionsList";
@@ -338,12 +339,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
       {error && <p className="error">{error}</p>}
 
-      {commission.activeChallenge && (
-        <div className="lobby-commission">
-          <h3>Active Challenge</h3>
-          <p>{commission.activeChallenge.printedText}</p>
-        </div>
-      )}
+      <AppliedChallengesPanel commission={commission} catalog={catalog} />
 
       {/*
         Change 1: Pending Motion only shows while this motion hasn't been

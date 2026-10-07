@@ -154,7 +154,7 @@ export async function triggerChallenge(
 ): Promise<void> {
   const now = Date.now();
   const updates: Record<string, unknown> = {
-    [`sessions/${code}/commissions/${commissionId}/challengesApplied/${card.id}`]: true,
+    [`sessions/${code}/commissions/${commissionId}/challengesApplied/${card.id}`]: now,
     [`sessions/${code}/commissions/${commissionId}/activeChallenge`]: {
       cardId: card.id,
       printedText: card.printedText,

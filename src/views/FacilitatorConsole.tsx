@@ -307,7 +307,10 @@ function FacilitatorConsole({ code, session }: Props) {
                   {triggeringCommissionId === id ? "Pushing…" : "Push selected Challenge to this table"}
                 </button>
                 {commission.activeChallenge && (
-                  <p>Last triggered: {commission.activeChallenge.printedText}</p>
+                  <p>
+                    <strong>Challenges Triggered ({Object.keys(commission.challengesApplied ?? {}).length}):</strong>{" "}
+                    last was {commission.activeChallenge.printedText}
+                  </p>
                 )}
               </div>
             )}

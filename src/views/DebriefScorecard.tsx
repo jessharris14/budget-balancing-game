@@ -1,3 +1,4 @@
+import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -44,10 +45,6 @@ function DebriefScorecard({ commission, catalog, speakerCount }: Props) {
   const priorityCard = commission.priority?.selectedCardId
     ? catalog.priorityCards.find((p) => p.id === commission.priority.selectedCardId)
     : null;
-
-  const challenges = Object.keys(commission.challengesApplied ?? {})
-    .map((id) => catalog.challengeCards.find((c) => c.id === id))
-    .filter((c): c is NonNullable<typeof c> => !!c);
 
   return (
     <div className="lobby-commission debrief-scorecard">
@@ -99,16 +96,7 @@ function DebriefScorecard({ commission, catalog, speakerCount }: Props) {
         {commission.priority?.funded ? "Funded" : "Not funded"}
       </p>
 
-      {challenges.length > 0 && (
-        <>
-          <h3>Challenges Applied</h3>
-          <ul>
-            {challenges.map((c) => (
-              <li key={c.id}>{c.title}</li>
-            ))}
-          </ul>
-        </>
-      )}
+      <AppliedChallengesPanel commission={commission} catalog={catalog} />
 
       <DecisionsList commission={commission} catalog={catalog} />
       <BallotMeasuresList commission={commission} catalog={catalog} />

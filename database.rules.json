@@ -52,7 +52,7 @@
             "challengesApplied": {
               "$cardId": {
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'",
-                ".validate": "newData.val() === true"
+                ".validate": "newData.isNumber()"
               }
             },
 

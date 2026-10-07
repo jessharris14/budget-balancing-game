@@ -16,7 +16,8 @@ export interface GameResultCommission {
   ledger: Commission["ledger"];
   priority: Commission["priority"];
   decisionsLog: Record<string, DecisionLogEntry>;
-  challengesApplied: Record<string, true>;
+  /** card id -> triggeredAt timestamp. See Commission.challengesApplied (Change 2). */
+  challengesApplied: Record<string, number>;
   publicTrustTally: number;
   ballotMeasures: Record<string, GameResultBallotMeasure>;
   /** How many Speakers assigned to this Commission cast at least one endorsement -- a count, never the individual Speakers or their votes. */

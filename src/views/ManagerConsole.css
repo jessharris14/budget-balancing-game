@@ -279,7 +279,8 @@
   font-weight: 700;
 }
 
-.scorecard-table {
+.scorecard-table,
+.applied-challenges-table {
   margin: 1rem 0;
 }
 
