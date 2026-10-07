@@ -1,4 +1,4 @@
-import { push, ref, runTransaction, update } from "firebase/database";
+import { get, push, ref, runTransaction, update } from "firebase/database";
 import { rtdb } from "../firebase/config";
 import { applyCard, type ActionResult, type CardType } from "./ledgerService";
 import type { CardCatalog } from "../types/catalog";
@@ -91,12 +91,23 @@ export async function closeBallotMeasure(
   }
 
   if (outcome === "passed") {
+    // applyCard already clears a matching activeMotion itself once the
+    // card lands in cardsInPlay -- not duplicated here.
     const result = await applyCard(code, commissionId, catalog, ballot.cardType, ballot.cardId);
     if (!result.ok) {
       return { ok: false, reason: result.reason, outcome, yes, no };
     }
   } else {
-    await update(ref(rtdb), { [`${base}/chairHighlightedCardId`]: null });
+    // Unlike the passed branch, nothing else clears Card Under Debate or
+    // the motion that put this card there -- do both here so the lock
+    // (Change 1) releases the instant the ballot fails, not just when
+    // chairHighlightedCardId happens to get noticed elsewhere.
+    const motionSnapshot = await get(ref(rtdb, `${base}/activeMotion`));
+    const motionUpdates: Record<string, unknown> = { [`${base}/chairHighlightedCardId`]: null };
+    if (motionSnapshot.exists() && motionSnapshot.val()?.cardId === ballot.cardId) {
+      motionUpdates[`${base}/activeMotion`] = null;
+    }
+    await update(ref(rtdb), motionUpdates);
   }
 
   await update(ref(rtdb), {

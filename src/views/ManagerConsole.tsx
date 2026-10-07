@@ -185,6 +185,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     : null;
   const moverName = motion ? (session.participants[motion.movedBy]?.name ?? motion.movedBy) : null;
   const seconderName = motion?.secondedBy ? (session.participants[motion.secondedBy]?.name ?? motion.secondedBy) : null;
+  const showMotionProvenance = !!motion?.secondedBy && motion.cardId === commission.chairHighlightedCardId;
 
   const canUseFreeCard = session.phase === "mainGame" && !commission.chairFreeCardUsed;
   const dollarCards = [
@@ -226,13 +227,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
       {error && <p className="error">{error}</p>}
 
-      {session.phase === "mainGame" && motion && (
+      {/* Change 1: same duplicate-panel fix as every other role -- Pending Motion only shows while unseconded; once seconded, Card Under Debate folds the mover/seconder in as one line instead. */}
+      {session.phase === "mainGame" && motion && !motion.secondedBy && (
         <div className="lobby-commission">
           <h3>Pending Motion</h3>
           <p>
             {motionCard?.title ?? motion.cardId} — moved by {moverName}
           </p>
-          <p>{seconderName ? `Seconded by ${seconderName}` : "— awaiting second —"}</p>
+          <p>— awaiting second —</p>
         </div>
       )}
 
@@ -240,6 +242,11 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         <div className="lobby-commission chair-highlight">
           <h3>Card Under Debate</h3>
           <p>{highlightedCard?.title ?? commission.chairHighlightedCardId}</p>
+          {showMotionProvenance && (
+            <p>
+              Moved by {moverName}, seconded by {seconderName}
+            </p>
+          )}
           {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
           {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over -- Motion Passes/Fails no longer apply until the ballot resolves. Phase 7 B2: also frozen once Debrief starts. */}
           {session.phase === "mainGame" && !commission.activeBallotId && (

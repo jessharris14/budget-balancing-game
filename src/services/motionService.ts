@@ -23,6 +23,27 @@ export interface ActionResult {
  */
 
 /**
+ * True whenever the Commission is currently debating something -- the
+ * single shared signal every role's view checks before showing "I move to
+ * adopt," instead of each view growing its own copy of this logic. True
+ * if any of:
+ *   a) a motion has been moved but not yet seconded
+ *   b) a motion has been seconded and promoted to Card Under Debate
+ *      (chairHighlightedCardId set) -- covers the whole window up to
+ *      Motion Passes/Fails, not just the moved-not-seconded window A2
+ *      originally covered
+ *   c) a millage card's Ballot Measure is open and unresolved
+ *      (activeBallotId set) -- from the moment Motion Passes creates it
+ *      through voting through closing, until the outcome is applied
+ * chairHighlightedCardId is checked directly (not just "does it match a
+ * known motion") so a table that skips motion/second and highlights
+ * verbally instead still locks out competing motions while it debates.
+ */
+export function isMotionLocked(commission: Commission): boolean {
+  return commission.activeMotion != null || commission.chairHighlightedCardId != null || commission.activeBallotId != null;
+}
+
+/**
  * Any Commissioner (including the Chair) signals "I move to adopt [card]."
  * Phase 7 change: only one motion may be pending at a time (previously a
  * later motion silently replaced an earlier one, which let two
@@ -30,8 +51,13 @@ export interface ActionResult {
  * room debating two things at once). Claimed transactionally -- "first
  * write wins," same pattern as every other single-seat claim in this app
  * -- so a losing second tap aborts cleanly client-side without ever
- * reaching the server, rather than racing a plain update() against the
- * RTDB rule's own (defense-in-depth) rejection of the same case.
+ * reaching the server. The RTDB rule enforces the same thing server-side
+ * (rejecting a create while a motion, Card Under Debate, or Ballot
+ * Measure already occupies this Commission), so a win here isn't the only
+ * thing standing between two near-simultaneous taps -- hence the
+ * try/catch: a rule rejection throws rather than returning
+ * committed:false, and without this catch it would reach the caller as a
+ * raw Firebase error instead of the friendly message asked for.
  */
 export async function signalMotion(
   code: string,
@@ -48,17 +74,21 @@ export async function signalMotion(
     secondedBy: null,
     secondedAt: null,
   };
-  const result = await runTransaction(
-    ref(rtdb, `sessions/${code}/commissions/${commissionId}/activeMotion`),
-    (current: ActiveMotion | null) => {
-      if (current !== null) return undefined;
-      return motion;
-    },
-  );
-  if (!result.committed) {
-    return { ok: false, reason: "Someone else just moved to adopt a different card. Wait for that motion to resolve first." };
+  try {
+    const result = await runTransaction(
+      ref(rtdb, `sessions/${code}/commissions/${commissionId}/activeMotion`),
+      (current: ActiveMotion | null) => {
+        if (current !== null) return undefined;
+        return motion;
+      },
+    );
+    if (!result.committed) {
+      return { ok: false, reason: "A motion is already on the table. Wait for it to resolve first." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "A motion is already on the table. Wait for it to resolve first." };
   }
-  return { ok: true };
 }
 
 /** Any Commissioner other than the mover signals "I second." No-op guards are client-side (this is a signal, not a gate). */

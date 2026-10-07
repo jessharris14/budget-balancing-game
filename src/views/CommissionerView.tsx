@@ -7,7 +7,7 @@ import {
   stopDebateTimer,
 } from "../services/chairService";
 import { isCardAvailable, isSelectedPriorityCard, type CardType } from "../services/ledgerService";
-import { clearMotion, signalMotion, signalSecond } from "../services/motionService";
+import { clearMotion, isMotionLocked, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import BallotMeasuresList from "./BallotMeasuresList";
 import DebriefScorecard from "./DebriefScorecard";
@@ -71,30 +71,27 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
   // The moment a motion has both a mover and a seconder, auto-highlight
   // that card as "Card Under Debate" -- no separate manual step for the
-  // Chair -- and clear the motion itself, since its job (capturing who
-  // moved/seconded) is done and Card Under Debate is now the single
-  // source of truth for what's being discussed. Without this, Pending
-  // Motion kept showing the same card as a stale duplicate alongside Card
-  // Under Debate with no visible relationship between the two (matches
-  // this app's existing motion/second design: a motion is only ever a
-  // pointer to what the room is currently debating, not a permanent
-  // record -- applyCard already clears it the same way once the card is
-  // actually applied; this just moves that same "resolved" moment earlier,
-  // to promotion time). Only ever runs on the Chair's own client, since
-  // both chairHighlightedCardId and activeMotion are writable by the
-  // Chair (activeMotion by any Commissioner, chairHighlightedCardId by the
-  // Chair alone per RTDB rules), and only writes when the highlight
-  // doesn't already match, so it can't fight a manual dropdown change. A
-  // table that skips motion/second and highlights verbally instead never
-  // produces a seconded motion, so this never interferes with that
-  // fallback.
+  // Chair. Unlike the original version of this effect, the motion itself
+  // is NOT cleared here anymore: keeping it around (with movedBy/
+  // secondedBy intact) through the whole debate is what lets the Card
+  // Under Debate panel fold "Moved by X, seconded by Y" into its own
+  // display instead of needing a second, separate Pending Motion panel to
+  // stay visible alongside it (Change 1's duplicate-panel fix). The
+  // motion is cleared later, at actual resolution -- Motion Passes
+  // (applyCard), Motion Fails, or a Ballot Measure resolving either way --
+  // not at promotion time. Only ever runs on the Chair's own client,
+  // since chairHighlightedCardId is writable by the Chair (or the
+  // Manager/Administrator) per RTDB rules, and only writes when the
+  // highlight doesn't already match, so it can't fight a manual dropdown
+  // change. A table that skips motion/second and highlights verbally
+  // instead never produces a seconded motion, so this never interferes
+  // with that fallback.
   useEffect(() => {
     if (!isMyChair) return;
     const activeMotion = commission.activeMotion;
     if (!activeMotion?.secondedBy) return;
     if (commission.chairHighlightedCardId === activeMotion.cardId) return;
     void setChairHighlightedCard(code, commissionId, activeMotion.cardId);
-    void clearMotion(code, commissionId);
   }, [
     isMyChair,
     commission.activeMotion?.cardId,
@@ -142,11 +139,22 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     : null;
   const moverName = motion ? (session.participants[motion.movedBy]?.name ?? motion.movedBy) : null;
   const seconderName = motion?.secondedBy ? (session.participants[motion.secondedBy]?.name ?? motion.secondedBy) : null;
+  const locked = isMotionLocked(commission);
+  // The "Moved by X, seconded by Y" line folded into Card Under Debate
+  // (Change 1): only once the motion that produced this specific
+  // highlighted card has actually been seconded -- an unseconded motion
+  // still gets its own Pending Motion panel below, and a table that
+  // skips motion/second and highlights verbally has no motion to show at
+  // all, so this line simply doesn't render for them.
+  const showMotionProvenance = !!motion?.secondedBy && motion.cardId === commission.chairHighlightedCardId;
 
   async function handleHighlight(cardId: string) {
     setBusy(true);
+    setError(null);
     try {
       await setChairHighlightedCard(code, commissionId, cardId || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -223,12 +231,13 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
   /**
    * Shared Motion/Second cell for both catalog tables -- Main Game only,
-   * and only for cards not already played or locked out. Phase 7 A2: once
-   * any card has a pending motion, "I move to adopt" disappears from
-   * every OTHER card for every Commissioner and the Chair, until that
-   * motion resolves -- a table can only ever be debating one card at a
-   * time now, matching signalMotion's own transactional "only one
-   * pending motion" guarantee.
+   * and only for cards not already played or locked out. Change 1: "I
+   * move to adopt" disappears from every OTHER card for every
+   * Commissioner and the Chair for as long as isMotionLocked is true --
+   * not just while a motion is pending unseconded (the original, too-
+   * narrow A2 scope), but for the whole debate through Card Under Debate
+   * and any Ballot Measure, until Motion Passes/Fails or the ballot
+   * resolves. A table can only ever be debating one card at a time.
    */
   function renderMotionCell(cardId: string, cardType: CardType) {
     if (session.phase !== "mainGame") return null;
@@ -243,7 +252,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
       }
       return <span>Motioned</span>;
     }
-    if (motion) return null;
+    if (locked) return null;
     return (
       <button onClick={() => handleMotion(cardId, cardType)} disabled={motionBusyCardId === cardId}>
         {motionBusyCardId === cardId ? "Motioning…" : "I move to adopt"}
@@ -336,19 +345,25 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
         </div>
       )}
 
-      {session.phase === "mainGame" && motion && (
+      {/*
+        Change 1: Pending Motion only shows while this motion hasn't been
+        seconded yet -- once it has, Card Under Debate takes over as the
+        single place showing this card, folding in who moved/seconded as
+        one line, so the two panels never show the same thing twice.
+      */}
+      {session.phase === "mainGame" && motion && !motion.secondedBy && (
         <div className="lobby-commission">
           <h3>Pending Motion</h3>
           <p>
             {motionCard?.title ?? motion.cardId} — moved by {moverName}
           </p>
-          <p>{seconderName ? `Seconded by ${seconderName}` : "— awaiting second —"}</p>
-          {!motion.secondedBy && motion.movedBy !== myUid && (
+          <p>— awaiting second —</p>
+          {motion.movedBy !== myUid && (
             <button onClick={handleSecond} disabled={busy}>
               Second
             </button>
           )}
-          {!motion.secondedBy && isMyChair && (
+          {isMyChair && (
             <>
               <p>No second? As Chair, you decide when to move on.</p>
               <button onClick={() => void handleResetUnsecondedMotion()} disabled={busy}>
@@ -364,7 +379,11 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           <h3>Card Under Debate</h3>
           {isMyChair ? (
             <>
-              <select value={selectedCardId} onChange={(e) => handleHighlight(e.target.value)} disabled={busy}>
+              <select
+                value={selectedCardId}
+                onChange={(e) => handleHighlight(e.target.value)}
+                disabled={busy || locked}
+              >
                 <option value="">— none highlighted —</option>
                 <optgroup label="Revenue">
                   {catalog.revenueCards.map((card) => (
@@ -381,6 +400,12 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
                   ))}
                 </optgroup>
               </select>
+              {locked && <p>Debate in progress — resolve it (Motion Passes/Fails, or the Ballot Measure) before picking a different card.</p>}
+              {showMotionProvenance && (
+                <p>
+                  Moved by {moverName}, seconded by {seconderName}
+                </p>
+              )}
               <div className="chair-timer-controls">
                 <button onClick={handleStartTimer} disabled={busy}>
                   {commission.debateTimerEndsAt !== null ? "Restart Timer" : "Start Timer"}
@@ -394,6 +419,11 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           ) : (
             <>
               <p>{highlightedCard ? highlightedCard.title : "No card currently highlighted by the Chair."}</p>
+              {showMotionProvenance && (
+                <p>
+                  Moved by {moverName}, seconded by {seconderName}
+                </p>
+              )}
               {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
             </>
           )}
