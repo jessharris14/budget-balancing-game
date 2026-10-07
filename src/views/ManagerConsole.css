@@ -139,6 +139,19 @@
   font-size: 0.85rem;
 }
 
+/* Change 4: Reconsider, moved into the Administrator's Status column. */
+.card-status-badge + button {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.reconsider-hint {
+  font-size: 0.75rem;
+  color: #888;
+  margin: 0.2rem 0 0;
+}
+
 .public-trust-gauge {
   max-width: 20rem;
   margin: 1.5rem 0;

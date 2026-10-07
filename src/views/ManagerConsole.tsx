@@ -9,9 +9,10 @@ import {
   isCardAvailable,
   isSelectedPriorityCard,
   recordFailedMotion,
+  reconsiderCard,
   type CardType,
 } from "../services/ledgerService";
-import { clearMotion } from "../services/motionService";
+import { clearMotion, isMotionLocked } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
@@ -190,6 +191,19 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const moverName = motion ? (session.participants[motion.movedBy]?.name ?? motion.movedBy) : null;
   const seconderName = motion?.secondedBy ? (session.participants[motion.secondedBy]?.name ?? motion.secondedBy) : null;
   const showMotionProvenance = !!motion?.secondedBy && motion.cardId === commission.chairHighlightedCardId;
+  /**
+   * Change 4: Reconsider is disabled while isMotionLocked (Change 1) is
+   * true -- a motion/debate/ballot in progress elsewhere on this
+   * Commission's table means the ledger shouldn't also be changing
+   * underneath it from a reconsideration at the same moment. The
+   * alternative (allow it anytime) was considered and rejected: Change 1
+   * exists specifically to stop the ledger-adjacent state from moving
+   * mid-vote, and letting Reconsider bypass that same guard would defeat
+   * its own purpose for no real benefit -- a Commission that wants to
+   * reconsider something can always do it the instant the current motion
+   * resolves, which is rarely more than a few minutes away.
+   */
+  const reconsiderLocked = isMotionLocked(commission);
 
   const canUseFreeCard = session.phase === "mainGame" && !commission.chairFreeCardUsed;
   const dollarCards = [
@@ -350,6 +364,17 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                 </td>
                 <td data-label="Status">
                   <span className={`card-status-badge status-${status}`}>{label}</span>
+                  {status === "applied" && (
+                    <>
+                      <button
+                        onClick={() => void runAction(card.id, () => reconsiderCard(code, commissionId, catalog, card.id))}
+                        disabled={reconsiderLocked || busyCardId === card.id}
+                      >
+                        Reconsider
+                      </button>
+                      {reconsiderLocked && <p className="reconsider-hint">Finish the current motion first.</p>}
+                    </>
+                  )}
                 </td>
               </tr>
             );
@@ -386,6 +411,17 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                 </td>
                 <td data-label="Status">
                   <span className={`card-status-badge status-${status}`}>{label}</span>
+                  {status === "applied" && (
+                    <>
+                      <button
+                        onClick={() => void runAction(card.id, () => reconsiderCard(code, commissionId, catalog, card.id))}
+                        disabled={reconsiderLocked || busyCardId === card.id}
+                      >
+                        Reconsider
+                      </button>
+                      {reconsiderLocked && <p className="reconsider-hint">Finish the current motion first.</p>}
+                    </>
+                  )}
                 </td>
               </tr>
             );
