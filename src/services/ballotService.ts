@@ -34,7 +34,16 @@ export async function createBallotMeasure(
   const base = `sessions/${code}/commissions/${commissionId}`;
   const ballotId = push(ref(rtdb, `${base}/ballotMeasures`)).key;
   if (!ballotId) throw new Error("Could not generate a ballot id.");
-  const ballot: BallotMeasure = { id: ballotId, cardId, cardType, openedAt: null, closedAt: null, outcome: null, votes: {} };
+  const ballot: BallotMeasure = {
+    id: ballotId,
+    cardId,
+    cardType,
+    openedAt: null,
+    closedAt: null,
+    outcome: null,
+    yesCount: 0,
+    noCount: 0,
+  };
   await update(ref(rtdb), {
     [`${base}/ballotMeasures/${ballotId}`]: ballot,
     [`${base}/activeBallotId`]: ballotId,
@@ -81,9 +90,12 @@ export async function closeBallotMeasure(
   ballot: BallotMeasure,
 ): Promise<ActionResult & { outcome: "passed" | "failed"; yes: number; no: number }> {
   const base = `sessions/${code}/commissions/${commissionId}`;
-  const votes = Object.values(ballot.votes ?? {});
-  const yes = votes.filter((v) => v === "yes").length;
-  const no = votes.filter((v) => v === "no").length;
+  // Phase 8.1: yesCount/noCount are the only tally anyone -- including
+  // the Administrator closing this ballot -- can read; the raw per-voter
+  // values live in the separate, voter-only-readable ballotVotes tree
+  // (see castBallotVote) and are never read back here or anywhere else.
+  const yes = ballot.yesCount ?? 0;
+  const no = ballot.noCount ?? 0;
   const outcome: "passed" | "failed" = yes > no ? "passed" : "failed";
 
   if (ballot.closedAt == null) {
@@ -118,19 +130,75 @@ export async function closeBallotMeasure(
   return { ok: true, outcome, yes, no };
 }
 
-/** One vote per Speaker per ballot, cast once, no changing it afterward -- enforced at the RTDB rules level (write-only-if-absent), not just by this client-side write. */
+/**
+ * One vote per Speaker per ballot, cast once, no changing it afterward --
+ * and, as of Phase 8.1, genuinely unreadable by anyone but the voter
+ * themself (see the BallotMeasure.yesCount/noCount comment in types/
+ * session.ts for why the old in-tree `votes` map couldn't actually
+ * deliver that). Two writes:
+ *
+ * 1. Transactionally claim ballotVotes/{code}/{commissionId}/{ballotId}/
+ *    {speakerUid} -- write-once, same "first write wins" pattern as
+ *    every other single-seat claim in this app. This is the sole
+ *    authoritative "have I voted" record; the RTDB rule also enforces
+ *    write-once server-side.
+ * 2. Only if that commits, bump the matching yesCount/noCount on the
+ *    ballot itself (also a transaction, so two concurrent votes can't
+ *    clobber each other's +1). If this second step fails -- a dropped
+ *    connection between the two writes -- the claim is rolled back so
+ *    the Speaker isn't left permanently locked out with no vote counted;
+ *    same rollback-on-partial-failure pattern as claimAndApplyLedgerDelta
+ *    in ledgerService.ts.
+ *
+ * This still trusts each Speaker's own client to increment the counter
+ * honestly exactly once -- there's no Cloud Function available to
+ * recompute it from a trusted source (Spark plan, confirmed in Phase 7).
+ * That's the same tier of trust this app already extends to every other
+ * role for their own actions (the Administrator applying cards, the
+ * Facilitator triggering Challenges); what this fix actually closes is
+ * the privacy leak -- nobody, including the Administrator and
+ * Facilitator, can read who voted which way anymore -- and accidental
+ * double-submission, not a determined cheater with raw API access.
+ */
 export async function castBallotVote(
   code: string,
   commissionId: string,
   ballotId: string,
   speakerUid: string,
   vote: BallotVote,
-): Promise<void> {
-  await runTransaction(
-    ref(rtdb, `sessions/${code}/commissions/${commissionId}/ballotMeasures/${ballotId}/votes/${speakerUid}`),
-    (current: BallotVote | null) => {
-      if (current !== null) return undefined;
-      return vote;
-    },
-  );
+): Promise<ActionResult> {
+  const base = `sessions/${code}/commissions/${commissionId}`;
+  const voteRef = ref(rtdb, `ballotVotes/${code}/${commissionId}/${ballotId}/${speakerUid}`);
+
+  const claim = await runTransaction(voteRef, (current: BallotVote | null) => {
+    if (current !== null) return undefined;
+    return vote;
+  });
+  if (!claim.committed) {
+    return { ok: false, reason: "You've already voted on this measure." };
+  }
+
+  try {
+    const countField = vote === "yes" ? "yesCount" : "noCount";
+    await runTransaction(
+      ref(rtdb, `${base}/ballotMeasures/${ballotId}/${countField}`),
+      (current: number | null) => (current ?? 0) + 1,
+    );
+  } catch (err) {
+    await runTransaction(voteRef, (current: BallotVote | null) => (current === vote ? null : current));
+    throw err;
+  }
+
+  return { ok: true };
+}
+
+/** The voter's own previously-cast vote, if any -- read directly from the voter-only-readable ballotVotes path, never from the (now-aggregate-only) ballot itself. */
+export async function getMyBallotVote(
+  code: string,
+  commissionId: string,
+  ballotId: string,
+  speakerUid: string,
+): Promise<BallotVote | null> {
+  const snapshot = await get(ref(rtdb, `ballotVotes/${code}/${commissionId}/${ballotId}/${speakerUid}`));
+  return snapshot.exists() ? (snapshot.val() as BallotVote) : null;
 }

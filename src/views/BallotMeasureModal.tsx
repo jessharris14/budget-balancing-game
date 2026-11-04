@@ -38,7 +38,7 @@ function BallotMeasureModal({ code, commissionId, catalog, card, ballot, onDismi
   const open = ballot.openedAt != null && ballot.closedAt == null;
   const needsRetry = ballot.closedAt != null && ballot.outcome == null;
   const resolved = ballot.outcome != null;
-  const voteCount = Object.keys(ballot.votes ?? {}).length;
+  const voteCount = (ballot.yesCount ?? 0) + (ballot.noCount ?? 0);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -85,8 +85,7 @@ function BallotMeasureModal({ code, commissionId, catalog, card, ballot, onDismi
         {resolved && (
           <div className={`ballot-result ballot-result-${ballot.outcome}`}>
             <p className="ballot-result-tally">
-              Yes: {Object.values(ballot.votes ?? {}).filter((v) => v === "yes").length} — No:{" "}
-              {Object.values(ballot.votes ?? {}).filter((v) => v === "no").length}
+              Yes: {ballot.yesCount ?? 0} — No: {ballot.noCount ?? 0}
             </p>
             <p className="ballot-result-outcome">
               {ballot.outcome === "passed" ? "✅ Measure Passed" : "❌ Measure Failed"}

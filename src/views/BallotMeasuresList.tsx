@@ -31,9 +31,8 @@ function BallotMeasuresList({ commission, catalog }: Props) {
             ballot.cardType === "revenue"
               ? catalog.revenueCards.find((c) => c.id === ballot.cardId)
               : catalog.expenditureCards.find((c) => c.id === ballot.cardId);
-          const votes = Object.values(ballot.votes ?? {});
-          const yes = votes.filter((v) => v === "yes").length;
-          const no = votes.filter((v) => v === "no").length;
+          const yes = ballot.yesCount ?? 0;
+          const no = ballot.noCount ?? 0;
           const passed = ballot.outcome === "passed";
           return (
             <li key={ballot.id}>

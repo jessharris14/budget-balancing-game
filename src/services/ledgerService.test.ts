@@ -65,7 +65,7 @@ describe("getCardStatus", () => {
   it("returns didNotPass / Failed ballot for a card whose Ballot Measure failed", () => {
     const commission = baseCommission({
       ballotMeasures: {
-        b1: { id: "b1", cardId: "R2", cardType: "revenue", openedAt: 1, closedAt: 100, outcome: "failed", votes: {} },
+        b1: { id: "b1", cardId: "R2", cardType: "revenue", openedAt: 1, closedAt: 100, outcome: "failed", yesCount: 1, noCount: 2 },
       },
     });
     expect(getCardStatus(commission, "R2", "revenue")).toEqual({ status: "didNotPass", label: "Failed ballot" });

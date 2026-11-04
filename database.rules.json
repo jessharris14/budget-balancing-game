@@ -6,16 +6,21 @@
         ".write": "auth != null && !data.exists()",
 
         "phase": {
-          ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+          ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()",
+          ".validate": "newData.val() === 'lobby' || newData.val() === 'overview' || newData.val() === 'gameOverview' || newData.val() === 'publicHearing' || newData.val() === 'rollForChair' || newData.val() === 'rankPriorities' || newData.val() === 'mainGame' || newData.val() === 'debrief'"
         },
         "clock": {
+          ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+        },
+        "settings": {
           ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
         },
 
         "commissions": {
           "$commissionId": {
             "name": {
-              ".write": "auth != null && !data.exists()"
+              ".write": "auth != null && !data.exists()",
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30"
             },
             "members": {
               "managerAdminId": {
@@ -37,7 +42,7 @@
             },
             "priority": {
               "selectedCardId": {
-                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val()"
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
               },
               "funded": {
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
@@ -77,10 +82,10 @@
             },
 
             "chairHighlightedCardId": {
-              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()) && (newData.val() === null || newData.val() === root.child('sessions').child($code).child('commissions').child($commissionId).child('activeMotion').child('cardId').val() || (root.child('sessions').child($code).child('commissions').child($commissionId).child('activeMotion').val() === null && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === null))"
+              ".write": "auth != null && root.child('sessions').child($code).child('phase').val() !== 'debrief' && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()) && (newData.val() === null || newData.val() === root.child('sessions').child($code).child('commissions').child($commissionId).child('activeMotion').child('cardId').val() || (root.child('sessions').child($code).child('commissions').child($commissionId).child('activeMotion').val() === null && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === null))"
             },
             "debateTimerEndsAt": {
-              ".write": "auth != null && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val())"
+              ".write": "auth != null && root.child('sessions').child($code).child('phase').val() !== 'debrief' && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val())"
             },
 
             "decisionsLog": {
@@ -105,11 +110,11 @@
             "ballotMeasures": {
               "$ballotId": {
                 ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && root.child('sessions').child($code).child('phase').val() !== 'debrief'",
-                "votes": {
-                  "$speakerUid": {
-                    ".write": "auth != null && auth.uid === $speakerUid && root.child('sessions').child($code).child('phase').val() !== 'debrief' && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === $ballotId && root.child('sessions').child($code).child('commissions').child($commissionId).child('ballotMeasures').child($ballotId).child('openedAt').val() !== null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId",
-                    ".validate": "!data.exists() && (newData.val() === 'yes' || newData.val() === 'no')"
-                  }
+                "yesCount": {
+                  ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId && root.child('sessions').child($code).child('phase').val() !== 'debrief' && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+                },
+                "noCount": {
+                  ".write": "auth != null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId && root.child('sessions').child($code).child('phase').val() !== 'debrief' && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
                 }
               }
             },
@@ -123,7 +128,8 @@
 
         "publicHearingSpeakers": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('sessions').child($code).child('publicHearingSpeakers').numChildren() < 60",
+            ".validate": "newData.child('id').val() === $uid && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 30",
             "assignedPrompts": {
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
             },
@@ -131,6 +137,7 @@
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
             },
             "endorsementsUsed": {
+              ".write": "auth != null && auth.uid === $uid",
               "0": {
                 ".validate": "!data.exists() && root.child('sessions').child($code).child('phase').val() !== 'debrief' && newData.hasChildren(['type', 'timestamp']) && (newData.child('type').val() === 'endorse' || newData.child('type').val() === 'oppose')"
               },
@@ -149,8 +156,21 @@
 
         "participants": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid",
-            ".validate": "newData.child('uid').val() === $uid"
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('sessions').child($code).child('participants').numChildren() < 60",
+            ".validate": "newData.child('uid').val() === $uid && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 30 && (newData.child('role').val() === 'facilitator' || newData.child('role').val() === 'managerAdmin' || newData.child('role').val() === 'commissioner' || newData.child('role').val() === 'publicHearingSpeaker')"
+          }
+        }
+      }
+    },
+
+    "ballotVotes": {
+      "$code": {
+        "$commissionId": {
+          "$ballotId": {
+            "$speakerUid": {
+              ".read": "auth != null && auth.uid === $speakerUid",
+              ".write": "auth != null && auth.uid === $speakerUid && !data.exists() && (newData.val() === 'yes' || newData.val() === 'no') && root.child('sessions').child($code).child('phase').val() !== 'debrief' && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === $ballotId && root.child('sessions').child($code).child('commissions').child($commissionId).child('ballotMeasures').child($ballotId).child('openedAt').val() !== null && root.child('sessions').child($code).child('publicHearingSpeakers').child(auth.uid).child('commissionId').val() === $commissionId"
+            }
           }
         }
       }

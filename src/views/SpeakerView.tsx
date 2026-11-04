@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { castBallotVote } from "../services/ballotService";
+import { castBallotVote, getMyBallotVote } from "../services/ballotService";
 import { getCatalog } from "../services/catalogService";
 import { castEndorsement } from "../services/speakerService";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
@@ -37,6 +37,7 @@ function SpeakerView({ code, session, speaker }: Props) {
   const [castError, setCastError] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [myVote, setMyVote] = useState<"yes" | "no" | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -49,6 +50,17 @@ function SpeakerView({ code, session, speaker }: Props) {
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }, [session.catalogVersion]);
+
+  // Phase 8.1: my own vote now lives in the voter-only-readable
+  // ballotVotes tree, not in the (now aggregate-only) ballot itself, so
+  // it's fetched directly rather than read off session state. Re-fetches
+  // whenever a different ballot becomes active for this Commission.
+  const activeBallotId = session.commissions[speaker.commissionId]?.activeBallotId ?? null;
+  useEffect(() => {
+    setMyVote(null);
+    if (!activeBallotId) return;
+    void getMyBallotVote(code, speaker.commissionId, activeBallotId, speaker.id).then(setMyVote);
+  }, [code, speaker.commissionId, speaker.id, activeBallotId]);
 
   if (error && !catalog) return <p className="session-view error">{error}</p>;
   if (!catalog) return <p className="session-view">Loading…</p>;
@@ -67,7 +79,6 @@ function SpeakerView({ code, session, speaker }: Props) {
 
   const activeBallot = commission?.activeBallotId ? commission.ballotMeasures?.[commission.activeBallotId] : null;
   const ballotOpen = session.phase === "mainGame" && !!activeBallot && activeBallot.openedAt != null && activeBallot.closedAt == null;
-  const myVote = activeBallot?.votes?.[speaker.id];
   const ballotCard = activeBallot
     ? (activeBallot.cardType === "revenue"
         ? catalog.revenueCards.find((c) => c.id === activeBallot.cardId)
@@ -79,7 +90,12 @@ function SpeakerView({ code, session, speaker }: Props) {
     setVoting(true);
     setVoteError(null);
     try {
-      await castBallotVote(code, speaker.commissionId, activeBallot.id, speaker.id, vote);
+      const result = await castBallotVote(code, speaker.commissionId, activeBallot.id, speaker.id, vote);
+      if (result.ok) {
+        setMyVote(vote);
+      } else {
+        setVoteError(result.reason ?? "Could not cast that vote.");
+      }
     } catch (err) {
       setVoteError(err instanceof Error ? err.message : String(err));
     } finally {

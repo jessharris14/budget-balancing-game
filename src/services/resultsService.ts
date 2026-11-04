@@ -36,13 +36,12 @@ export interface GameResult {
 
 function summarizeBallot(ballot: BallotMeasure): GameResultBallotMeasure | null {
   if (!ballot.outcome) return null;
-  const votes = Object.values(ballot.votes ?? {});
   return {
     cardId: ballot.cardId,
     cardType: ballot.cardType,
     outcome: ballot.outcome,
-    yes: votes.filter((v) => v === "yes").length,
-    no: votes.filter((v) => v === "no").length,
+    yes: ballot.yesCount ?? 0,
+    no: ballot.noCount ?? 0,
   };
 }
 

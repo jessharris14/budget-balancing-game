@@ -230,13 +230,22 @@ export interface BallotMeasure {
   closedAt: number | null;
   outcome: "passed" | "failed" | null;
   /**
-   * Keyed by the voting Speaker's own uid -- same "owned by the voter,
-   * never exposed as a speaker-to-vote mapping in the UI" privacy pattern
-   * as Speaker.endorsementsUsed, not literal database-level anonymity.
-   * Write-once per key (RTDB .validate rule), so a vote can never be
-   * changed after casting.
+   * Phase 8.1 fix: individual votes no longer live here. They used to
+   * (keyed by voter uid), but this whole Commission tree is read via one
+   * blanket `sessions/{code}` listener (subscribeToSession) that every
+   * signed-in participant uses -- RTDB's read-rule cascading means a
+   * deeper per-field `.read: false` is never even consulted once an
+   * ancestor's `.read` has already granted the request, so there was no
+   * way to keep a per-voter value genuinely hidden while it lived inside
+   * this tree. The raw vote is now written to a separate top-level
+   * `ballotVotes/{code}/{commissionId}/{ballotId}/{speakerUid}` node
+   * (see ballotService.ts castBallotVote) that only the voter themself
+   * can ever read, and is never touched by the session listener at all.
+   * yesCount/noCount below are the only trace of the outcome anyone else
+   * -- including the Administrator and Facilitator -- can see.
    */
-  votes: Record<string, BallotVote>;
+  yesCount: number;
+  noCount: number;
 }
 
 export interface Commission {
