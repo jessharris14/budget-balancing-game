@@ -30,7 +30,7 @@
             },
             "members": {
               "managerAdminId": {
-                ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid && root.child('sessions').child($code).child('expiresAt').val() > now) || (newData.val() === null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()))",
+                ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid && (root.child('sessions').child($code).child('expiresAt').val() === null || root.child('sessions').child($code).child('expiresAt').val() > now)) || (newData.val() === null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()))",
                 ".validate": "newData.val() === null || newData.val() === auth.uid"
               },
               "chairId": {
@@ -38,7 +38,7 @@
               },
               "commissionerIds": {
                 "$uid": {
-                  ".write": "auth != null && auth.uid === $uid && root.child('sessions').child($code).child('expiresAt').val() > now",
+                  ".write": "auth != null && auth.uid === $uid && (root.child('sessions').child($code).child('expiresAt').val() === null || root.child('sessions').child($code).child('expiresAt').val() > now)",
                   ".validate": "newData.val() === true"
                 }
               }
@@ -134,7 +134,7 @@
 
         "publicHearingSpeakers": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('sessions').child($code).child('expiresAt').val() > now && root.child('sessions').child($code).child('publicHearingSpeakers').numChildren() < 60",
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && (root.child('sessions').child($code).child('expiresAt').val() === null || root.child('sessions').child($code).child('expiresAt').val() > now)",
             ".validate": "newData.child('id').val() === $uid && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 30",
             "assignedPrompts": {
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
@@ -162,7 +162,7 @@
 
         "participants": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('sessions').child($code).child('expiresAt').val() > now && root.child('sessions').child($code).child('participants').numChildren() < 60",
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && (root.child('sessions').child($code).child('expiresAt').val() === null || root.child('sessions').child($code).child('expiresAt').val() > now)",
             ".validate": "newData.child('uid').val() === $uid && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 30 && (newData.child('role').val() === 'facilitator' || newData.child('role').val() === 'managerAdmin' || newData.child('role').val() === 'commissioner' || newData.child('role').val() === 'publicHearingSpeaker')"
           }
         }

@@ -170,7 +170,7 @@ function FacilitatorConsole({ code, session }: Props) {
   }
 
   async function handleReleaseSeat(commissionId: string, seat: "managerAdmin" | "chair", label: string) {
-    if (!window.confirm(`Release the ${label} seat for this table? Whoever holds it now will lose access, and anyone can claim it fresh. Only do this if they're genuinely locked out (lost device/storage) -- not for an ordinary disconnect.`)) {
+    if (!window.confirm(`Release the ${label} seat for this table? Whoever holds it now will lose access, and anyone can claim it fresh. If there's an open motion, ballot, or highlighted card right now, it stays exactly as-is -- untouched, not cancelled -- but no one can act on it until someone claims this seat again. Only do this if they're genuinely locked out (lost device/storage) -- not for an ordinary disconnect.`)) {
       return;
     }
     const key = `${commissionId}:${seat}`;
