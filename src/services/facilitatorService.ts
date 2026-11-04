@@ -153,6 +153,21 @@ export async function triggerChallenge(
   mainGameEndsAt: number | null,
 ): Promise<void> {
   const now = Date.now();
+
+  // Phase 8.2: the ledger effect lands FIRST, before the visible
+  // "a Challenge happened" metadata (challengesApplied/activeChallenge).
+  // That ordering matters for what a dropped connection leaves behind:
+  // if applyChallengeToLedger succeeds but the metadata update below
+  // never lands (or vice versa with the old order), this way the
+  // ledger -- the thing that actually affects scoring -- is always
+  // correct, and the worst case is the Applied Challenges panel briefly
+  // not reflecting a Challenge whose dollar effect already landed,
+  // rather than the panel showing a Challenge whose money never moved.
+  // applyChallengeToLedger is itself idempotent (challengeLedgerAppliedAt
+  // transaction, keyed by this exact triggeredAt), so retriggering the
+  // same card at the same `now` can't double-apply it.
+  await applyChallengeToLedger(code, commissionId, card, now);
+
   const updates: Record<string, unknown> = {
     [`sessions/${code}/commissions/${commissionId}/challengesApplied/${card.id}`]: now,
     [`sessions/${code}/commissions/${commissionId}/activeChallenge`]: {
@@ -167,7 +182,6 @@ export async function triggerChallenge(
   }
 
   await update(ref(rtdb), updates);
-  await applyChallengeToLedger(code, commissionId, card, now);
 }
 
 /**
@@ -181,5 +195,25 @@ export async function rerollSpeakerPrompts(code: string, speakerUid: string, pro
   await update(ref(rtdb), {
     [`sessions/${code}/publicHearingSpeakers/${speakerUid}/assignedPrompts`]: drawPromptIds(promptBank),
     [`sessions/${code}/publicHearingSpeakers/${speakerUid}/rerollCount`]: currentRerollCount + 1,
+  });
+}
+
+/**
+ * Phase 8.2 disaster-recovery escape hatch: managerAdminId and chairId
+ * are single-seat, claimed once and permanent (no uid can ever overwrite
+ * an existing claim, by design -- see the Phase 8.1 rules audit). That's
+ * correct for preventing a seat from being hijacked, but it also means
+ * if the person holding one of those seats genuinely loses their
+ * anonymous auth identity (cleared browser storage, a new device, no
+ * recovery path), that seat is stuck forever with no legitimate way for
+ * anyone -- including them -- to reclaim it. Only the Facilitator can
+ * release it (clear the field back to null so it becomes claimable
+ * again), and only by explicit action -- this is NOT triggered by a
+ * disconnect or any automatic timeout.
+ */
+export async function releaseSeat(code: string, commissionId: string, seat: "managerAdmin" | "chair"): Promise<void> {
+  const field = seat === "managerAdmin" ? "managerAdminId" : "chairId";
+  await update(ref(rtdb), {
+    [`sessions/${code}/commissions/${commissionId}/members/${field}`]: null,
   });
 }

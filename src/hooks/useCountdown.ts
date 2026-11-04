@@ -1,15 +1,24 @@
 import { useEffect, useState } from "react";
+import { useServerTimeOffset } from "./useServerTimeOffset";
 
-/** Live "ms remaining until deadline," re-rendering once a second. Null if deadline is null. */
+/**
+ * Live "ms remaining until deadline," re-rendering once a second. Null if
+ * deadline is null. Phase 8.2: corrected by the server/client clock
+ * offset (useServerTimeOffset) rather than raw Date.now() -- a deadline
+ * is itself a shared, server-stored absolute timestamp, but without this
+ * correction two devices with differently-skewed system clocks would
+ * each compute a different "time remaining" against that same deadline.
+ */
 export function useCountdown(deadline: number | null): number | null {
-  const [now, setNow] = useState(() => Date.now());
+  const offset = useServerTimeOffset();
+  const [now, setNow] = useState(() => Date.now() + offset);
 
   useEffect(() => {
     if (deadline === null) return;
-    setNow(Date.now()); // correct any staleness immediately when the deadline (re)starts
-    const interval = setInterval(() => setNow(Date.now()), 1000);
+    setNow(Date.now() + offset); // correct any staleness immediately when the deadline (re)starts
+    const interval = setInterval(() => setNow(Date.now() + offset), 1000);
     return () => clearInterval(interval);
-  }, [deadline]);
+  }, [deadline, offset]);
 
   if (deadline === null) return null;
   return Math.max(0, deadline - now);

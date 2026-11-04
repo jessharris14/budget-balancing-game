@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
+import { useConnectionStatus } from "../hooks/useConnectionStatus";
+import { rememberSession } from "../services/localSession";
+import { startPresence } from "../services/presenceService";
 import { subscribeToSession } from "../services/sessionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import CommissionerView from "./CommissionerView";
@@ -22,11 +25,24 @@ function Lobby() {
   const { code = "" } = useParams<{ code: string }>();
   const { user, status: authStatus } = useAnonymousAuth();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const connected = useConnectionStatus();
 
   useEffect(() => {
     if (authStatus !== "signed-in") return;
     return subscribeToSession(code, setSession);
   }, [code, authStatus]);
+
+  // Phase 8.2: presence is purely a connectivity marker (see
+  // presenceService.ts) -- never wired into any role claim or write path,
+  // so losing it can't release a seat or drop recorded history. Started
+  // once per signed-in uid per session; its own cleanup (on unmount or a
+  // uid/code change) clears the marker and cancels the pending
+  // onDisconnect so a deliberate navigation away doesn't linger as
+  // "connected" until a timeout.
+  useEffect(() => {
+    if (authStatus !== "signed-in" || !user) return;
+    return startPresence(code, user.uid);
+  }, [code, authStatus, user]);
 
   // Hooks must run unconditionally on every render, before the loading/error
   // early returns below -- session is possibly still undefined/null here,
@@ -42,6 +58,11 @@ function Lobby() {
 
   const myParticipant = user ? session.participants[user.uid] : undefined;
   const joinUrl = `${window.location.origin}/join?code=${code}`;
+  const reconnectBanner = !connected && (
+    <p className="reconnect-banner" role="status">
+      ⏳ Reconnecting… your last known state is still shown below.
+    </p>
+  );
 
   // Checked against facilitatorId (set once at creation, never overwritten)
   // rather than myParticipant.role: that role field lives in the same
@@ -51,7 +72,13 @@ function Lobby() {
   // auth identity across tabs), that write would silently overwrite their
   // own "facilitator" role and lock them out of their own console.
   if (user?.uid === session.facilitatorId) {
-    return <FacilitatorConsole code={code} session={session} />;
+    rememberSession(code, user.uid);
+    return (
+      <>
+        {reconnectBanner}
+        <FacilitatorConsole code={code} session={session} />
+      </>
+    );
   }
 
   const myCommission = myParticipant?.commissionId ? session.commissions[myParticipant.commissionId] : undefined;
@@ -62,8 +89,12 @@ function Lobby() {
   // not myParticipant.role, so this can't be knocked over by the same
   // mutable-role-field issue fixed for the Facilitator in Phase 3.
   if (user && myCommission?.members?.managerAdminId === user.uid && myParticipant?.commissionId) {
+    rememberSession(code, user.uid);
     return (
-      <ManagerConsole code={code} session={session} commissionId={myParticipant.commissionId} commission={myCommission} />
+      <>
+        {reconnectBanner}
+        <ManagerConsole code={code} session={session} commissionId={myParticipant.commissionId} commission={myCommission} />
+      </>
     );
   }
 
@@ -72,15 +103,19 @@ function Lobby() {
   // as the Facilitator/Manager-Administrator checks above.
   const isMyCommissioner = !!user && !!myCommission && !!myCommission.members?.commissionerIds?.[user.uid];
   if (isMyCommissioner && myParticipant?.commissionId && myCommission) {
+    rememberSession(code, user.uid);
     return (
-      <CommissionerView
-        code={code}
-        session={session}
-        commissionId={myParticipant.commissionId}
-        commission={myCommission}
-        isMyChair={isMyChair}
-        myUid={user?.uid ?? ""}
-      />
+      <>
+        {reconnectBanner}
+        <CommissionerView
+          code={code}
+          session={session}
+          commissionId={myParticipant.commissionId}
+          commission={myCommission}
+          isMyChair={isMyChair}
+          myUid={user?.uid ?? ""}
+        />
+      </>
     );
   }
 
@@ -88,11 +123,18 @@ function Lobby() {
   // from joinAsPublicHearingSpeaker) rather than myParticipant.role.
   const mySpeaker = user ? session.publicHearingSpeakers?.[user.uid] : undefined;
   if (mySpeaker) {
-    return <SpeakerView code={code} session={session} speaker={mySpeaker} />;
+    rememberSession(code, user!.uid);
+    return (
+      <>
+        {reconnectBanner}
+        <SpeakerView code={code} session={session} speaker={mySpeaker} />
+      </>
+    );
   }
 
   return (
     <div className="session-view">
+      {reconnectBanner}
       <h1>Lobby — {code}</h1>
       <p>Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong></p>
       {session.phase === "rankPriorities" && phaseTimerMs !== null && (

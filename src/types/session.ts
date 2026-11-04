@@ -333,4 +333,15 @@ export interface Session {
   publicHearingSpeakers: Record<string, Speaker>;
   /** Keyed by uid: each participant writes only their own entry. See Participant above. */
   participants: Record<string, Participant>;
+  /**
+   * Phase 8.2: keyed by uid -> the timestamp this uid's device last
+   * (re)connected, present only while that uid currently has a live RTDB
+   * connection (see presenceService.ts). Purely a connectivity signal --
+   * never read by any write-gating rule or role-claim logic, so losing
+   * it can never release a seat, drop a Speaker's endorsements, or
+   * invalidate a Ballot vote. Absent entirely until the first client
+   * connects (RTDB prunes the whole session-wide `presence` node back to
+   * nothing once every uid disconnects).
+   */
+  presence?: Record<string, number>;
 }

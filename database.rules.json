@@ -15,6 +15,12 @@
         "settings": {
           ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
         },
+        "presence": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.val() === null || newData.isNumber()"
+          }
+        },
 
         "commissions": {
           "$commissionId": {
@@ -24,11 +30,11 @@
             },
             "members": {
               "managerAdminId": {
-                ".write": "auth != null && !data.exists() && newData.val() === auth.uid",
-                ".validate": "newData.val() === auth.uid"
+                ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (newData.val() === null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()))",
+                ".validate": "newData.val() === null || newData.val() === auth.uid"
               },
               "chairId": {
-                ".write": "auth != null && !data.exists() && auth.uid === root.child('sessions').child($code).child('facilitatorId').val()"
+                ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('facilitatorId').val() && (!data.exists() || newData.val() === null)"
               },
               "commissionerIds": {
                 "$uid": {

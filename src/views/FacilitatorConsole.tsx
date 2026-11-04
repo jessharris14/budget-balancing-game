@@ -4,6 +4,7 @@ import { getCatalog } from "../services/catalogService";
 import {
   advancePhase,
   computeAndStoreFinalScores,
+  releaseSeat,
   rerollSpeakerPrompts,
   rollForChair,
   triggerChallenge,
@@ -35,6 +36,8 @@ function FacilitatorConsole({ code, session }: Props) {
   const [triggeringCommissionId, setTriggeringCommissionId] = useState<string | null>(null);
   const [rerollingUid, setRerollingUid] = useState<string | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
+  const [releasingSeat, setReleasingSeat] = useState<string | null>(null);
+  const [advancingPhase, setAdvancingPhase] = useState(false);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -112,7 +115,13 @@ function FacilitatorConsole({ code, session }: Props) {
   const speakers = Object.values(session.publicHearingSpeakers ?? {});
 
   async function handleNextPhase() {
-    await advancePhase(code, session.phase);
+    if (advancingPhase) return;
+    setAdvancingPhase(true);
+    try {
+      await advancePhase(code, session.phase);
+    } finally {
+      setAdvancingPhase(false);
+    }
   }
 
   async function handleRoll(commissionId: string) {
@@ -155,6 +164,19 @@ function FacilitatorConsole({ code, session }: Props) {
     }
   }
 
+  async function handleReleaseSeat(commissionId: string, seat: "managerAdmin" | "chair", label: string) {
+    if (!window.confirm(`Release the ${label} seat for this table? Whoever holds it now will lose access, and anyone can claim it fresh. Only do this if they're genuinely locked out (lost device/storage) -- not for an ordinary disconnect.`)) {
+      return;
+    }
+    const key = `${commissionId}:${seat}`;
+    setReleasingSeat(key);
+    try {
+      await releaseSeat(code, commissionId, seat);
+    } finally {
+      setReleasingSeat(null);
+    }
+  }
+
   const challengeReminderDue =
     session.phase === "mainGame" && clock.nextChallengeDue !== null && (nextChallengeMs ?? 0) <= 0;
 
@@ -173,7 +195,7 @@ function FacilitatorConsole({ code, session }: Props) {
         <p>
           Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
         </p>
-        <button onClick={handleNextPhase} disabled={isLastPhase || blockedOnChair}>
+        <button onClick={handleNextPhase} disabled={isLastPhase || blockedOnChair || advancingPhase}>
           {isLastPhase ? "Session Complete" : "Next Phase →"}
         </button>
       </div>
@@ -272,12 +294,39 @@ function FacilitatorConsole({ code, session }: Props) {
         const tableSpeakers = speakers.filter((s) => s.commissionId === id);
         const tableSpeakersWithEndorsement = tableSpeakers.filter((s) => Object.keys(s.endorsementsUsed ?? {}).length > 0).length;
 
+        // Phase 8.2: anyone with a claimed seat at this table (Administrator,
+        // Chair, Commissioners, Speakers) who currently has no live
+        // connection -- a seat still shows here even while fully
+        // disconnected, since presence never gates or releases anything.
+        const tableUids = [
+          ...(members.managerAdminId ? [members.managerAdminId] : []),
+          ...(members.chairId ? [members.chairId] : []),
+          ...commissionerUids,
+          ...tableSpeakers.map((s) => s.id),
+        ];
+        const disconnectedNames = tableUids
+          .filter((uid) => !session.presence?.[uid])
+          .map((uid) => session.participants[uid]?.name ?? uid);
+
         return (
           <div key={id} className="lobby-commission">
             <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
             <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
             <p>Commissioners ({commissionerNames.length}): {commissionerNames.length > 0 ? commissionerNames.join(", ") : "none yet"}</p>
             <p>Chair: {chairName ?? "not yet elected"}</p>
+            {disconnectedNames.length > 0 && (
+              <p className="error">⚠️ Currently disconnected: {disconnectedNames.join(", ")}</p>
+            )}
+            {members.managerAdminId && (
+              <button onClick={() => void handleReleaseSeat(id, "managerAdmin", "Manager/Administrator")} disabled={releasingSeat === `${id}:managerAdmin`}>
+                Release Manager/Administrator seat
+              </button>
+            )}{" "}
+            {members.chairId && (
+              <button onClick={() => void handleReleaseSeat(id, "chair", "Chair")} disabled={releasingSeat === `${id}:chair`}>
+                Release Chair seat
+              </button>
+            )}
             <p>Decisions made: {decisionsCount}</p>
             {tableSpeakers.length > 0 && (
               <p>
