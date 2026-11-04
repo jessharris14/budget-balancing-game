@@ -328,6 +328,8 @@ export interface Session {
   /** Which catalog version this session was created against (see CardCatalog.catalogVersion). */
   catalogVersion: string;
   createdAt: number;
+  /** Phase 8.3: createdAt + ~24h, set once at creation. Past this, JoinSession refuses to join (client-side) and the RTDB rules refuse new join writes (server-side) -- the session itself isn't auto-deleted (no Cloud Function available to schedule that on the Spark plan), just no longer joinable. See cleanup docs for the actual deletion paths. */
+  expiresAt: number;
   commissions: Record<string, Commission>;
   /** Keyed by uid: each speaker writes only their own entry. */
   publicHearingSpeakers: Record<string, Speaker>;

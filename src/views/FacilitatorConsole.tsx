@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { getCatalog } from "../services/catalogService";
 import {
@@ -10,6 +11,7 @@ import {
   triggerChallenge,
 } from "../services/facilitatorService";
 import { persistGameResults } from "../services/resultsService";
+import { clearSessionData } from "../services/sessionService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import BallotMeasuresList from "./BallotMeasuresList";
 import DebriefScorecard from "./DebriefScorecard";
@@ -28,6 +30,7 @@ interface Props {
 }
 
 function FacilitatorConsole({ code, session }: Props) {
+  const navigate = useNavigate();
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [rolling, setRolling] = useState<string | null>(null);
@@ -38,6 +41,8 @@ function FacilitatorConsole({ code, session }: Props) {
   const [resultsError, setResultsError] = useState<string | null>(null);
   const [releasingSeat, setReleasingSeat] = useState<string | null>(null);
   const [advancingPhase, setAdvancingPhase] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -177,6 +182,31 @@ function FacilitatorConsole({ code, session }: Props) {
     }
   }
 
+  /**
+   * Phase 8.3: deletes the ephemeral RTDB session data only -- the
+   * Firestore gameResults record (already confirmed saved via
+   * resultsPersisted above) is a separate store this never touches.
+   * Gated on resultsPersisted in the UI, since the RTDB rule itself
+   * can't verify a Firestore write succeeded -- only that phase is
+   * 'debrief'. Navigates home afterward since this session no longer
+   * exists to render.
+   */
+  async function handleClearSession() {
+    if (!window.confirm(`End and clear session ${code}? This permanently deletes the live session data (ledgers, decisions, everyone's progress). The saved final results are NOT affected. This cannot be undone.`)) {
+      return;
+    }
+    setClearing(true);
+    setClearError(null);
+    try {
+      await clearSessionData(code);
+      navigate("/");
+    } catch (err) {
+      setClearError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setClearing(false);
+    }
+  }
+
   const challengeReminderDue =
     session.phase === "mainGame" && clock.nextChallengeDue !== null && (nextChallengeMs ?? 0) <= 0;
 
@@ -267,6 +297,15 @@ function FacilitatorConsole({ code, session }: Props) {
         <>
           {resultsPersisted && <p>✅ Final results saved.</p>}
           {resultsError && <p className="error">Could not save final results: {resultsError}</p>}
+          {resultsPersisted && (
+            <div className="lobby-commission">
+              <button onClick={() => void handleClearSession()} disabled={clearing}>
+                {clearing ? "Clearing…" : "End & Clear Session"}
+              </button>
+              <p>Deletes the live session data once everyone's done. The saved final results stay in place.</p>
+              {clearError && <p className="error">{clearError}</p>}
+            </div>
+          )}
           {commissionEntries.length > 1 ? (
             <ScoreComparisonTable session={session} />
           ) : (

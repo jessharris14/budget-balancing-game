@@ -6,6 +6,7 @@ import type { Commission, Participant, Session, Speaker } from "../types/session
 
 const CODE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const MAX_CREATE_ATTEMPTS = 20;
+const SESSION_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 function randomCode(): string {
   let code = "";
@@ -96,6 +97,7 @@ export async function createSession(params: CreateSessionParams): Promise<string
       clock: { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null },
       catalogVersion: params.catalogVersion,
       createdAt: Date.now(),
+      expiresAt: Date.now() + SESSION_LIFETIME_MS,
       commissions,
       publicHearingSpeakers: {},
       participants: {
@@ -112,6 +114,23 @@ export async function createSession(params: CreateSessionParams): Promise<string
   }
 
   throw new Error("Could not generate a unique session code. Please try again.");
+}
+
+/**
+ * Phase 8.3: deletes the ephemeral RTDB session node entirely -- never
+ * the Firestore gameResults record, which is a completely separate
+ * store this function never touches. The RTDB rule for this requires
+ * phase === 'debrief'; it can't additionally verify the Firestore write
+ * actually succeeded (RTDB rules have no way to read Firestore), so the
+ * UI is responsible for only offering this once persistGameResults has
+ * confirmed success -- see FacilitatorConsole's confirm-gated button.
+ * Freeing this code is also what makes it safe to reuse: createSession's
+ * own collision check (`if (current !== null) return undefined`) already
+ * treats an absent node as available, so a cleaned-up code works exactly
+ * like one that was never used.
+ */
+export async function clearSessionData(code: string): Promise<void> {
+  await set(ref(rtdb, `sessions/${code}`), null);
 }
 
 export async function getSession(code: string): Promise<Session | null> {

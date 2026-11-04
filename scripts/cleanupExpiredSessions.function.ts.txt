@@ -1,0 +1,43 @@
+/**
+ * Phase 8.3: reference Cloud Function version of
+ * scripts/cleanupExpiredSessions.ts, for if/when this project moves to
+ * the Blaze plan. NOT deployed, not wired into firebase.json, not part
+ * of the build -- kept as plain text (.ts.txt, not .ts) specifically so
+ * it's never picked up by tsc/vite and never silently rots out of sync
+ * with a "functions" directory that doesn't otherwise exist in this
+ * project. To actually use it:
+ *
+ *   1. Upgrade the project to Blaze (required for scheduled functions
+ *      and for functions that reach the Realtime Database at all).
+ *   2. `firebase init functions` (TypeScript), which scaffolds a real
+ *      functions/ package.json, tsconfig, etc.
+ *   3. Drop this logic into functions/src/index.ts, rename the file back
+ *      to .ts, add "firebase-admin" and "firebase-functions" as
+ *      dependencies there.
+ *   4. `firebase deploy --only functions`.
+ *
+ * Logic is identical to the standalone script -- same expiresAt/createdAt
+ * fallback, same Firestore-is-never-touched guarantee -- just running on
+ * Firebase's own schedule instead of by hand.
+ */
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { initializeApp } from "firebase-admin/app";
+import { getDatabase } from "firebase-admin/database";
+
+initializeApp();
+
+export const cleanupExpiredSessions = onSchedule("every 24 hours", async () => {
+  const db = getDatabase();
+  const snapshot = await db.ref("sessions").get();
+  if (!snapshot.exists()) return;
+
+  const sessions = snapshot.val() as Record<string, { expiresAt?: number; createdAt?: number }>;
+  const now = Date.now();
+  const expired = Object.entries(sessions).filter(([, s]) => {
+    const cutoff = s.expiresAt ?? (s.createdAt ? s.createdAt + 48 * 60 * 60 * 1000 : null);
+    return cutoff !== null && cutoff < now;
+  });
+
+  await Promise.all(expired.map(([code]) => db.ref(`sessions/${code}`).remove()));
+  console.log(`cleanupExpiredSessions: deleted ${expired.length} session(s).`);
+});

@@ -51,6 +51,10 @@ function JoinSession() {
         setLookupError(`No session found for code "${normalized}".`);
         return;
       }
+      if (found.expiresAt != null && found.expiresAt < Date.now()) {
+        setLookupError(`Session "${normalized}" has expired (sessions are joinable for about 24 hours). Ask the Facilitator to start a new one.`);
+        return;
+      }
       setCode(normalized);
       setSession(found);
       const firstCommissionId = Object.keys(found.commissions ?? {})[0] ?? "";
