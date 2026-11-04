@@ -33,6 +33,14 @@ function JoinSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  // Phase 8.4: a growing client-side cooldown after repeated bad codes --
+  // the honest limit of what's enforceable without a server is spelled
+  // out in the delivery notes (this deters casual/scripted use of THIS
+  // app's own UI, not a client that calls the RTDB REST API directly;
+  // real protection against that is App Check enforcement, see below).
+  const [badAttempts, setBadAttempts] = useState(0);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const cooldownMsRemaining = cooldownUntil ? Math.max(0, cooldownUntil - Date.now()) : 0;
 
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<Exclude<ParticipantRole, "facilitator">>("commissioner");
@@ -42,19 +50,21 @@ function JoinSession() {
   const [joinError, setJoinError] = useState<string | null>(null);
 
   async function handleLookupCode() {
+    if (Date.now() < (cooldownUntil ?? 0)) return;
     setLookingUp(true);
     setLookupError(null);
     try {
       const normalized = code.trim().toUpperCase();
       const found = await getSession(normalized);
       if (!found) {
-        setLookupError(`No session found for code "${normalized}".`);
+        registerBadAttempt(`No session found for code "${normalized}".`);
         return;
       }
       if (found.expiresAt != null && found.expiresAt < Date.now()) {
-        setLookupError(`Session "${normalized}" has expired (sessions are joinable for about 24 hours). Ask the Facilitator to start a new one.`);
+        registerBadAttempt(`Session "${normalized}" has expired (sessions are joinable for about 24 hours). Ask the Facilitator to start a new one.`);
         return;
       }
+      setBadAttempts(0);
       setCode(normalized);
       setSession(found);
       const firstCommissionId = Object.keys(found.commissions ?? {})[0] ?? "";
@@ -64,6 +74,19 @@ function JoinSession() {
       setLookupError(err instanceof Error ? err.message : String(err));
     } finally {
       setLookingUp(false);
+    }
+  }
+
+  /** After the 3rd consecutive bad code, start a short growing cooldown before the next lookup is allowed -- see the badAttempts/cooldownUntil comment above. */
+  function registerBadAttempt(message: string) {
+    const next = badAttempts + 1;
+    setBadAttempts(next);
+    if (next >= 3) {
+      const cooldownMs = Math.min(30000, 2000 * 2 ** (next - 3));
+      setCooldownUntil(Date.now() + cooldownMs);
+      setLookupError(`${message} Please wait ${Math.ceil(cooldownMs / 1000)}s before trying another code.`);
+    } else {
+      setLookupError(message);
     }
   }
 
@@ -131,7 +154,7 @@ function JoinSession() {
           />
         </label>
         {lookupError && <p className="error">{lookupError}</p>}
-        <button onClick={handleLookupCode} disabled={lookingUp || code.trim().length !== 4}>
+        <button onClick={handleLookupCode} disabled={lookingUp || code.trim().length !== 4 || cooldownMsRemaining > 0}>
           {lookingUp ? "Looking up…" : "Next"}
         </button>
       </div>
