@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getCardStatus } from "./ledgerService";
-import type { Commission } from "../types/session";
+import { deriveLedger, getCardStatus, shouldApplyChallengeTrigger } from "./ledgerService";
+import type { Commission, CommissionLedger } from "../types/session";
 
 function baseCommission(overrides: Partial<Commission> = {}): Commission {
   return {
@@ -110,5 +110,48 @@ describe("getCardStatus", () => {
     });
     expect(getCardStatus(commission, "1", "expenditure").status).toBe("available");
     expect(getCardStatus(commission, "1", "revenue").status).toBe("didNotPass");
+  });
+});
+
+describe("deriveLedger", () => {
+  const base: CommissionLedger = { revenue: 101, expenditures: 106, reserves: 20, deficitOrSurplus: -5 };
+
+  it("always recomputes deficitOrSurplus as revenue - expenditures, never tracking its own delta", () => {
+    const result = deriveLedger(base, { expenditureDelta: 1 });
+    expect(result).toEqual({ revenue: 101, expenditures: 107, reserves: 20, deficitOrSurplus: -6 });
+  });
+
+  it("a revenue-only delta moves deficitOrSurplus the other way", () => {
+    const result = deriveLedger(base, { revenueDelta: -2 });
+    expect(result).toEqual({ revenue: 99, expenditures: 106, reserves: 20, deficitOrSurplus: -7 });
+  });
+
+  it("a reserves-only delta never touches revenue, expenditures, or deficitOrSurplus", () => {
+    const result = deriveLedger(base, { reservesDelta: -4 });
+    expect(result).toEqual({ revenue: 101, expenditures: 106, reserves: 16, deficitOrSurplus: -5 });
+  });
+
+  it("an incoming (possibly stale/wrong) deficitOrSurplus on `current` is ignored, not propagated", () => {
+    const stale: CommissionLedger = { revenue: 101, expenditures: 106, reserves: 20, deficitOrSurplus: 999 };
+    const result = deriveLedger(stale, { expenditureDelta: 1 });
+    expect(result.deficitOrSurplus).toBe(-6);
+  });
+
+  it("a zero delta leaves every figure, including deficitOrSurplus, unchanged", () => {
+    expect(deriveLedger(base, {})).toEqual(base);
+  });
+});
+
+describe("shouldApplyChallengeTrigger", () => {
+  it("applies the first time a trigger is seen (nothing claimed yet)", () => {
+    expect(shouldApplyChallengeTrigger(null, 1000)).toBe(true);
+  });
+
+  it("refuses a retry of the exact same trigger (same triggeredAt already claimed)", () => {
+    expect(shouldApplyChallengeTrigger(1000, 1000)).toBe(false);
+  });
+
+  it("applies the SAME card triggered again later, a genuinely new triggeredAt", () => {
+    expect(shouldApplyChallengeTrigger(1000, 2000)).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getChallengeNarrative } from "../services/challengePopupLogic";
-import { computeChallengeDeltas } from "../services/ledgerService";
+import { challengeLedgerDelta, getChallengeLedgerEffect, type LedgerLine } from "../services/challengeLedgerEffect";
 import type { CardCatalog } from "../types/catalog";
 import type { Commission } from "../types/session";
 import "./ManagerConsole.css";
@@ -10,8 +10,14 @@ interface Props {
   catalog: CardCatalog;
 }
 
-function formatDelta(delta: number): string {
-  if (delta === 0) return "—";
+const LEDGER_LINE_LABELS: Record<LedgerLine, string> = {
+  revenue: "Revenue",
+  expenditures: "Expenditures",
+  reserves: "Reserves",
+};
+
+function formatSigned(delta: number): string {
+  if (delta === 0) return "$0";
   return delta > 0 ? `+$${delta}` : `-$${Math.abs(delta)}`;
 }
 
@@ -28,10 +34,10 @@ function formatDelta(delta: number): string {
  *
  * Sourced entirely from commission.challengesApplied (card id -> the
  * server timestamp it was triggered at) joined against the catalog's own
- * challengeCards for title/amount/direction/target -- and
- * computeChallengeDeltas (ledgerService.ts), the exact same pure function
- * applyChallengeToLedger itself uses, for the dollar math. Nothing here
- * recomputes an effect independently.
+ * challengeCards for title/amount -- and getChallengeLedgerEffect
+ * (challengeLedgerEffect.ts), the exact same mapping applyChallengeToLedger
+ * itself applies, for which line each challenge hit and by how much.
+ * Nothing here recomputes an effect independently.
  */
 function AppliedChallengesPanel({ commission, catalog }: Props) {
   const [expanded, setExpanded] = useState(false);
@@ -45,12 +51,20 @@ function AppliedChallengesPanel({ commission, catalog }: Props) {
 
   const mostRecent = entries[entries.length - 1];
 
+  // Reconciling running total: how much this table's Revenue, Expenditures,
+  // and Reserves have moved from Challenges alone, each kept on its own
+  // line rather than folded into one number -- so it stays checkable
+  // against the status bar rather than being its own, separate figure.
   const totals = entries.reduce(
     (acc, e) => {
-      const { reservesDelta, deficitDelta } = computeChallengeDeltas(e.card);
-      return { reserves: acc.reserves + reservesDelta, deficit: acc.deficit + deficitDelta };
+      const delta = challengeLedgerDelta(getChallengeLedgerEffect(e.card));
+      return {
+        revenue: acc.revenue + delta.revenueDelta,
+        expenditures: acc.expenditures + delta.expenditureDelta,
+        reserves: acc.reserves + delta.reservesDelta,
+      };
     },
-    { reserves: 0, deficit: 0 },
+    { revenue: 0, expenditures: 0, reserves: 0 },
   );
 
   return (
@@ -68,14 +82,14 @@ function AppliedChallengesPanel({ commission, catalog }: Props) {
           <thead>
             <tr>
               <th>Title</th>
-              <th>Amount</th>
-              <th>Hit</th>
+              <th>Action</th>
+              <th>Line</th>
               <th>Effect</th>
             </tr>
           </thead>
           <tbody>
             {entries.map((e) => {
-              const { reservesDelta, deficitDelta } = computeChallengeDeltas(e.card);
+              const effect = getChallengeLedgerEffect(e.card);
               const narrative = getChallengeNarrative(e.card);
               return (
                 <tr key={e.card.id}>
@@ -88,22 +102,18 @@ function AppliedChallengesPanel({ commission, catalog }: Props) {
                       </>
                     )}
                   </td>
-                  <td data-label="Amount">
-                    ${e.card.amount} ({e.card.direction})
-                  </td>
-                  <td data-label="Hit">{e.card.target === "reserves" ? "Reserves" : "Deficit"}</td>
-                  <td data-label="Effect">
-                    {e.card.target === "reserves" ? formatDelta(reservesDelta) : formatDelta(deficitDelta)}
-                  </td>
+                  <td data-label="Action">{effect.label}</td>
+                  <td data-label="Line">{LEDGER_LINE_LABELS[effect.line]}</td>
+                  <td data-label="Effect">{formatSigned(effect.amount)}</td>
                 </tr>
               );
             })}
             <tr className="scorecard-total-row">
               <td data-label="Title">Running total</td>
-              <td data-label="Amount" colSpan={2}>
-                Deficit/Surplus {formatDelta(totals.deficit)}
+              <td data-label="Action" colSpan={3}>
+                Expenditures {formatSigned(totals.expenditures)} · Revenue {formatSigned(totals.revenue)} · Reserves{" "}
+                {formatSigned(totals.reserves)}
               </td>
-              <td data-label="Effect">Reserves {formatDelta(totals.reserves)}</td>
             </tr>
           </tbody>
         </table>

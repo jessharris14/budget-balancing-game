@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { challengeLedgerDelta, getChallengeLedgerEffect } from "./challengeLedgerEffect";
+import { deriveLedger } from "./ledgerService";
 import { computeFinalScore } from "./scoringService";
+import type { ChallengeCard } from "../types/catalog";
 import type { CommissionLedger, CommissionPriority } from "../types/session";
 
 function ledger(overrides: Partial<CommissionLedger>): CommissionLedger {
@@ -118,6 +121,59 @@ describe("computeFinalScore", () => {
       expect(score.reserves.points).toBe(-1);
       expect(score.publicTrust.points).toBe(1);
       expect(score.total).toBe(2);
+    });
+  });
+
+  describe("after a ledger has gone through Challenges (Revenue/Expenditures moved, not just deficit)", () => {
+    function challenge(id: string, amount: number, target: "deficit" | "reserves", direction: "increase" | "decrease"): ChallengeCard {
+      return { id, title: id, printedText: "", facilitatorNarrative: "", amount, target, direction };
+    }
+
+    it("Balanced correctly flips to true once an Expenditures-side Challenge is offset by a matching Revenue card", () => {
+      // Start balanced, take a $2 expenditure Challenge (Major-Fire-like),
+      // then a $2 revenue card brings it back to balanced -- Balanced must
+      // react to the real revenue/expenditures gap, not a separately
+      // tracked number.
+      let commissionLedger: CommissionLedger = { revenue: 100, expenditures: 100, reserves: 15, deficitOrSurplus: 0 };
+      commissionLedger = deriveLedger(
+        commissionLedger,
+        challengeLedgerDelta(getChallengeLedgerEffect(challenge("C5", 2, "deficit", "increase"))),
+      );
+      expect(computeFinalScore(commissionLedger, priority(true), 0).balanced.points).toBe(0);
+
+      commissionLedger = deriveLedger(commissionLedger, { revenueDelta: 2 });
+      expect(commissionLedger.deficitOrSurplus).toBe(0);
+      expect(computeFinalScore(commissionLedger, priority(true), 0).balanced.points).toBe(1);
+    });
+
+    it("a Reserves-target Challenge changes the reserve tier score and nothing else", () => {
+      let commissionLedger: CommissionLedger = { revenue: 100, expenditures: 100, reserves: 15, deficitOrSurplus: 0 };
+      commissionLedger = deriveLedger(
+        commissionLedger,
+        challengeLedgerDelta(getChallengeLedgerEffect(challenge("C1", 4, "reserves", "decrease"))),
+      );
+      expect(commissionLedger).toEqual({ revenue: 100, expenditures: 100, reserves: 11, deficitOrSurplus: 0 });
+      const score = computeFinalScore(commissionLedger, priority(true), 0);
+      expect(score.balanced.points).toBe(1); // untouched
+      expect(score.reserves.points).toBe(-1); // $11 -> warning tier
+      expect(score.total).toBe(1 + 1 + -1 + 0);
+    });
+
+    it("several challenges together still produce the correct total", () => {
+      let commissionLedger: CommissionLedger = { revenue: 101, expenditures: 106, reserves: 20, deficitOrSurplus: -5 };
+      for (const c of [
+        challenge("C5", 1, "deficit", "increase"), // Expenditures +1
+        challenge("C4", 2, "deficit", "increase"), // Revenue -2
+        challenge("C3", 1, "deficit", "decrease"), // Expenditures -1
+        challenge("C1", 4, "reserves", "decrease"), // Reserves -4
+      ]) {
+        commissionLedger = deriveLedger(commissionLedger, challengeLedgerDelta(getChallengeLedgerEffect(c)));
+      }
+      expect(commissionLedger).toEqual({ revenue: 99, expenditures: 106, reserves: 16, deficitOrSurplus: -7 });
+      const score = computeFinalScore(commissionLedger, priority(true), 0);
+      expect(score.balanced.points).toBe(0); // not balanced, $7 deficit
+      expect(score.reserves.points).toBe(1); // $16 -> safe tier
+      expect(score.total).toBe(0 + 1 + 1 + 0);
     });
   });
 });

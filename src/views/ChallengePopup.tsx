@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { getCatalog } from "../services/catalogService";
 import { getChallengeNarrative, selectChallengesToQueue, type ChallengeQueueItem } from "../services/challengePopupLogic";
-import { computeChallengeDeltas } from "../services/ledgerService";
+import { getChallengeLedgerEffect, type LedgerLine } from "../services/challengeLedgerEffect";
 import type { CardCatalog, ChallengeCard } from "../types/catalog";
 import type { Commission, SessionPhase } from "../types/session";
 import "./ChallengePopup.css";
+
+const LEDGER_LINE_LABELS: Record<LedgerLine, string> = {
+  revenue: "Revenue",
+  expenditures: "Expenditures",
+  reserves: "Reserves",
+};
 
 interface Props {
   code: string;
@@ -46,8 +52,8 @@ function markDismissed(code: string, commissionId: string, item: QueueItem): voi
   }
 }
 
-function formatDelta(delta: number): string {
-  if (delta === 0) return "no change";
+function formatSigned(delta: number): string {
+  if (delta === 0) return "$0";
   return delta > 0 ? `+$${delta.toLocaleString()}` : `-$${Math.abs(delta).toLocaleString()}`;
 }
 
@@ -125,9 +131,13 @@ function ChallengePopup({ code, commissionId, commission, catalogVersion, phase 
 
   if (phase === "debrief" || !current || !card) return null;
 
-  const { reservesDelta, deficitDelta } = computeChallengeDeltas(card);
-  const hitReserves = card.target === "reserves";
+  const effect = getChallengeLedgerEffect(card);
   const narrative = getChallengeNarrative(card);
+  // commission.ledger already reflects this challenge's effect -- Challenges
+  // apply atomically the instant they're triggered, before this pop-up ever
+  // appears -- so "now" is simply the live, current figure, the same one
+  // every other view (status bar, scorecard, dashboard) reads.
+  const deficitOrSurplus = commission.ledger.deficitOrSurplus;
 
   function handleDismiss() {
     markDismissed(code, commissionId, current);
@@ -151,7 +161,13 @@ function ChallengePopup({ code, commissionId, commission, catalogVersion, phase 
             </p>
           )}
           <p className="challenge-popup-effect">
-            {hitReserves ? "Reserves" : "Deficit/Surplus"}: {formatDelta(hitReserves ? reservesDelta : deficitDelta)}
+            <strong>{effect.label}</strong>
+            <br />
+            {LEDGER_LINE_LABELS[effect.line]} {formatSigned(effect.amount)}
+            <br />
+            {effect.line === "reserves"
+              ? `Reserves is now $${commission.ledger.reserves.toLocaleString()}`
+              : `${deficitOrSurplus >= 0 ? "Surplus" : "Deficit"} is now $${Math.abs(deficitOrSurplus).toLocaleString()}`}
           </p>
           <p className="challenge-popup-note">Applied to the ledger automatically -- Challenges can't be debated or declined.</p>
         </div>

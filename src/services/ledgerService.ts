@@ -1,5 +1,6 @@
 import { get, push, ref, runTransaction, update } from "firebase/database";
 import { rtdb } from "../firebase/config";
+import { challengeLedgerDelta, getChallengeLedgerEffect } from "./challengeLedgerEffect";
 import type { CardCatalog, ChallengeCard, EffectDirection, ExpenditureCard, RevenueCard } from "../types/catalog";
 import type { CardInPlay, Commission, CommissionLedger, DecisionLogEntry, SessionPhase } from "../types/session";
 
@@ -10,26 +11,48 @@ export interface ActionResult {
   reason?: string;
 }
 
+/**
+ * The single formula the deficit/surplus figure is ever computed from --
+ * every ledger write in this file goes through this function rather than
+ * tracking its own independent delta, so deficitOrSurplus can never drift
+ * from revenue/expenditures the way it could before (a Challenge could
+ * previously bump deficitOrSurplus directly without touching either).
+ * Stored as revenue - expenditures (positive = surplus, negative = deficit
+ * -- the sign convention every existing reader, e.g. LedgerStatusBar's
+ * `deficitOrSurplus >= 0 ? "Surplus" : "Deficit"`, already assumes); the
+ * magnitude and the Deficit/Surplus label shown to players come out
+ * identical either way this is signed internally, so this preserves the
+ * existing convention rather than flipping it.
+ */
+export function deriveLedger(
+  current: CommissionLedger,
+  delta: { revenueDelta?: number; expenditureDelta?: number; reservesDelta?: number },
+): CommissionLedger {
+  const revenue = current.revenue + (delta.revenueDelta ?? 0);
+  const expenditures = current.expenditures + (delta.expenditureDelta ?? 0);
+  const reserves = current.reserves + (delta.reservesDelta ?? 0);
+  return { revenue, expenditures, reserves, deficitOrSurplus: revenue - expenditures };
+}
+
 function computeDeltas(
   cardType: CardType,
   amount: number,
   direction: EffectDirection,
-): { revenueDelta: number; expenditureDelta: number; deficitDelta: number } {
+): { revenueDelta: number; expenditureDelta: number } {
   if (cardType === "revenue") {
     // "Decrease deficit" on a Revenue card means more revenue comes in.
     const revenueDelta = direction === "decrease" ? amount : -amount;
-    return { revenueDelta, expenditureDelta: 0, deficitDelta: revenueDelta };
+    return { revenueDelta, expenditureDelta: 0 };
   }
   // "Decrease deficit" on an Expenditure card means less gets spent.
   const expenditureDelta = direction === "decrease" ? -amount : amount;
-  return { revenueDelta: 0, expenditureDelta, deficitDelta: -expenditureDelta };
+  return { revenueDelta: 0, expenditureDelta };
 }
 
 interface ResolvedCard {
   card: RevenueCard | ExpenditureCard;
   revenueDelta: number;
   expenditureDelta: number;
-  deficitDelta: number;
 }
 
 function resolveCard(catalog: CardCatalog, cardType: CardType, cardId: string): ResolvedCard | null {
@@ -38,8 +61,8 @@ function resolveCard(catalog: CardCatalog, cardType: CardType, cardId: string): 
       ? catalog.revenueCards.find((c) => c.id === cardId)
       : catalog.expenditureCards.find((c) => c.id === cardId);
   if (!card) return null;
-  const { revenueDelta, expenditureDelta, deficitDelta } = computeDeltas(cardType, card.amount, card.direction);
-  return { card, revenueDelta, expenditureDelta, deficitDelta };
+  const { revenueDelta, expenditureDelta } = computeDeltas(cardType, card.amount, card.direction);
+  return { card, revenueDelta, expenditureDelta };
 }
 
 /**
@@ -213,7 +236,7 @@ async function claimAndApplyLedgerDelta(
   cardId: string,
   cardType: CardType,
   appliedAmount: number,
-  deltas: { revenueDelta: number; expenditureDelta: number; deficitDelta: number },
+  deltas: { revenueDelta: number; expenditureDelta: number },
   extraUpdates: Record<string, unknown>,
 ): Promise<ActionResult> {
   const logEntryId = push(ref(rtdb, `${base}/decisionsLog`)).key;
@@ -241,12 +264,7 @@ async function claimAndApplyLedgerDelta(
 
   await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
     if (current === null) return current;
-    return {
-      ...current,
-      revenue: current.revenue + deltas.revenueDelta,
-      expenditures: current.expenditures + deltas.expenditureDelta,
-      deficitOrSurplus: current.deficitOrSurplus + deltas.deficitDelta,
-    };
+    return deriveLedger(current, deltas);
   });
 
   return { ok: true };
@@ -293,7 +311,7 @@ export async function applyCard(
 
   const resolved = resolveCard(catalog, cardType, cardId);
   if (!resolved) return { ok: false, reason: "Card not found in catalog." };
-  const { revenueDelta, expenditureDelta, deficitDelta } = resolved;
+  const { revenueDelta, expenditureDelta } = resolved;
   const appliedAmount = cardType === "revenue" ? revenueDelta : expenditureDelta;
 
   const base = `sessions/${code}/commissions/${commissionId}`;
@@ -303,7 +321,7 @@ export async function applyCard(
     cardId,
     cardType,
     appliedAmount,
-    { revenueDelta, expenditureDelta, deficitDelta },
+    { revenueDelta, expenditureDelta },
     fundedUpdate,
   );
   if (!result.ok) return result;
@@ -379,12 +397,10 @@ export async function reconsiderCard(
 
   await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
     if (current === null) return current;
-    return {
-      ...current,
-      revenue: cardType === "revenue" ? current.revenue - appliedAmount : current.revenue,
-      expenditures: cardType === "expenditure" ? current.expenditures - appliedAmount : current.expenditures,
-      deficitOrSurplus: current.deficitOrSurplus + (cardType === "revenue" ? -appliedAmount : appliedAmount),
-    };
+    return deriveLedger(current, {
+      revenueDelta: cardType === "revenue" ? -appliedAmount : 0,
+      expenditureDelta: cardType === "expenditure" ? -appliedAmount : 0,
+    });
   });
 
   const siblings = groupSiblingIds(catalog, cardType, cardId);
@@ -398,25 +414,23 @@ export async function reconsiderCard(
 }
 
 /**
- * Pure dollar math for a Challenge card's effect, split out so the Applied
- * Challenges table (Change 2) can show each challenge's effect on deficit
- * and reserves -- and a running total across all of them -- using the
- * exact same computation applyChallengeToLedger uses, instead of a second
- * copy of these sign rules living in a view component.
+ * Pure idempotency decision behind applyChallengeToLedger's transactional
+ * claim on challengeLedgerAppliedAt, pulled out so it's directly testable:
+ * a trigger is only ever applied once, keyed by triggeredAt rather than
+ * just the card id, so the SAME card triggered again later (a new,
+ * distinct triggeredAt) isn't blocked as "already done," but a RETRY of
+ * the exact same trigger (same triggeredAt -- e.g. a dropped response
+ * that the caller retries) is.
  */
-export function computeChallengeDeltas(card: ChallengeCard): { reservesDelta: number; deficitDelta: number } {
-  if (card.target === "reserves") {
-    const delta = card.direction === "decrease" ? -card.amount : card.amount;
-    return { reservesDelta: delta, deficitDelta: 0 };
-  }
-  const delta = card.direction === "decrease" ? card.amount : -card.amount;
-  return { reservesDelta: 0, deficitDelta: delta };
+export function shouldApplyChallengeTrigger(currentAppliedAt: number | null, triggeredAt: number): boolean {
+  return currentAppliedAt !== triggeredAt;
 }
 
 /**
- * Applies a Challenge's dollar impact -- to deficit or to reserves, per the
- * card's `target` -- the instant it's triggered, with no manual step:
- * unlike Revenue/Expenditure cards, Challenges cannot be debated or
+ * Applies a Challenge's dollar impact -- to whichever real ledger line it
+ * actually belongs to (Revenue, Expenditures, or Reserves; see
+ * challengeLedgerEffect.ts) -- the instant it's triggered, with no manual
+ * step: unlike Revenue/Expenditure cards, Challenges cannot be debated or
  * declined ("there is no debate... they must be funded"), so a manual
  * "Apply" button was actually a bug -- a Commission could simply never
  * click it and take zero Challenge impact all game. Called automatically
@@ -437,19 +451,15 @@ export async function applyChallengeToLedger(
   const base = `sessions/${code}/commissions/${commissionId}`;
 
   const claim = await runTransaction(ref(rtdb, `${base}/challengeLedgerAppliedAt`), (current: number | null) => {
-    if (current === triggeredAt) return undefined;
+    if (!shouldApplyChallengeTrigger(current, triggeredAt)) return undefined;
     return triggeredAt;
   });
   if (!claim.committed) return { ok: false, reason: "Already applied to the ledger." };
 
-  const { reservesDelta, deficitDelta } = computeChallengeDeltas(card);
+  const delta = challengeLedgerDelta(getChallengeLedgerEffect(card));
   await runTransaction(ref(rtdb, `${base}/ledger`), (current: CommissionLedger | null) => {
     if (current === null) return current;
-    return {
-      ...current,
-      reserves: current.reserves + reservesDelta,
-      deficitOrSurplus: current.deficitOrSurplus + deficitDelta,
-    };
+    return deriveLedger(current, delta);
   });
 
   return { ok: true };
@@ -489,7 +499,7 @@ export async function applyChairFreeCard(
   });
   if (!claimFreeCard.committed) return { ok: false, reason: "The Chair's free card has already been used." };
 
-  const { revenueDelta, expenditureDelta, deficitDelta } = resolved;
+  const { revenueDelta, expenditureDelta } = resolved;
   const appliedAmount = cardType === "revenue" ? revenueDelta : expenditureDelta;
   const fundedUpdate = await priorityFundedUpdateFragment(base, catalog, cardType, cardId, true);
   const result = await claimAndApplyLedgerDelta(
@@ -497,7 +507,7 @@ export async function applyChairFreeCard(
     cardId,
     cardType,
     appliedAmount,
-    { revenueDelta, expenditureDelta, deficitDelta },
+    { revenueDelta, expenditureDelta },
     fundedUpdate,
   );
   if (!result.ok) return result;
