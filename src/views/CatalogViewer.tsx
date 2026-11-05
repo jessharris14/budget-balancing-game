@@ -96,7 +96,7 @@ function CatalogViewer() {
             <tr>
               <th>ID</th>
               <th>Title</th>
-              <th>Impact Bullets</th>
+              <th>Impact</th>
               <th>Amount</th>
               <th>Direction</th>
               <th>Exclusivity Group</th>
@@ -126,7 +126,7 @@ function CatalogViewer() {
             <tr>
               <th>ID</th>
               <th>Title</th>
-              <th>Impact Bullets</th>
+              <th>Impact</th>
               <th>Amount</th>
               <th>Direction</th>
             </tr>

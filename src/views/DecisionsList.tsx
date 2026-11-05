@@ -1,3 +1,5 @@
+import { labelForAppliedCardAmount } from "../services/challengeLedgerEffect";
+import BudgetEffectLabel from "./BudgetEffectLabel";
 import type { CardCatalog } from "../types/catalog";
 import type { Commission } from "../types/session";
 import "./ManagerConsole.css";
@@ -49,10 +51,7 @@ function DecisionsList({ commission, catalog, onReconsider, reconsideringCardId 
             return (
               <li key={`${entry.cardId}-${entry.appliedAt}-${idx}`} className={reversed ? "decision-reversed" : undefined}>
                 {card?.title ?? entry.cardId} ({entry.cardType}) —{" "}
-                <span className={`decision-amount ${entry.appliedAmount >= 0 ? "positive" : "negative"}`}>
-                  {entry.appliedAmount >= 0 ? "+" : ""}
-                  {entry.appliedAmount}
-                </span>
+                <BudgetEffectLabel label={labelForAppliedCardAmount(entry.cardType, entry.appliedAmount)} />
                 {reversed && <span className="decision-reversed"> (reversed)</span>}
                 {!reversed && onReconsider && (
                   <button onClick={() => onReconsider(entry.cardId)} disabled={reconsideringCardId === entry.cardId}>

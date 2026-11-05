@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { challengeLedgerDelta, getChallengeLedgerEffect, labelFor } from "./challengeLedgerEffect";
+import {
+  challengeLedgerDelta,
+  getCardLedgerLabel,
+  getChallengeLedgerEffect,
+  labelForAppliedCardAmount,
+  labelFor,
+} from "./challengeLedgerEffect";
 import type { ChallengeCard, EffectDirection } from "../types/catalog";
 
 /**
@@ -171,5 +177,86 @@ describe("several challenges applied together stay reconciled", () => {
     apply(CATALOG_CHALLENGES.C1); // Natural Disaster: Reserves -4
     expect(ledger).toEqual({ revenue: 99, expenditures: 106, reserves: 16 });
     expect(ledger.revenue - ledger.expenditures).toBe(-7);
+  });
+});
+
+describe("getCardLedgerLabel: Revenue/Expenditure cards", () => {
+  // The four cases from the mapping table: card.direction is deficit-
+  // relative, so a Revenue card's sense is the OPPOSITE of an
+  // Expenditure card's for the same direction value.
+  it("Revenue, direction 'decrease' (deficit goes down) -> Gain $X revenue", () => {
+    const result = getCardLedgerLabel("revenue", 1, "decrease");
+    expect(result).toEqual({ label: "Gain $1 revenue", subtext: "Deficit goes down ↓" });
+  });
+
+  it("Revenue, direction 'increase' (deficit goes up) -> Lose $X revenue", () => {
+    const result = getCardLedgerLabel("revenue", 1, "increase");
+    expect(result).toEqual({ label: "Lose $1 revenue", subtext: "Deficit goes up ↑" });
+  });
+
+  it("Expenditure, direction 'increase' (deficit goes up) -> Spend $X", () => {
+    const result = getCardLedgerLabel("expenditure", 1, "increase");
+    expect(result).toEqual({ label: "Spend $1", subtext: "Deficit goes up ↑" });
+  });
+
+  it("Expenditure, direction 'decrease' (deficit goes down) -> Save $X", () => {
+    const result = getCardLedgerLabel("expenditure", 1, "decrease");
+    expect(result).toEqual({ label: "Save $1", subtext: "Deficit goes down ↓" });
+  });
+
+  it("uses the card's real $2 amount, not a hard-coded $1 (R11/E10/E12-style cards)", () => {
+    expect(getCardLedgerLabel("revenue", 2, "decrease").label).toBe("Gain $2 revenue");
+    expect(getCardLedgerLabel("revenue", 2, "increase").label).toBe("Lose $2 revenue");
+    expect(getCardLedgerLabel("expenditure", 2, "increase").label).toBe("Spend $2");
+    expect(getCardLedgerLabel("expenditure", 2, "decrease").label).toBe("Save $2");
+  });
+
+  it("matches the reported R1 example: a fee INCREASE (direction 'decrease') reads as a revenue GAIN, not a decrease", () => {
+    // R1 "Increase Permitting & Inspection Fees": amount 1, direction "decrease".
+    expect(getCardLedgerLabel("revenue", 1, "decrease").label).toBe("Gain $1 revenue");
+  });
+
+  it("matches the reported millage examples: Lose $2 revenue for the reduction, Gain $2 revenue for the increase", () => {
+    // R2 "Reduce Millage Rate by 0.5 Mills": amount 2, direction "increase".
+    expect(getCardLedgerLabel("revenue", 2, "increase").label).toBe("Lose $2 revenue");
+    // R3 "Increase Millage Rate by 0.5 Mills": amount 2, direction "decrease".
+    expect(getCardLedgerLabel("revenue", 2, "decrease").label).toBe("Gain $2 revenue");
+  });
+
+  it("falls back to a neutral, non-crashing label for an unknown/odd direction -- no 'undefined' in the text", () => {
+    const result = getCardLedgerLabel("revenue", 1, "sideways" as EffectDirection);
+    expect(result.label).not.toMatch(/undefined/i);
+    expect(result.subtext).not.toMatch(/undefined/i);
+    expect(result.label).toBe("Budget impact: $1");
+    expect(result.subtext).toBe("Effect unclear");
+  });
+});
+
+describe("labelForAppliedCardAmount: Decisions So Far entries", () => {
+  it("a positive revenue delta reads as a revenue gain", () => {
+    expect(labelForAppliedCardAmount("revenue", 1)).toBe("Gain $1 revenue");
+  });
+
+  it("a negative revenue delta reads as a revenue loss", () => {
+    expect(labelForAppliedCardAmount("revenue", -2)).toBe("Lose $2 revenue");
+  });
+
+  it("a positive expenditure delta reads as spending", () => {
+    expect(labelForAppliedCardAmount("expenditure", 1)).toBe("Spend $1");
+  });
+
+  it("a negative expenditure delta reads as saving", () => {
+    expect(labelForAppliedCardAmount("expenditure", -2)).toBe("Save $2");
+  });
+
+  it("agrees with getCardLedgerLabel for the same card, applied then read back", () => {
+    // Simulates what actually happens: a card's direction determines its
+    // applied signed amount (ledgerService.ts's computeDeltas), and
+    // DecisionsList later reads only that signed amount back. The two
+    // helpers must agree on the resulting label.
+    const direction: EffectDirection = "decrease";
+    const amount = 2;
+    const appliedAmount = amount; // Revenue, "decrease" -> revenueDelta = +amount (computeDeltas)
+    expect(labelForAppliedCardAmount("revenue", appliedAmount)).toBe(getCardLedgerLabel("revenue", amount, direction).label);
   });
 });

@@ -1,4 +1,5 @@
-import type { ChallengeCard } from "../types/catalog";
+import type { CardType } from "./ledgerService";
+import type { ChallengeCard, EffectDirection } from "../types/catalog";
 
 export type LedgerLine = "revenue" | "expenditures" | "reserves";
 
@@ -67,6 +68,61 @@ export function labelFor(line: LedgerLine, direction: "increase" | "decrease", a
   if (line === "reserves") return `Spend $${amount} from reserves`;
   if (line === "expenditures") return direction === "increase" ? `Spend $${amount}` : `Save $${amount}`;
   return direction === "increase" ? `Gain $${amount} revenue` : `Lose $${amount} revenue`;
+}
+
+function labelForLineAmount(line: LedgerLine, signedAmount: number): string {
+  return labelFor(line, signedAmount >= 0 ? "increase" : "decrease", Math.abs(signedAmount));
+}
+
+export interface CardLedgerLabel {
+  /** e.g. "Spend $1", "Gain $2 revenue". Same vocabulary as a Challenge's label. */
+  label: string;
+  /** Plain-language deficit direction, e.g. "Deficit goes up ↑" -- deliberately neutral text, not colored, since blue/yellow/green already mean Applied/Did-not-pass/Priority on these rows. */
+  subtext: string;
+}
+
+/**
+ * The same "Spend/Save/Gain revenue/Lose revenue" label vocabulary as
+ * getChallengeLedgerEffect above, for an ordinary Revenue or Expenditure
+ * catalog card. Unlike a Challenge's per-card direction (which describes
+ * the real line's own movement), a Revenue/Expenditure card's `direction`
+ * is deficit-relative -- see ledgerService.ts's computeDeltas, whose sign
+ * rule this mirrors exactly: a Revenue card's "decrease" means more
+ * revenue comes in (the line goes UP); an Expenditure card's "decrease"
+ * means less gets spent (the line goes DOWN). That inversion for Revenue
+ * cards (but not Expenditure cards) is why this can't just call
+ * getChallengeLedgerEffect's labelFor with `direction` unchanged.
+ *
+ * Falls back to a neutral, non-crashing label for a `direction` that
+ * isn't literally "increase" or "decrease" -- the type system rules this
+ * out today, but a future catalog field or a malformed row shouldn't be
+ * able to render "undefined" into the UI.
+ */
+export function getCardLedgerLabel(cardType: CardType, amount: number, direction: EffectDirection): CardLedgerLabel {
+  if (direction !== "increase" && direction !== "decrease") {
+    return { label: `Budget impact: $${amount}`, subtext: "Effect unclear" };
+  }
+  const line: LedgerLine = cardType === "revenue" ? "revenue" : "expenditures";
+  const lineDirection: "increase" | "decrease" =
+    cardType === "revenue" ? (direction === "decrease" ? "increase" : "decrease") : direction;
+  const signedAmount = lineDirection === "increase" ? amount : -amount;
+  return {
+    label: labelForLineAmount(line, signedAmount),
+    subtext: direction === "decrease" ? "Deficit goes down ↓" : "Deficit goes up ↑",
+  };
+}
+
+/**
+ * Same label vocabulary again, but for a DecisionsLog entry, which only
+ * ever stores the already-signed line delta it actually applied
+ * (appliedAmount -- see ledgerService.ts's applyCard/claimAndApplyLedgerDelta),
+ * not the original catalog card's `direction`. Reading the sign straight
+ * off what was really applied means this can never disagree with the
+ * ledger, even for a card later removed from the catalog.
+ */
+export function labelForAppliedCardAmount(cardType: CardType, appliedAmount: number): string {
+  const line: LedgerLine = cardType === "revenue" ? "revenue" : "expenditures";
+  return labelForLineAmount(line, appliedAmount);
 }
 
 /**

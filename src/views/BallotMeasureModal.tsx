@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { cancelBallotMeasure, closeBallotMeasure, openBallotMeasure } from "../services/ballotService";
+import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
+import BudgetEffectLabel from "./BudgetEffectLabel";
 import type { CardCatalog, ExpenditureCard, RevenueCard } from "../types/catalog";
 import type { BallotMeasure } from "../types/session";
 import "./ManagerConsole.css";
@@ -39,6 +41,7 @@ function BallotMeasureModal({ code, commissionId, catalog, card, ballot, onDismi
   const needsRetry = ballot.closedAt != null && ballot.outcome == null;
   const resolved = ballot.outcome != null;
   const voteCount = (ballot.yesCount ?? 0) + (ballot.noCount ?? 0);
+  const effect = card ? getCardLedgerLabel(ballot.cardType, card.amount, card.direction) : null;
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -76,9 +79,11 @@ function BallotMeasureModal({ code, commissionId, catalog, card, ballot, onDismi
                 <li key={idx}>{bullet}</li>
               ))}
             </ul>
-            <p>
-              ${card.amount} ({card.direction})
-            </p>
+            {effect && (
+              <p>
+                <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
+              </p>
+            )}
           </>
         )}
 

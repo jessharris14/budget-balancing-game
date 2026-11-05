@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { getCatalog } from "../services/catalogService";
+import { getChallengeLedgerEffect } from "../services/challengeLedgerEffect";
 import {
   advancePhase,
   computeAndStoreFinalScores,
@@ -13,6 +14,7 @@ import { persistGameResults } from "../services/resultsService";
 import { clearSessionData } from "../services/sessionService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
 import BallotMeasuresList from "./BallotMeasuresList";
+import BudgetEffectLabel from "./BudgetEffectLabel";
 import DebriefScorecard from "./DebriefScorecard";
 import DecisionsList from "./DecisionsList";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -441,7 +443,7 @@ function FacilitatorConsole({ code, session }: Props) {
                 <th></th>
                 <th>Title</th>
                 <th>Facilitator Narrative</th>
-                <th>Amount</th>
+                <th>Budget effect</th>
               </tr>
             </thead>
             <tbody>
@@ -457,8 +459,8 @@ function FacilitatorConsole({ code, session }: Props) {
                   </td>
                   <td data-label="Title">{card.title}</td>
                   <td data-label="Facilitator Narrative">{card.facilitatorNarrative}</td>
-                  <td data-label="Amount">
-                    ${card.amount} {card.target} ({card.direction})
+                  <td data-label="Budget effect">
+                    <BudgetEffectLabel label={getChallengeLedgerEffect(card).label} />
                   </td>
                 </tr>
               ))}

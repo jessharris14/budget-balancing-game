@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
 import { createBallotMeasure, isMillageCard } from "../services/ballotService";
 import { stopDebateTimer } from "../services/chairService";
+import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
 import {
   applyCard,
   applyChairFreeCard,
@@ -17,6 +18,7 @@ import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
 import BallotMeasuresList from "./BallotMeasuresList";
+import BudgetEffectLabel from "./BudgetEffectLabel";
 import { cardStatusRowClass } from "./cardStatusDisplay";
 import CardStatusLegend from "./CardStatusLegend";
 import DebriefScorecard from "./DebriefScorecard";
@@ -189,6 +191,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const highlightedCard = debateCardId
     ? (catalog.revenueCards.find((c) => c.id === debateCardId) ?? catalog.expenditureCards.find((c) => c.id === debateCardId))
     : null;
+  const debateCardType: CardType | null = debateCardId
+    ? (catalog.revenueCards.some((c) => c.id === debateCardId) ? "revenue" : "expenditure")
+    : null;
 
   // Keeps showing the ballot (including its final result) until the
   // Administrator dismisses it, even after activeBallotId clears back to
@@ -277,6 +282,12 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           <h3>Pending Motion</h3>
           <p>
             {motionCard?.title ?? motion.cardId} — moved by {moverName}
+            {motionCard && (
+              <>
+                {" — "}
+                <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
+              </>
+            )}
           </p>
           <p>— awaiting second —</p>
         </div>
@@ -293,7 +304,15 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       {debateCardId && (
         <div className="lobby-commission chair-highlight">
           <h3>Card Under Debate</h3>
-          <p>{highlightedCard?.title ?? debateCardId}</p>
+          <p>
+            {highlightedCard?.title ?? debateCardId}
+            {highlightedCard && debateCardType && (
+              <>
+                {" — "}
+                <BudgetEffectLabel label={getCardLedgerLabel(debateCardType, highlightedCard.amount, highlightedCard.direction).label} />
+              </>
+            )}
+          </p>
           {showMotionProvenance && (
             <p>
               Moved by {moverName}, seconded by {seconderName}
@@ -369,6 +388,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         Debate, once a motion has been moved and seconded.
       */}
       <CardStatusLegend />
+      <p className="budget-effect-legend">
+        Gain revenue and Save help the budget (deficit goes down). Spend and Lose revenue make it harder (deficit goes up).
+      </p>
 
       <h2>Revenue Cards</h2>
       <table>
@@ -376,8 +398,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           <tr>
             <th>ID</th>
             <th>Title</th>
-            <th>Impact Bullets</th>
-            <th>Amount</th>
+            <th>Impact</th>
+            <th>Budget effect</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -386,6 +408,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
             const { status, label } = getCardStatus(commission, card.id, "revenue");
             const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
             const underDebate = debateCardId === card.id;
+            const effect = getCardLedgerLabel("revenue", card.amount, card.direction);
             return (
               <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="ID">{card.id}</td>
@@ -393,9 +416,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                   {card.title}
                   {isPriority && <span className="priority-badge">Priority</span>}
                 </td>
-                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
-                <td data-label="Amount">
-                  ${card.amount} ({card.direction})
+                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
+                <td data-label="Budget effect">
+                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
                 </td>
                 <td data-label="Status">
                   <span className={`card-status-badge status-${status}`}>{label}</span>
@@ -423,8 +446,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           <tr>
             <th>ID</th>
             <th>Title</th>
-            <th>Impact Bullets</th>
-            <th>Amount</th>
+            <th>Impact</th>
+            <th>Budget effect</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -433,6 +456,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
             const { status, label } = getCardStatus(commission, card.id, "expenditure");
             const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
             const underDebate = debateCardId === card.id;
+            const effect = getCardLedgerLabel("expenditure", card.amount, card.direction);
             return (
               <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="ID">{card.id}</td>
@@ -440,9 +464,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
                   {card.title}
                   {isPriority && <span className="priority-badge">Priority</span>}
                 </td>
-                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
-                <td data-label="Amount">
-                  ${card.amount} ({card.direction})
+                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
+                <td data-label="Budget effect">
+                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
                 </td>
                 <td data-label="Status">
                   <span className={`card-status-badge status-${status}`}>{label}</span>

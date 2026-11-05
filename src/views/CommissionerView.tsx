@@ -6,11 +6,13 @@ import {
   startDebateTimer,
   stopDebateTimer,
 } from "../services/chairService";
+import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
 import { getCardStatus, isCardAvailable, isSelectedPriorityCard, type CardType } from "../services/ledgerService";
 import { clearMotion, isMotionLocked, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
+import BudgetEffectLabel from "./BudgetEffectLabel";
 import { cardStatusRowClass } from "./cardStatusDisplay";
 import CardStatusLegend from "./CardStatusLegend";
 import DebriefScorecard from "./DebriefScorecard";
@@ -125,6 +127,13 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
       catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
     : null;
+  const highlightedCardType: CardType | null = commission.chairHighlightedCardId
+    ? (catalog.revenueCards.some((c) => c.id === commission.chairHighlightedCardId) ? "revenue" : "expenditure")
+    : null;
+  const highlightedEffect =
+    highlightedCard && highlightedCardType
+      ? getCardLedgerLabel(highlightedCardType, highlightedCard.amount, highlightedCard.direction)
+      : null;
 
   const chairName = commission.members?.chairId
     ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
@@ -353,6 +362,12 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           <h3>Pending Motion</h3>
           <p>
             {motionCard?.title ?? motion.cardId} — moved by {moverName}
+            {motionCard && (
+              <>
+                {" — "}
+                <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
+              </>
+            )}
           </p>
           <p>— awaiting second —</p>
           {motion.movedBy !== myUid && (
@@ -385,18 +400,23 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
                 <optgroup label="Revenue">
                   {catalog.revenueCards.map((card) => (
                     <option key={card.id} value={card.id}>
-                      {card.title}
+                      {card.title} — {getCardLedgerLabel("revenue", card.amount, card.direction).label}
                     </option>
                   ))}
                 </optgroup>
                 <optgroup label="Expenditure">
                   {catalog.expenditureCards.map((card) => (
                     <option key={card.id} value={card.id}>
-                      {card.title}
+                      {card.title} — {getCardLedgerLabel("expenditure", card.amount, card.direction).label}
                     </option>
                   ))}
                 </optgroup>
               </select>
+              {highlightedEffect && (
+                <p>
+                  <BudgetEffectLabel label={highlightedEffect.label} subtext={highlightedEffect.subtext} />
+                </p>
+              )}
               {locked && <p>Debate in progress — resolve it (Motion Passes/Fails, or the Ballot Measure) before picking a different card.</p>}
               {showMotionProvenance && (
                 <p>
@@ -415,7 +435,15 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
             </>
           ) : (
             <>
-              <p>{highlightedCard ? highlightedCard.title : "No card currently highlighted by the Chair."}</p>
+              <p>
+                {highlightedCard ? highlightedCard.title : "No card currently highlighted by the Chair."}
+                {highlightedEffect && (
+                  <>
+                    {" — "}
+                    <BudgetEffectLabel label={highlightedEffect.label} />
+                  </>
+                )}
+              </p>
               {showMotionProvenance && (
                 <p>
                   Moved by {moverName}, seconded by {seconderName}
@@ -431,14 +459,17 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
       {/* Change 3: Decisions So Far is gone -- status now lives directly on each row below. */}
       <CardStatusLegend />
+      <p className="budget-effect-legend">
+        Gain revenue and Save help the budget (deficit goes down). Spend and Lose revenue make it harder (deficit goes up).
+      </p>
 
       <h2>Revenue Cards</h2>
       <table>
         <thead>
           <tr>
             <th>Title</th>
-            <th>Impact Bullets</th>
-            <th>Amount</th>
+            <th>Impact</th>
+            <th>Budget effect</th>
             <th>Status</th>
             {session.phase === "mainGame" && <th></th>}
           </tr>
@@ -448,15 +479,16 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
             const { status, label } = getCardStatus(commission, card.id, "revenue");
             const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
             const underDebate = commission.chairHighlightedCardId === card.id;
+            const effect = getCardLedgerLabel("revenue", card.amount, card.direction);
             return (
               <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="Title">
                   {card.title}
                   {isPriority && <span className="priority-badge">Priority</span>}
                 </td>
-                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
-                <td data-label="Amount">
-                  ${card.amount} ({card.direction})
+                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
+                <td data-label="Budget effect">
+                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
                 </td>
                 <td data-label="Status">
                   <span className={`card-status-badge status-${status}`}>{label}</span>
@@ -473,8 +505,8 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
         <thead>
           <tr>
             <th>Title</th>
-            <th>Impact Bullets</th>
-            <th>Amount</th>
+            <th>Impact</th>
+            <th>Budget effect</th>
             <th>Status</th>
             {session.phase === "mainGame" && <th></th>}
           </tr>
@@ -484,15 +516,16 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
             const { status, label } = getCardStatus(commission, card.id, "expenditure");
             const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
             const underDebate = commission.chairHighlightedCardId === card.id;
+            const effect = getCardLedgerLabel("expenditure", card.amount, card.direction);
             return (
               <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="Title">
                   {card.title}
                   {isPriority && <span className="priority-badge">Priority</span>}
                 </td>
-                <td data-label="Impact Bullets">{card.impactBullets.join("; ")}</td>
-                <td data-label="Amount">
-                  ${card.amount} ({card.direction})
+                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
+                <td data-label="Budget effect">
+                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
                 </td>
                 <td data-label="Status">
                   <span className={`card-status-badge status-${status}`}>{label}</span>
