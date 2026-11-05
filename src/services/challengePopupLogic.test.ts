@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectChallengesToQueue } from "./challengePopupLogic";
+import { getChallengeNarrative, selectChallengesToQueue } from "./challengePopupLogic";
 
 const REPLAY_WINDOW_MS = 2 * 60 * 1000;
 const notDismissed = () => false;
@@ -59,5 +59,23 @@ describe("selectChallengesToQueue", () => {
     const applied = { CH1: now }; // same card, new triggeredAt
     const result = selectChallengesToQueue(applied, prev, notDismissed, now, REPLAY_WINDOW_MS);
     expect(result).toEqual([{ cardId: "CH1", triggeredAt: now }]);
+  });
+});
+
+describe("getChallengeNarrative", () => {
+  it("returns the narrative when present", () => {
+    expect(getChallengeNarrative({ facilitatorNarrative: "Neighborhood fire; shelter operating costs" })).toBe(
+      "Neighborhood fire; shelter operating costs",
+    );
+  });
+
+  it("returns null when the card has no narrative", () => {
+    expect(getChallengeNarrative({ facilitatorNarrative: "" })).toBeNull();
+    expect(getChallengeNarrative({ facilitatorNarrative: "   " })).toBeNull();
+    expect(getChallengeNarrative({})).toBeNull();
+  });
+
+  it("returns null when the catalog (and so the card) hasn't loaded yet", () => {
+    expect(getChallengeNarrative(undefined)).toBeNull();
   });
 });

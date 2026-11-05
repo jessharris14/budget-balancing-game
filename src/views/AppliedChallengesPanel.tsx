@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getChallengeNarrative } from "../services/challengePopupLogic";
 import { computeChallengeDeltas } from "../services/ledgerService";
 import type { CardCatalog } from "../types/catalog";
 import type { Commission } from "../types/session";
@@ -75,9 +76,18 @@ function AppliedChallengesPanel({ commission, catalog }: Props) {
           <tbody>
             {entries.map((e) => {
               const { reservesDelta, deficitDelta } = computeChallengeDeltas(e.card);
+              const narrative = getChallengeNarrative(e.card);
               return (
                 <tr key={e.card.id}>
-                  <td data-label="Title">{e.card.title}</td>
+                  <td data-label="Title">
+                    {e.card.title}
+                    {narrative && (
+                      <>
+                        <br />
+                        <span className="applied-challenges-narrative">{narrative}</span>
+                      </>
+                    )}
+                  </td>
                   <td data-label="Amount">
                     ${e.card.amount} ({e.card.direction})
                   </td>

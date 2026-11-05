@@ -42,6 +42,14 @@
   margin: 0 0 0.75rem;
 }
 
+.challenge-popup-narrative {
+  font-style: italic;
+  color: #444;
+  border-left: 3px solid #d9a441;
+  padding-left: 0.6rem;
+  margin: 0 0 0.75rem;
+}
+
 .challenge-popup-effect {
   background: rgba(255, 200, 0, 0.2);
   border: 1px solid rgba(200, 150, 0, 0.5);

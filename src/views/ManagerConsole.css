@@ -411,6 +411,14 @@
   margin: 1rem 0;
 }
 
+.applied-challenges-narrative {
+  display: inline-block;
+  font-style: italic;
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 0.15rem;
+}
+
 .scorecard-total-row {
   font-weight: 700;
   font-size: 1.1rem;

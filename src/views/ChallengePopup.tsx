@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getCatalog } from "../services/catalogService";
-import { selectChallengesToQueue, type ChallengeQueueItem } from "../services/challengePopupLogic";
+import { getChallengeNarrative, selectChallengesToQueue, type ChallengeQueueItem } from "../services/challengePopupLogic";
 import { computeChallengeDeltas } from "../services/ledgerService";
 import type { CardCatalog, ChallengeCard } from "../types/catalog";
 import type { Commission, SessionPhase } from "../types/session";
@@ -127,6 +127,7 @@ function ChallengePopup({ code, commissionId, commission, catalogVersion, phase 
 
   const { reservesDelta, deficitDelta } = computeChallengeDeltas(card);
   const hitReserves = card.target === "reserves";
+  const narrative = getChallengeNarrative(card);
 
   function handleDismiss() {
     markDismissed(code, commissionId, current);
@@ -144,6 +145,11 @@ function ChallengePopup({ code, commissionId, commission, catalogVersion, phase 
           <h2 id="challenge-popup-heading">⚡ New Challenge!</h2>
           <p className="challenge-popup-title">{card.title}</p>
           <p className="challenge-popup-text">{card.printedText}</p>
+          {narrative && (
+            <p className="challenge-popup-narrative">
+              <strong>What's happening:</strong> {narrative}
+            </p>
+          )}
           <p className="challenge-popup-effect">
             {hitReserves ? "Reserves" : "Deficit/Surplus"}: {formatDelta(hitReserves ? reservesDelta : deficitDelta)}
           </p>
