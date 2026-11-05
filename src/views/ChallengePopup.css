@@ -1,0 +1,81 @@
+.challenge-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 200;
+}
+
+.challenge-popup {
+  background: #fff;
+  border: 3px solid #b06000;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+  max-height: 85vh;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.challenge-popup-scroll {
+  padding: 1.25rem 1.25rem 0.5rem;
+  overflow-y: auto;
+}
+
+.challenge-popup h2 {
+  margin: 0 0 0.75rem;
+  color: #b06000;
+}
+
+.challenge-popup-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.challenge-popup-text {
+  margin: 0 0 0.75rem;
+}
+
+.challenge-popup-effect {
+  background: rgba(255, 200, 0, 0.2);
+  border: 1px solid rgba(200, 150, 0, 0.5);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.challenge-popup-note {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 0 0 0.5rem;
+}
+
+.challenge-popup-dismiss {
+  flex-shrink: 0;
+  margin: 0.5rem 1.25rem 1.25rem;
+  padding: 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  background: #b06000;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.challenge-popup-dismiss:hover {
+  background: #8f4d00;
+}
+
+@media (max-width: 480px) {
+  .challenge-popup {
+    max-width: 100%;
+  }
+}

@@ -7,6 +7,7 @@ import { rememberSession } from "../services/localSession";
 import { startPresence } from "../services/presenceService";
 import { subscribeToSession } from "../services/sessionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import ChallengePopup from "./ChallengePopup";
 import CommissionerView from "./CommissionerView";
 import FacilitatorConsole from "./FacilitatorConsole";
 import ManagerConsole from "./ManagerConsole";
@@ -84,6 +85,18 @@ function Lobby() {
   const myCommission = myParticipant?.commissionId ? session.commissions[myParticipant.commissionId] : undefined;
   const isMyChair = !!user && !!myCommission && myCommission.members?.chairId === user.uid;
 
+  // One shared instance for every non-Facilitator role at a table (Manager/
+  // Administrator, Chair, Commissioners, Speakers) -- see ChallengePopup.tsx.
+  const challengePopup = myCommission && myParticipant?.commissionId && (
+    <ChallengePopup
+      code={code}
+      commissionId={myParticipant.commissionId}
+      commission={myCommission}
+      catalogVersion={session.catalogVersion}
+      phase={session.phase}
+    />
+  );
+
   // Same reasoning as the Facilitator check above: routed on the
   // one-shot-write members.managerAdminId (Phase 2's claimSingleSeatRole),
   // not myParticipant.role, so this can't be knocked over by the same
@@ -93,6 +106,7 @@ function Lobby() {
     return (
       <>
         {reconnectBanner}
+        {challengePopup}
         <ManagerConsole code={code} session={session} commissionId={myParticipant.commissionId} commission={myCommission} />
       </>
     );
@@ -107,6 +121,7 @@ function Lobby() {
     return (
       <>
         {reconnectBanner}
+        {challengePopup}
         <CommissionerView
           code={code}
           session={session}
@@ -127,6 +142,7 @@ function Lobby() {
     return (
       <>
         {reconnectBanner}
+        {challengePopup}
         <SpeakerView code={code} session={session} speaker={mySpeaker} />
       </>
     );
