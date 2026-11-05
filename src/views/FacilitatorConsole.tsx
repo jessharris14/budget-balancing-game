@@ -5,7 +5,6 @@ import { getCatalog } from "../services/catalogService";
 import {
   advancePhase,
   computeAndStoreFinalScores,
-  releaseSeat,
   rerollSpeakerPrompts,
   rollForChair,
   triggerChallenge,
@@ -20,6 +19,7 @@ import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
 import ScoreComparisonTable from "./ScoreComparisonTable";
+import SeatResetDialog from "./SeatResetDialog";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
@@ -39,10 +39,11 @@ function FacilitatorConsole({ code, session }: Props) {
   const [triggeringCommissionId, setTriggeringCommissionId] = useState<string | null>(null);
   const [rerollingUid, setRerollingUid] = useState<string | null>(null);
   const [resultsError, setResultsError] = useState<string | null>(null);
-  const [releasingSeat, setReleasingSeat] = useState<string | null>(null);
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [clearError, setClearError] = useState<string | null>(null);
+  const [seatResetOpen, setSeatResetOpen] = useState(false);
+  const [lastChallengeNotice, setLastChallengeNotice] = useState<{ commissionId: string; text: string } | null>(null);
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -154,6 +155,9 @@ function FacilitatorConsole({ code, session }: Props) {
     setTriggeringCommissionId(commissionId);
     try {
       await triggerChallenge(code, commissionId, card, clock.mainGameTimer);
+      const tableName = session.commissions[commissionId]?.name ?? `Table ${commissionId}`;
+      setLastChallengeNotice({ commissionId, text: `Sent to ${tableName}` });
+      setTimeout(() => setLastChallengeNotice(null), 4000);
     } finally {
       setTriggeringCommissionId(null);
     }
@@ -166,19 +170,6 @@ function FacilitatorConsole({ code, session }: Props) {
       await rerollSpeakerPrompts(code, speakerUid, catalog.promptBank, currentRerollCount);
     } finally {
       setRerollingUid(null);
-    }
-  }
-
-  async function handleReleaseSeat(commissionId: string, seat: "managerAdmin" | "chair", label: string) {
-    if (!window.confirm(`Release the ${label} seat for this table? Whoever holds it now will lose access, and anyone can claim it fresh. If there's an open motion, ballot, or highlighted card right now, it stays exactly as-is -- untouched, not cancelled -- but no one can act on it until someone claims this seat again. Only do this if they're genuinely locked out (lost device/storage) -- not for an ordinary disconnect.`)) {
-      return;
-    }
-    const key = `${commissionId}:${seat}`;
-    setReleasingSeat(key);
-    try {
-      await releaseSeat(code, commissionId, seat);
-    } finally {
-      setReleasingSeat(null);
     }
   }
 
@@ -229,6 +220,20 @@ function FacilitatorConsole({ code, session }: Props) {
           {isLastPhase ? "Session Complete" : "Next Phase →"}
         </button>
       </div>
+
+      <details className="facilitator-tools">
+        <summary>Facilitator tools</summary>
+        <p>
+          <button onClick={() => setSeatResetOpen(true)} disabled={session.phase === "debrief"}>
+            Seat reset
+          </button>
+        </p>
+        {session.phase === "debrief" && (
+          <p>Not needed once Debrief starts -- every role can see final results without holding a seat.</p>
+        )}
+      </details>
+
+      {seatResetOpen && <SeatResetDialog code={code} session={session} onClose={() => setSeatResetOpen(false)} />}
 
       {reachedRollForChair && missingChairTables.length > 0 && (
         <div className="lobby-commission">
@@ -356,16 +361,6 @@ function FacilitatorConsole({ code, session }: Props) {
             {disconnectedNames.length > 0 && (
               <p className="error">⚠️ Currently disconnected: {disconnectedNames.join(", ")}</p>
             )}
-            {members.managerAdminId && (
-              <button onClick={() => void handleReleaseSeat(id, "managerAdmin", "Manager/Administrator")} disabled={releasingSeat === `${id}:managerAdmin`}>
-                Release Manager/Administrator seat
-              </button>
-            )}{" "}
-            {members.chairId && (
-              <button onClick={() => void handleReleaseSeat(id, "chair", "Chair")} disabled={releasingSeat === `${id}:chair`}>
-                Release Chair seat
-              </button>
-            )}
             <p>Decisions made: {decisionsCount}</p>
             {tableSpeakers.length > 0 && (
               <p>
@@ -393,7 +388,8 @@ function FacilitatorConsole({ code, session }: Props) {
               <div>
                 <button onClick={() => handleTriggerChallenge(id)} disabled={!selectedChallengeId || !!triggeringCommissionId}>
                   {triggeringCommissionId === id ? "Pushing…" : "Push selected Challenge to this table"}
-                </button>
+                </button>{" "}
+                {lastChallengeNotice?.commissionId === id && <span>✅ {lastChallengeNotice.text}</span>}
                 {commission.activeChallenge && (
                   <p>
                     <strong>Challenges Triggered ({Object.keys(commission.challengesApplied ?? {}).length}):</strong>{" "}

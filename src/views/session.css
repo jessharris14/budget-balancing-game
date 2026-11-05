@@ -117,6 +117,17 @@
   color: #b06000;
 }
 
+.facilitator-tools {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.facilitator-tools summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
 .facilitator-console table {
   width: 100%;
   border-collapse: collapse;
