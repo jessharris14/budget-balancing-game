@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { getCatalog } from "../services/catalogService";
 import { createBallotMeasure, isMillageCard } from "../services/ballotService";
-import { setChairHighlightedCard, stopDebateTimer } from "../services/chairService";
+import { stopDebateTimer } from "../services/chairService";
 import {
   applyCard,
   applyChairFreeCard,
   getCardStatus,
   isCardAvailable,
   isSelectedPriorityCard,
-  recordFailedMotion,
   reconsiderCard,
+  resolveMotionFails,
   type CardType,
 } from "../services/ledgerService";
-import { clearMotion, isMotionLocked } from "../services/motionService";
+import { isMotionLocked } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
@@ -39,6 +39,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyCardId, setBusyCardId] = useState<string | null>(null);
+  const [resolvingCardId, setResolvingCardId] = useState<string | null>(null);
   const [freeCardChoice, setFreeCardChoice] = useState<{ type: CardType; id: string } | null>(null);
   // Tracks the last ballot that was active, so the modal can keep showing
   // its final result after activeBallotId clears back to null on
@@ -110,58 +111,83 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
    * clearing it here updates every role watching it, not just the Chair's
    * own screen; the Chair's manual Start/Restart/Stop controls are
    * untouched.
+   *
+   * resolvingCardId (set here, cleared in `finally`) is what keeps the
+   * Card Under Debate panel below visible and its buttons in a "Working…"
+   * state for the whole resolution -- see its own comment for why that
+   * matters. Two sequential writes still happen here on a normal card
+   * (applyCard's own claim+combined-update+ledger, then this function's
+   * own stopDebateTimer) and on the Chair's OWN separate device, a third,
+   * unrelated write clears chairHighlightedCardId once it sees the card
+   * land in cardsInPlay (CommissionerView.tsx) -- none of that can be
+   * collapsed into a single update across two different clients, which is
+   * exactly why the fix here is pinning what's ON SCREEN, not just
+   * reducing the write count.
    */
-  function handleMotionPasses() {
+  async function handleMotionPasses() {
     const cardId = commission.chairHighlightedCardId;
     if (!cardId || !highlightedCardType) return;
-    if (isMillageCard(catalog!, highlightedCardType, cardId)) {
-      void runAction(cardId, async () => {
-        await createBallotMeasure(code, commissionId, highlightedCardType, cardId);
-        await stopDebateTimer(code, commissionId);
-        return { ok: true };
+    setResolvingCardId(cardId);
+    try {
+      if (isMillageCard(catalog!, highlightedCardType, cardId)) {
+        await runAction(cardId, async () => {
+          await createBallotMeasure(code, commissionId, highlightedCardType, cardId);
+          await stopDebateTimer(code, commissionId);
+          return { ok: true };
+        });
+        return;
+      }
+      await runAction(cardId, async () => {
+        const result = await applyCard(code, commissionId, catalog!, highlightedCardType, cardId);
+        if (result.ok) await stopDebateTimer(code, commissionId);
+        return result;
       });
-      return;
+    } finally {
+      setResolvingCardId(null);
     }
-    void runAction(cardId, async () => {
-      const result = await applyCard(code, commissionId, catalog!, highlightedCardType, cardId);
-      if (result.ok) await stopDebateTimer(code, commissionId);
-      return result;
-    });
   }
 
   /**
-   * Clears Card Under Debate without applying anything -- same clearing
-   * behavior as the Chair's own resolved-motion Clear button, just
-   * reachable from the Administrator's panel. Only clears the pending
-   * motion too if it's actually for this same card; an unrelated motion
-   * at another table/card is left alone.
+   * Resolves Card Under Debate as Motion Fails via the single combined
+   * write in resolveMotionFails (ledgerService.ts) -- see its own comment
+   * for the full root-cause story (that used to be four separate writes,
+   * the first of which unmounted this very panel -- buttons included --
+   * well before the rest had even started, which is what made a single
+   * press look like it needed a second one).
    *
-   * Previously had no catch block: if setChairHighlightedCard's write was
-   * rejected (e.g. the chairHighlightedCardId RTDB rule widening from
-   * last round not actually being deployed yet), the error propagated
-   * uncaught while `finally` still cleared busyCardId -- from the
-   * Administrator's side that looked exactly like "starts processing,
-   * then resets itself" with no visible explanation. Routing through
-   * runAction surfaces that failure the same way every other action here
-   * does.
+   * Previously had no catch block around its old multi-step version: if
+   * one write was rejected (e.g. an RTDB rule not actually deployed yet),
+   * the error propagated uncaught while `finally` still cleared
+   * busyCardId -- from the Administrator's side that looked exactly like
+   * "starts processing, then resets itself" with no visible explanation.
+   * Routing through runAction surfaces that failure the same way every
+   * other action here does.
    */
   async function handleMotionFails() {
     const cardId = commission.chairHighlightedCardId;
     if (!cardId || !highlightedCardType) return;
-    await runAction(cardId, async () => {
-      await setChairHighlightedCard(code, commissionId, null);
-      if (commission.activeMotion?.cardId === cardId) {
-        await clearMotion(code, commissionId);
-      }
-      await stopDebateTimer(code, commissionId);
-      await recordFailedMotion(code, commissionId, cardId, highlightedCardType);
-      return { ok: true };
-    });
+    setResolvingCardId(cardId);
+    try {
+      await runAction(cardId, () => resolveMotionFails(code, commissionId, cardId, highlightedCardType));
+    } finally {
+      setResolvingCardId(null);
+    }
   }
 
-  const highlightedCard = commission.chairHighlightedCardId
-    ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
-      catalog.expenditureCards.find((c) => c.id === commission.chairHighlightedCardId))
+  // Keeps the Card Under Debate panel (and its buttons' disabled/"Working…"
+  // state) showing the SAME card throughout a Motion Passes/Fails
+  // resolution, even once the live chairHighlightedCardId has already
+  // gone null partway through that resolution's sequence of writes --
+  // see handleMotionPasses/handleMotionFails above for why that in-
+  // between moment exists at all. Once resolvingCardId itself clears
+  // (the whole action, not just its first write, has finished) and the
+  // live value is also null, the panel disappears in one clean step
+  // instead of mid-sequence.
+  const debateCardId = commission.chairHighlightedCardId ?? resolvingCardId;
+  const isResolvingMotion = resolvingCardId !== null;
+
+  const highlightedCard = debateCardId
+    ? (catalog.revenueCards.find((c) => c.id === debateCardId) ?? catalog.expenditureCards.find((c) => c.id === debateCardId))
     : null;
 
   // Keeps showing the ballot (including its final result) until the
@@ -256,10 +282,18 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         </div>
       )}
 
-      {commission.chairHighlightedCardId && (
+      {/*
+        Keyed/gated on debateCardId, not commission.chairHighlightedCardId
+        directly -- see the resolvingCardId comment above. While a
+        resolution is in flight, this keeps showing the SAME card (and
+        disabled, "Working…" buttons) instead of vanishing the instant the
+        first of several writes lands, which is what made Motion
+        Passes/Fails feel like they shook or needed a second press.
+      */}
+      {debateCardId && (
         <div className="lobby-commission chair-highlight">
           <h3>Card Under Debate</h3>
-          <p>{highlightedCard?.title ?? commission.chairHighlightedCardId}</p>
+          <p>{highlightedCard?.title ?? debateCardId}</p>
           {showMotionProvenance && (
             <p>
               Moved by {moverName}, seconded by {seconderName}
@@ -269,11 +303,12 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over -- Motion Passes/Fails no longer apply until the ballot resolves. Phase 7 B2: also frozen once Debrief starts. */}
           {session.phase === "mainGame" && !commission.activeBallotId && (
             <div className="chair-timer-controls">
-              <button onClick={handleMotionPasses} disabled={busyCardId === commission.chairHighlightedCardId}>
-                Motion Passes
+              {/* Fixed min-width (CSS) so "Working…" doesn't reflow the row. */}
+              <button className="motion-resolve-button" onClick={() => void handleMotionPasses()} disabled={isResolvingMotion}>
+                {isResolvingMotion ? "Working…" : "Motion Passes"}
               </button>
-              <button onClick={() => void handleMotionFails()} disabled={busyCardId === commission.chairHighlightedCardId}>
-                Motion Fails
+              <button className="motion-resolve-button" onClick={() => void handleMotionFails()} disabled={isResolvingMotion}>
+                {isResolvingMotion ? "Working…" : "Motion Fails"}
               </button>
             </div>
           )}
@@ -350,7 +385,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           {catalog.revenueCards.map((card) => {
             const { status, label } = getCardStatus(commission, card.id, "revenue");
             const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
-            const underDebate = commission.chairHighlightedCardId === card.id;
+            const underDebate = debateCardId === card.id;
             return (
               <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="ID">{card.id}</td>
@@ -397,7 +432,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           {catalog.expenditureCards.map((card) => {
             const { status, label } = getCardStatus(commission, card.id, "expenditure");
             const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
-            const underDebate = commission.chairHighlightedCardId === card.id;
+            const underDebate = debateCardId === card.id;
             return (
               <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
                 <td data-label="ID">{card.id}</td>

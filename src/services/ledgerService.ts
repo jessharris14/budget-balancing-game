@@ -271,24 +271,52 @@ async function claimAndApplyLedgerDelta(
 }
 
 /**
- * Change 3: records a card's motion reaching Motion Fails -- never called
- * for the Chair's "No Second -- Reset Motion" (that motion never reached
- * a vote, so it leaves no record at all, by design). This is what lets
- * getCardStatus show "Did not pass" for this card until it's moved again
- * and either passes (Applied) or is superseded by a later reconsideration.
+ * Resolves Card Under Debate as Motion Fails: clears the highlight, clears
+ * the pending motion if it's the one for this card, stops the debate
+ * timer, and records the failure (Change 3 -- never called for the
+ * Chair's "No Second -- Reset Motion," which never reached a vote and so
+ * leaves no record at all, by design) -- all as ONE atomic multi-location
+ * update(), not four separate sequential writes.
+ *
+ * That used to be four separate update() calls, awaited one after
+ * another. Each one landing was its own RTDB event, so the Administrator
+ * (and every other connected client) got four separate re-renders in
+ * quick succession for a single button press: chairHighlightedCardId
+ * clearing first unmounted the Card Under Debate panel -- buttons and
+ * all -- well before the rest of the chain (activeMotion, the timer, the
+ * failure record) had even started, let alone finished. From the
+ * Administrator's side that reads as "the button did nothing": the panel
+ * is simply gone by the time there's anything else to see, and a genuine
+ * second press lands on nothing, having nowhere left to go. Bundling
+ * every plain (non-transactional) write here into one update() means
+ * every client sees the whole resolution land in a single event, and
+ * ManagerConsole's own "Working…" pinning (see its Card Under Debate
+ * panel) keeps the button visible and disabled for the one real write
+ * this now takes, rather than for a window that used to end on write one
+ * of four.
  */
-export async function recordFailedMotion(
+export async function resolveMotionFails(
   code: string,
   commissionId: string,
   cardId: string,
   cardType: CardType,
-): Promise<void> {
+): Promise<ActionResult> {
   const base = `sessions/${code}/commissions/${commissionId}`;
   const entryId = push(ref(rtdb, `${base}/failedMotionsLog`)).key;
-  if (!entryId) return;
+  if (!entryId) return { ok: false, reason: "Could not generate a failed-motion log entry." };
+
+  const motionSnapshot = await get(ref(rtdb, `${base}/activeMotion`));
+  const motionUpdate: Record<string, unknown> =
+    motionSnapshot.exists() && motionSnapshot.val()?.cardId === cardId ? { [`${base}/activeMotion`]: null } : {};
+
   await update(ref(rtdb), {
+    [`${base}/chairHighlightedCardId`]: null,
+    [`${base}/debateTimerEndsAt`]: null,
     [`${base}/failedMotionsLog/${entryId}`]: { cardId, cardType, failedAt: Date.now() },
+    ...motionUpdate,
   });
+
+  return { ok: true };
 }
 
 /**
@@ -298,6 +326,18 @@ export async function recordFailedMotion(
  * real verbal vote plus the Manager/Administrator's own judgment is the
  * actual mechanism, matching a live human-facilitated meeting rather than
  * a strict rules engine.
+ *
+ * The sibling exclusivity lockouts and the matching activeMotion clear
+ * used to each be their own separate update() call, issued one after
+ * another AFTER the ledger transaction already completed -- every
+ * connected client's RTDB listener fired a separate time for each one, so
+ * the Card Under Debate panel and the surrounding page visibly settled in
+ * several small steps instead of one (the Motion Passes "shake" bug).
+ * Both are now read up front and folded into the SAME update() as
+ * decisionsLog/funded (claimAndApplyLedgerDelta's extraUpdates), cutting
+ * this down to two writes total (the cardsInPlay claim, then this
+ * combined update + the ledger transaction) -- the same "bundle plain
+ * sets into one update()" pattern already used by closeBallotMeasure.
  */
 export async function applyCard(
   code: string,
@@ -316,31 +356,28 @@ export async function applyCard(
 
   const base = `sessions/${code}/commissions/${commissionId}`;
   const fundedUpdate = await priorityFundedUpdateFragment(base, catalog, cardType, cardId, true);
-  const result = await claimAndApplyLedgerDelta(
-    base,
-    cardId,
-    cardType,
-    appliedAmount,
-    { revenueDelta, expenditureDelta },
-    fundedUpdate,
-  );
-  if (!result.ok) return result;
 
   const siblings = groupSiblingIds(catalog, cardType, cardId);
-  if (siblings.length > 0) {
-    const updates: Record<string, unknown> = {};
-    for (const siblingId of siblings) updates[`${base}/cardsLockedOut/${siblingId}`] = true;
-    await update(ref(rtdb), updates);
-  }
+  const siblingUpdates: Record<string, unknown> = {};
+  for (const siblingId of siblings) siblingUpdates[`${base}/cardsLockedOut/${siblingId}`] = true;
 
   // The pending motion (if any) is resolved the instant its own card is
   // applied -- a stale "moved by X" banner for an already-decided card
   // would just be confusing, since a motion is only ever a pointer to what
   // the room is currently debating, not a record of what happened.
   const motionSnapshot = await get(ref(rtdb, `${base}/activeMotion`));
-  if (motionSnapshot.exists() && motionSnapshot.val()?.cardId === cardId) {
-    await update(ref(rtdb), { [`${base}/activeMotion`]: null });
-  }
+  const motionUpdate: Record<string, unknown> =
+    motionSnapshot.exists() && motionSnapshot.val()?.cardId === cardId ? { [`${base}/activeMotion`]: null } : {};
+
+  const result = await claimAndApplyLedgerDelta(
+    base,
+    cardId,
+    cardType,
+    appliedAmount,
+    { revenueDelta, expenditureDelta },
+    { ...fundedUpdate, ...siblingUpdates, ...motionUpdate },
+  );
+  if (!result.ok) return result;
 
   return { ok: true };
 }

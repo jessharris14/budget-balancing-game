@@ -350,6 +350,45 @@
   margin-top: 0.75rem;
 }
 
+/*
+ * Fixed min-width so switching the label to "Working…" while an action
+ * runs doesn't change the button's size and reflow the row -- one of the
+ * things that can contribute to a layout jump when Motion Passes/Fails
+ * resolves (see ManagerConsole.tsx's resolvingCardId/debateCardId for the
+ * main fix, which keeps the whole panel from vanishing mid-resolution).
+ */
+.motion-resolve-button {
+  min-width: 9rem;
+}
+
+@media (max-width: 480px) {
+  .motion-resolve-button {
+    min-width: 7rem;
+  }
+}
+
+/*
+ * A short fade/slide-in rather than an instant pop when Card Under Debate
+ * first appears (a motion gets promoted, or a new card is highlighted).
+ * Resolving it (Motion Passes/Fails) no longer makes this panel disappear
+ * mid-sequence -- see resolvingCardId/debateCardId -- so there's no
+ * matching exit animation needed; it now comes down once, cleanly.
+ */
+.chair-highlight {
+  animation: chair-highlight-in 0.18s ease-out;
+}
+
+@keyframes chair-highlight-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .debate-timer-remaining {
   font-weight: 700;
   font-size: 1.2rem;
