@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { deriveLedger, getCardStatus, shouldApplyChallengeTrigger } from "./ledgerService";
+import { computeFinalScore } from "./scoringService";
+import { deriveLedger, getBalanceStatus, getCardStatus, shouldApplyChallengeTrigger } from "./ledgerService";
 import type { Commission, CommissionLedger } from "../types/session";
 
 function baseCommission(overrides: Partial<Commission> = {}): Commission {
@@ -153,5 +154,37 @@ describe("shouldApplyChallengeTrigger", () => {
 
   it("applies the SAME card triggered again later, a genuinely new triggeredAt", () => {
     expect(shouldApplyChallengeTrigger(1000, 2000)).toBe(true);
+  });
+});
+
+describe("getBalanceStatus", () => {
+  it("zero is Balanced, with amount 0", () => {
+    expect(getBalanceStatus(0)).toEqual({ sign: "balanced", label: "Balanced", amount: 0 });
+  });
+
+  it("a negative deficitOrSurplus is a Deficit, amount as a positive magnitude", () => {
+    expect(getBalanceStatus(-7)).toEqual({ sign: "deficit", label: "Deficit", amount: 7 });
+  });
+
+  it("a positive deficitOrSurplus is a Surplus, amount as-is", () => {
+    expect(getBalanceStatus(5)).toEqual({ sign: "surplus", label: "Surplus", amount: 5 });
+  });
+
+  it("a table in surplus is reachable from real ledger math: Revenue > Expenditures", () => {
+    // e.g. a Commission that gained more revenue than it spent.
+    const ledger: CommissionLedger = { revenue: 105, expenditures: 100, reserves: 15, deficitOrSurplus: 5 };
+    expect(getBalanceStatus(ledger.deficitOrSurplus)).toEqual({ sign: "surplus", label: "Surplus", amount: 5 });
+  });
+
+  it("agrees with computeFinalScore's own Balanced check: both treat exactly 0 as balanced, nothing else", () => {
+    const funded = { selectedCardId: null, funded: true };
+    const balancedLedger: CommissionLedger = { revenue: 100, expenditures: 100, reserves: 15, deficitOrSurplus: 0 };
+    const surplusLedger: CommissionLedger = { revenue: 101, expenditures: 100, reserves: 15, deficitOrSurplus: 1 };
+
+    expect(getBalanceStatus(balancedLedger.deficitOrSurplus).sign).toBe("balanced");
+    expect(computeFinalScore(balancedLedger, funded, 0).balanced.points).toBe(1);
+
+    expect(getBalanceStatus(surplusLedger.deficitOrSurplus).sign).toBe("surplus");
+    expect(computeFinalScore(surplusLedger, funded, 0).balanced.points).toBe(0);
   });
 });

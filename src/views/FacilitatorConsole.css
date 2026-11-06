@@ -1,0 +1,206 @@
+/*
+ * Phase 9a: the Facilitator always uses a laptop, so this (and the Public
+ * View) are the first two screens in the app NOT built mobile-first --
+ * designed for ~1280px and up. #index.css's #root width was widened from
+ * 1126px to make room for this; every other view's own, narrower
+ * max-width (session-view's 40rem, etc.) is unaffected by that.
+ */
+/*
+ * Combined with .session-view (kept for its shared button/input/error
+ * styling) rather than replacing it -- higher specificity than
+ * .session-view alone, so this max-width reliably wins regardless of CSS
+ * import order.
+ */
+.session-view.facilitator-console-page {
+  max-width: 87.5rem; /* ~1400px */
+  width: 100%;
+  box-sizing: border-box;
+  margin: 1.5rem auto;
+  padding: 0 1.5rem;
+  font-family: system-ui, sans-serif;
+  text-align: left;
+}
+
+.facilitator-console-page h1 {
+  font-size: 1.6rem;
+  margin: 0 0 1rem;
+}
+
+.facilitator-top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.facilitator-top-bar__identity {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.facilitator-top-bar__phase {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.facilitator-top-bar__clock {
+  font-weight: 700;
+}
+
+.facilitator-top-bar__spacer {
+  flex: 1;
+}
+
+.facilitator-top-bar__roll-flag {
+  background: rgba(230, 170, 0, 0.18);
+  border: 1px solid rgba(200, 150, 0, 0.5);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.facilitator-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .facilitator-grid {
+    grid-template-columns: 1.6fr 1fr;
+  }
+
+  .facilitator-challenges-column {
+    position: sticky;
+    top: 4.5rem;
+    max-height: calc(100vh - 5.5rem);
+    overflow-y: auto;
+  }
+}
+
+.facilitator-tables-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.facilitator-table-card {
+  border: 1px solid #ccc;
+  border-radius: 0.6rem;
+  padding: 1rem;
+}
+
+.facilitator-table-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.facilitator-table-card__header h3 {
+  margin: 0;
+}
+
+.facilitator-table-card__stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+
+.facilitator-table-card__stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.facilitator-table-card__stat-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.facilitator-table-card__stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.facilitator-table-card__stat-note {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.facilitator-table-card__challenges {
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.facilitator-table-card__challenges ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.facilitator-table-card__seats {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 0.5rem 0;
+}
+
+.facilitator-table-card__push {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.facilitator-table-card__push-notice {
+  font-size: 0.85rem;
+}
+
+.facilitator-table-card__details {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.facilitator-table-card__details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #555;
+}
+
+.facilitator-challenges-column table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.facilitator-challenges-column th,
+.facilitator-challenges-column td {
+  border: 1px solid #ccc;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.facilitator-challenges-panel {
+  border: 1px solid #ccc;
+  border-radius: 0.6rem;
+  padding: 1rem;
+}
+
+.facilitator-challenges-panel h2 {
+  margin-top: 0;
+}

@@ -51,7 +51,11 @@
 }
 
 #root {
-  width: 1126px;
+  /* Phase 9a: widened from 1126px so the Facilitator Console and Public
+     View (laptop/projector screens, ~1400px design) aren't squeezed by
+     this outer cap -- every narrower view keeps its own independent
+     max-width (session-view's 40rem, etc.) and is unaffected. */
+  width: 1450px;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
 import { getCatalog } from "../services/catalogService";
 import { getChallengeLedgerEffect } from "../services/challengeLedgerEffect";
 import {
@@ -13,24 +12,33 @@ import {
 import { persistGameResults } from "../services/resultsService";
 import { clearSessionData } from "../services/sessionService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
-import BallotMeasuresList from "./BallotMeasuresList";
 import BudgetEffectLabel from "./BudgetEffectLabel";
 import DebriefScorecard from "./DebriefScorecard";
-import DecisionsList from "./DecisionsList";
-import LedgerStatusBar from "./LedgerStatusBar";
-import PriorityTile from "./PriorityTile";
-import PublicTrustGauge from "./PublicTrustGauge";
+import FacilitatorTableCard from "./FacilitatorTableCard";
 import ScoreComparisonTable from "./ScoreComparisonTable";
 import SeatResetDialog from "./SeatResetDialog";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
+import "./FacilitatorConsole.css";
 
 interface Props {
   code: string;
   session: Session;
 }
 
+/**
+ * Phase 9a: the Facilitator's action screen, restructured into a
+ * two-column control layout (Tables dashboard + a sticky Challenge Cards
+ * column) under a sticky top bar, so a typical 2-4 table game is fully
+ * visible on one laptop screen without scrolling to find a challenge or
+ * a table's numbers. The read-only "one glance, whole room" view for the
+ * projector lives separately in PublicView.tsx, opened via the button in
+ * the top bar -- this component stays the only one with any write
+ * actions (triggerChallenge, advancePhase, rollForChair, seat reset,
+ * etc.), none of which changed in this pass, only where their controls
+ * live on screen.
+ */
 function FacilitatorConsole({ code, session }: Props) {
   const navigate = useNavigate();
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
@@ -200,40 +208,68 @@ function FacilitatorConsole({ code, session }: Props) {
     }
   }
 
+  /**
+   * Opens the Public View in a new tab, same browser -- so it shares
+   * this device's existing anonymous sign-in and RTDB read access with
+   * no rules change (see PublicView.tsx for the facilitatorId check that
+   * makes this the right tab/browser). The Facilitator drags that new
+   * window onto the projector.
+   */
+  function handleOpenPublicView() {
+    window.open(`/display/${code}`, "_blank", "noopener");
+  }
+
   const challengeReminderDue =
     session.phase === "mainGame" && clock.nextChallengeDue !== null && (nextChallengeMs ?? 0) <= 0;
 
-  const joinUrl = `${window.location.origin}/join?code=${code}`;
-
   return (
-    <div className="session-view facilitator-console">
-      <h1>Facilitator Console — {code}</h1>
+    <div className="session-view facilitator-console-page">
+      <h1>Facilitator Console</h1>
 
-      <div className="code-display">
-        <div className="code">{code}</div>
-        <QRCodeSVG value={joinUrl} size={150} />
-      </div>
+      <div className="facilitator-top-bar">
+        <span className="facilitator-top-bar__identity">Let's Balance! — {code}</span>
 
-      <div className="facilitator-phase-bar">
-        <p>
-          Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
-        </p>
-        <button onClick={handleNextPhase} disabled={isLastPhase || blockedOnChair || advancingPhase}>
-          {isLastPhase ? "Session Complete" : "Next Phase →"}
-        </button>
-      </div>
-
-      <details className="facilitator-tools">
-        <summary>Facilitator tools</summary>
-        <p>
-          <button onClick={() => setSeatResetOpen(true)} disabled={session.phase === "debrief"}>
-            Seat reset
+        <div className="facilitator-top-bar__phase">
+          <span>
+            Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
+          </span>
+          <button onClick={handleNextPhase} disabled={isLastPhase || blockedOnChair || advancingPhase}>
+            {isLastPhase ? "Session Complete" : "Next Phase →"}
           </button>
-        </p>
-        {session.phase === "debrief" && (
-          <p>Not needed once Debrief starts -- every role can see final results without holding a seat.</p>
+        </div>
+
+        {session.phase === "rankPriorities" && phaseTimerMs !== null && (
+          <span>Rank Priorities: {formatDuration(phaseTimerMs)}</span>
         )}
-      </details>
+
+        {session.phase === "mainGame" && mainGameMs !== null && (
+          <span className="facilitator-top-bar__clock">
+            {mainGameMs > 0 ? `⏱ ${formatDuration(mainGameMs)}` : "⏰ Time's up"}
+          </span>
+        )}
+
+        {session.phase === "mainGame" && (
+          <span className={challengeReminderDue ? "challenge-due" : undefined}>
+            {challengeReminderDue
+              ? "⏰ Challenge due"
+              : clock.nextChallengeDue !== null && nextChallengeMs !== null
+                ? `Next challenge in: ${formatDuration(nextChallengeMs)}`
+                : "No more challenge reminders"}
+          </span>
+        )}
+
+        <span className="facilitator-top-bar__spacer" />
+
+        {reachedRollForChair && missingChairTables.length > 0 && (
+          <span className="facilitator-top-bar__roll-flag">⚠ Roll for Chair needed ({missingChairTables.length})</span>
+        )}
+
+        <button onClick={() => setSeatResetOpen(true)} disabled={session.phase === "debrief"}>
+          Seat reset
+        </button>
+
+        <button onClick={handleOpenPublicView}>Open Public View ↗</button>
+      </div>
 
       {seatResetOpen && <SeatResetDialog code={code} session={session} onClose={() => setSeatResetOpen(false)} />}
 
@@ -274,30 +310,6 @@ function FacilitatorConsole({ code, session }: Props) {
         </div>
       )}
 
-      {session.phase === "rankPriorities" && phaseTimerMs !== null && (
-        <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>
-      )}
-
-      {session.phase === "mainGame" && mainGameMs !== null && (
-        <>
-          {mainGameMs > 0 ? (
-            <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
-          ) : (
-            // Phase 7 B2: the timer hitting 0:00 never auto-advances the
-            // phase on its own -- just a clear prompt so the Facilitator
-            // decides when the room is actually ready to move on.
-            <p className="challenge-due">⏰ Main Game time is up — move to Debrief when ready.</p>
-          )}
-          {challengeReminderDue && <p className="challenge-due">⏰ Challenge due — trigger one when ready.</p>}
-          {!challengeReminderDue && nextChallengeMs !== null && (
-            <p>Next challenge reminder in: {formatDuration(nextChallengeMs)}</p>
-          )}
-          {!challengeReminderDue && clock.nextChallengeDue === null && (
-            <p>No more challenge reminders (inside the final 10 minutes).</p>
-          )}
-        </>
-      )}
-
       {catalogError && <p className="error">{catalogError}</p>}
 
       {session.phase === "debrief" && catalog && (
@@ -329,145 +341,65 @@ function FacilitatorConsole({ code, session }: Props) {
         </>
       )}
 
-      <h2>Commissions</h2>
-      {commissionEntries.map(([id, commission]) => {
-        const members = commission.members ?? { managerAdminId: null, chairId: null, commissionerIds: {} };
-        const commissionerUids = Object.keys(members.commissionerIds ?? {});
-        const chairName = members.chairId ? (session.participants[members.chairId]?.name ?? members.chairId) : null;
+      <div className="facilitator-grid">
+        <div className="facilitator-tables-column">
+          <h2>Tables</h2>
+          {commissionEntries.map(([id, commission]) => (
+            <FacilitatorTableCard
+              key={id}
+              commissionId={id}
+              commission={commission}
+              session={session}
+              catalog={catalog}
+              speakers={speakers.filter((s) => s.commissionId === id)}
+              selectedChallengeId={selectedChallengeId}
+              pushing={triggeringCommissionId === id}
+              pushNotice={lastChallengeNotice?.commissionId === id ? lastChallengeNotice.text : null}
+              onPushChallenge={handleTriggerChallenge}
+              rerollingUid={rerollingUid}
+              onReroll={handleReroll}
+            />
+          ))}
+        </div>
 
-        const commissionerNames = commissionerUids.map((uid) => session.participants[uid]?.name ?? uid);
-        const decisionsCount = Object.keys(commission.decisionsLog ?? {}).length;
-        const tableSpeakers = speakers.filter((s) => s.commissionId === id);
-        const tableSpeakersWithEndorsement = tableSpeakers.filter((s) => Object.keys(s.endorsementsUsed ?? {}).length > 0).length;
-
-        // Phase 8.2: anyone with a claimed seat at this table (Administrator,
-        // Chair, Commissioners, Speakers) who currently has no live
-        // connection -- a seat still shows here even while fully
-        // disconnected, since presence never gates or releases anything.
-        const tableUids = [
-          ...(members.managerAdminId ? [members.managerAdminId] : []),
-          ...(members.chairId ? [members.chairId] : []),
-          ...commissionerUids,
-          ...tableSpeakers.map((s) => s.id),
-        ];
-        const disconnectedNames = tableUids
-          .filter((uid) => !session.presence?.[uid])
-          .map((uid) => session.participants[uid]?.name ?? uid);
-
-        return (
-          <div key={id} className="lobby-commission">
-            <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
-            <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
-            <p>Commissioners ({commissionerNames.length}): {commissionerNames.length > 0 ? commissionerNames.join(", ") : "none yet"}</p>
-            <p>Chair: {chairName ?? "not yet elected"}</p>
-            {disconnectedNames.length > 0 && (
-              <p className="error">⚠️ Currently disconnected: {disconnectedNames.join(", ")}</p>
-            )}
-            <p>Decisions made: {decisionsCount}</p>
-            {tableSpeakers.length > 0 && (
-              <p>
-                {tableSpeakersWithEndorsement} of {tableSpeakers.length} Speakers at this table have cast at least one endorsement.
-              </p>
-            )}
-            <LedgerStatusBar ledger={commission.ledger} />
-            <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={tableSpeakers.length} />
-
-            {session.phase === "rankPriorities" && catalog && (
-              <p>
-                Priority selected:{" "}
-                {commission.priority?.selectedCardId
-                  ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
-                    commission.priority.selectedCardId)
-                  : "not yet recorded by the Chair"}
-              </p>
-            )}
-
-            {session.phase === "mainGame" && catalog && (
-              <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
-            )}
-
-            {session.phase === "mainGame" && (
-              <div>
-                <button onClick={() => handleTriggerChallenge(id)} disabled={!selectedChallengeId || !!triggeringCommissionId}>
-                  {triggeringCommissionId === id ? "Pushing…" : "Push selected Challenge to this table"}
-                </button>{" "}
-                {lastChallengeNotice?.commissionId === id && <span>✅ {lastChallengeNotice.text}</span>}
-                {commission.activeChallenge && (
-                  <p>
-                    <strong>Challenges Triggered ({Object.keys(commission.challengesApplied ?? {}).length}):</strong>{" "}
-                    last was {commission.activeChallenge.printedText}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {catalog && <DecisionsList commission={commission} catalog={catalog} />}
-            {catalog && <BallotMeasuresList commission={commission} catalog={catalog} />}
+        {session.phase === "mainGame" && catalog && (
+          <div className="facilitator-challenges-column">
+            <div className="facilitator-challenges-panel">
+              <h2>Challenge Cards</h2>
+              <p>Pushing a Challenge applies its dollar impact immediately -- Challenges can't be debated or declined.</p>
+              <table>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Title</th>
+                    <th>Facilitator Narrative</th>
+                    <th>Budget effect</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {catalog.challengeCards.map((card) => (
+                    <tr key={card.id}>
+                      <td data-label="Select">
+                        <input
+                          type="radio"
+                          name="challenge"
+                          checked={selectedChallengeId === card.id}
+                          onChange={() => setSelectedChallengeId(card.id)}
+                        />
+                      </td>
+                      <td data-label="Title">{card.title}</td>
+                      <td data-label="Facilitator Narrative">{card.facilitatorNarrative}</td>
+                      <td data-label="Budget effect">
+                        <BudgetEffectLabel label={getChallengeLedgerEffect(card).label} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        );
-      })}
-
-      <h2>Public Hearing Speakers</h2>
-      {speakers.length === 0 && <p>None yet.</p>}
-      <ul>
-        {speakers.map((speaker) => (
-          <li key={speaker.id}>
-            {speaker.name} — {session.commissions[speaker.commissionId]?.name ?? `Table ${speaker.commissionId}`}
-            {catalog && (
-              <>
-                {" "}
-                — prompt{speaker.assignedPrompts.length > 1 ? "s" : ""}:{" "}
-                {speaker.assignedPrompts
-                  .map((id) => catalog.promptBank.find((p) => p.id === id)?.text ?? id)
-                  .join(" / ")}
-              </>
-            )}
-            {speaker.rerollCount > 0 && ` (rerolled ${speaker.rerollCount}×)`}{" "}
-            <button
-              onClick={() => handleReroll(speaker.id, speaker.rerollCount)}
-              disabled={!catalog || rerollingUid === speaker.id}
-            >
-              {rerollingUid === speaker.id ? "Rerolling…" : "Reroll prompt"}
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {session.phase === "mainGame" && catalog && (
-        <>
-          <h2>Challenge Cards</h2>
-          <p>Pushing a Challenge applies its dollar impact immediately -- Challenges can't be debated or declined.</p>
-          <table>
-            <thead>
-              <tr>
-                <th></th>
-                <th>Title</th>
-                <th>Facilitator Narrative</th>
-                <th>Budget effect</th>
-              </tr>
-            </thead>
-            <tbody>
-              {catalog.challengeCards.map((card) => (
-                <tr key={card.id}>
-                  <td data-label="Select">
-                    <input
-                      type="radio"
-                      name="challenge"
-                      checked={selectedChallengeId === card.id}
-                      onChange={() => setSelectedChallengeId(card.id)}
-                    />
-                  </td>
-                  <td data-label="Title">{card.title}</td>
-                  <td data-label="Facilitator Narrative">{card.facilitatorNarrative}</td>
-                  <td data-label="Budget effect">
-                    <BudgetEffectLabel label={getChallengeLedgerEffect(card).label} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }

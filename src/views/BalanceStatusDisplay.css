@@ -1,0 +1,31 @@
+.balance-status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.balance-status--deficit {
+  color: #8a1f11;
+}
+
+.balance-status--surplus,
+.balance-status--balanced {
+  color: #2a2a2a;
+}
+
+.balance-status--large {
+  font-size: 1.5rem;
+}
+
+.balance-status--large .balance-status__icon {
+  font-size: 1.1rem;
+}
+
+.balance-status--compact {
+  font-size: 1rem;
+}
+
+.balance-status__icon {
+  line-height: 1;
+}

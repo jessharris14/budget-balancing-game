@@ -603,3 +603,29 @@ export function getPublicTrustTierPoints(tier: PublicTrustTier): number {
       return -1;
   }
 }
+
+export type BalanceSign = "surplus" | "deficit" | "balanced";
+
+export interface BalanceStatus {
+  sign: BalanceSign;
+  /** Plain-language word, capitalized, ready to show on its own: "Surplus", "Deficit", "Balanced". */
+  label: string;
+  /** Always >= 0 -- the dollar magnitude, with the sign carried by `sign`/`label` instead of a +/- prefix. */
+  amount: number;
+}
+
+/**
+ * Phase 9a: the one sign-aware "Surplus $X" / "Deficit $X" / "Balanced"
+ * reading of a Commission's deficitOrSurplus, shared by the Facilitator
+ * Console's table cards and the Public View so the two screens can never
+ * disagree about which word a table's number deserves. Same magnitude
+ * math LedgerStatusBar has always used (deficitOrSurplus >= 0 ?
+ * "Surplus" : "Deficit"); this just gives that reading a name, a sign,
+ * and a zero-case ("Balanced") in one place instead of three different
+ * ternaries scattered across views.
+ */
+export function getBalanceStatus(deficitOrSurplus: number): BalanceStatus {
+  if (deficitOrSurplus === 0) return { sign: "balanced", label: "Balanced", amount: 0 };
+  if (deficitOrSurplus > 0) return { sign: "surplus", label: "Surplus", amount: deficitOrSurplus };
+  return { sign: "deficit", label: "Deficit", amount: Math.abs(deficitOrSurplus) };
+}

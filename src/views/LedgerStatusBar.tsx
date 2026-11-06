@@ -2,7 +2,7 @@ import { getReserveTier } from "../services/ledgerService";
 import type { CommissionLedger } from "../types/session";
 import "./ManagerConsole.css";
 
-const RESERVE_TIER_LABELS: Record<string, string> = {
+export const RESERVE_TIER_LABELS: Record<string, string> = {
   safe: "≥ $15 — on policy (+1)",
   neutral: "= $14 — neutral (0)",
   warning: "$10–$13 — below minimum (−1)",

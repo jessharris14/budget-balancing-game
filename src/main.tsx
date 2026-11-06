@@ -7,6 +7,7 @@ import CatalogViewer from './views/CatalogViewer.tsx'
 import FacilitatorSetup from './views/FacilitatorSetup.tsx'
 import JoinSession from './views/JoinSession.tsx'
 import Lobby from './views/Lobby.tsx'
+import PublicView from './views/PublicView.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -16,6 +17,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/new" element={<FacilitatorSetup />} />
         <Route path="/join" element={<JoinSession />} />
         <Route path="/session/:code" element={<Lobby />} />
+        <Route path="/display/:code" element={<PublicView />} />
         <Route path="/internal/catalog" element={<CatalogViewer />} />
       </Routes>
     </BrowserRouter>

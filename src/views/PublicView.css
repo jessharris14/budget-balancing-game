@@ -1,0 +1,146 @@
+/*
+ * Phase 9a: projector screen -- large type, high contrast, no scrolling
+ * in a normal game. Body text >= 20px, key numbers >= 48px, per the
+ * design brief. Kent County branding is 9b's job; this uses the app's
+ * existing look.
+ */
+/*
+ * Fixed + inset:0 so this fills the REAL viewport edge to edge on a wide
+ * projector/TV, escaping #root's own fixed 1450px width (every other
+ * view is comfortably narrower than that, so this is the one page that
+ * needs to opt out of it).
+ */
+.public-view {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1.5rem 2rem;
+  font-family: system-ui, sans-serif;
+  font-size: 20px;
+  background: #fff;
+  text-align: left;
+}
+
+.public-view-status {
+  padding: 3rem 2rem;
+  font-size: 1.3rem;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+}
+
+.public-view-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  border-bottom: 3px solid #333;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.public-view-header__title h1 {
+  margin: 0;
+  font-size: 2.5rem;
+}
+
+.public-view-header__code {
+  margin: 0.2rem 0 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.public-view-header__phase {
+  text-align: center;
+}
+
+.public-view-header__phase-name {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.public-view-header__clock {
+  margin: 0.2rem 0 0;
+  font-size: 3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.public-view-header__qr {
+  text-align: center;
+  font-size: 0.9rem;
+  margin-left: auto;
+}
+
+.public-view-header__qr p {
+  margin: 0.3rem 0 0;
+}
+
+.public-view-fullscreen-button {
+  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+}
+
+.public-view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 1.5rem;
+}
+
+.public-view-card {
+  border: 2px solid #333;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.public-view-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.8rem;
+}
+
+.public-view-card__people p {
+  margin: 0.3rem 0;
+  font-size: 1.05rem;
+}
+
+.public-view-card__finance {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.public-view-card__figure {
+  display: flex;
+  flex-direction: column;
+}
+
+.public-view-card__figure-label {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.public-view-card__figure-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.public-view-card__balance-note {
+  margin: 0.2rem 0 0.75rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.public-view-card__final-score {
+  margin-top: 1rem;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  border-top: 2px solid #333;
+  padding-top: 0.75rem;
+}
