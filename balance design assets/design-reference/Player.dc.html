@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Commissioner phone view</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5d63f1ee5fdf67233d27dde62a18ba2">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.fx.hard-dot{}
+.hdr button{font-family:var(--f-body)}
+</style>
+</helmet>
+<div class="ph" style="width: 390px; min-height: 1850px;">
+
+  <!-- Bar 1: role header, always visible -->
+  <div class="hdr">
+    <div class="who">
+      <span class="role">Commissioner</span>
+      <span class="meta">Kent · Main Game</span>
+    </div>
+    <span class="code" aria-label="Session code YMKL">YMKL</span>
+    <button type="button" class="{{actCls}}" onClick="{{toggleAct}}" aria-expanded="{{act}}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <span>Activity</span>
+      <span class="badge">2</span>
+    </button>
+  </div>
+
+  <!-- Bar 2: Card Under Debate, only while a card is under debate -->
+  <sc-if value="{{debate}}" hint-placeholder-val="{{ true }}">
+    <div class="bar2">
+      <div class="m">
+        <span class="eyebrow">Card Under Debate</span>
+        <span class="t">Increase Permitting &amp; Inspection Fees</span>
+        <div class="row"><span class="fx help"><i>▲</i>Gain $1 revenue</span></div>
+      </div>
+      <div class="timer" aria-label="Debate time remaining 1 minute 14 seconds">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
+        1:14
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Activity dropdown sheet -->
+  <sc-if value="{{act}}" hint-placeholder-val="{{ false }}">
+    <div class="sheet" role="dialog" aria-label="Activity">
+      <div class="sh">
+        <h3>Activity</h3>
+        <button type="button" class="xbtn" onClick="{{toggleAct}}" aria-label="Close activity">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#252a36" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="ev new"><span class="tm">1:32 PM</span><div class="tx"><span>comm2 seconded the motion on Increase Permitting &amp; Inspection Fees.</span></div></div>
+      <div class="ev new"><span class="tm">1:31 PM</span><div class="tx"><span>Comm3 moved to adopt Increase Permitting &amp; Inspection Fees.</span><span class="fx help" style="align-self:flex-start"><i>▲</i>Gain $1 revenue</span></div></div>
+      <div class="ev"><span class="tm">1:24 PM</span><div class="tx"><span>Applied: Increase Millage Rate by 0.5 Mills. Ballot Measure: 4 yes, 2 no.</span><span class="fx help" style="align-self:flex-start"><i>▲</i>Gain $2 revenue</span></div></div>
+      <div class="ev"><span class="tm">1:12 PM</span><div class="tx"><span>Challenge applied: Natural Disaster.</span><span class="fx hard" style="align-self:flex-start"><i>▼</i>Spend $4 from reserves</span></div></div>
+    </div>
+  </sc-if>
+
+  <div class="pad">
+
+    <!-- clock + chair -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div class="panel" style="padding: 10px 14px; gap: 4px;"><span class="eyebrow">Main Game time remaining</span><b style="font: 800 22px/1 var(--f-head); font-variant-numeric: tabular-nums;">42:49</b></div>
+      <div class="panel" style="padding: 10px 14px; gap: 4px;"><span class="eyebrow">Chair</span><b style="font: 800 22px/1 var(--f-head);">Comm1</b></div>
+    </div>
+
+    <!-- dashboard -->
+    <div class="tiles">
+      <div class="tile rev"><div class="lbl"><img src="/_blob/d9d6158e490b0488768b3d19dbcc7c00" alt="">Revenue</div><div class="val">$101</div></div>
+      <div class="tile exp"><div class="lbl"><img src="/_blob/5daad98f8840fb689376e6fc2a1de15b" alt="">Expenditures</div><div class="val">$107</div></div>
+      <div class="tile neg"><div class="lbl"><img src="/_blob/db96ad8b33ee211473cc05ca4c899c3d" alt="">Deficit</div><div class="val">$6</div></div>
+      <div class="tile res"><div class="lbl"><img src="/_blob/ef938f62b32be7f564aa8b4ed7d06a26" alt="">Reserves</div><div class="val">$20</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="track" role="img" aria-label="Deficit of 6 dollars"><div class="tick"></div><div class="knob" style="left: 38%;"></div></div>
+      <div class="cap">Deficit: $6</div>
+      <div class="tier">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+        Reserve tier: ≥ $15, on policy (+1)
+      </div>
+    </div>
+
+    <!-- public trust -->
+    <div class="panel gaugeBox" style="padding: 14px;">
+      <h3 style="font-size: 16px;">Public Trust</h3>
+      <svg viewBox="0 0 200 112" width="220" height="123" role="img" aria-label="Public Trust gauge, slightly positive">
+        <path d="M20 100 A80 80 0 0 1 60 30.7" stroke="#f9423a" stroke-width="16" fill="none"/>
+        <path d="M60 30.7 A80 80 0 0 1 140 30.7" stroke="#d9e1e2" stroke-width="16" fill="none"/>
+        <path d="M140 30.7 A80 80 0 0 1 180 100" stroke="#00966c" stroke-width="16" fill="none"/>
+        <circle cx="147" cy="35.3" r="10" fill="#fff" stroke="#252a36" stroke-width="4"/>
+        <text x="20" y="111" text-anchor="middle" font-family="Montserrat" font-weight="800" font-size="14" fill="#252a36">−</text>
+        <text x="180" y="111" text-anchor="middle" font-family="Montserrat" font-weight="800" font-size="14" fill="#252a36">+</text>
+      </svg>
+      <div class="gv" style="color: var(--forest);">+2</div>
+    </div>
+
+    <!-- priority -->
+    <div class="prio-panel">
+      <img src="/_blob/277be2fcde0dd49fe704604a5e8ac8cd" alt="">
+      <div class="tx">
+        <h3>Priority: Human Services</h3>
+        <span>$1 to Helping Hands agency (outreach for abused women/children)</span>
+        <span>Look for <b>Increase Human Services Funding</b> in the catalog below (marked “Priority”) to fund it.</span>
+        <span class="st" style="align-self:flex-start">Not yet funded</span>
+      </div>
+    </div>
+
+    <!-- card under debate panel -->
+    <div class="debate">
+      <span class="eyebrow">Card Under Debate</span>
+      <sc-if value="{{debate}}" hint-placeholder-val="{{ true }}">
+        <h3 style="font-size: 17px;">Increase Permitting &amp; Inspection Fees</h3>
+        <span class="fx help" style="align-self:flex-start"><i>▲</i>Gain $1 revenue</span>
+      </sc-if>
+      <sc-if value="{{noDebate}}" hint-placeholder-val="{{ false }}">
+        <span style="color: var(--muted)">No card under debate.</span>
+      </sc-if>
+    </div>
+
+    <!-- legend -->
+    <div class="legend" aria-label="Card status key">
+      <span class="st applied">✓ Applied</span>
+      <span class="st fail">✕ Did not pass</span>
+      <span class="st prio">★ Priority</span>
+      <span class="st lock">Locked out</span>
+    </div>
+
+    <!-- cards -->
+    <div class="sec">
+      <h2>Cards</h2>
+      <div class="seg sm" role="group" aria-label="View">
+        <button type="button" class="{{swipeCls}}" onClick="{{setSwipe}}">Swipe</button>
+        <button type="button" class="{{listCls}}" onClick="{{setList}}">List</button>
+      </div>
+    </div>
+
+    <div class="seg" role="group" aria-label="Card type">
+      <button type="button" class="{{revCls}}" onClick="{{setRev}}"><img src="/_blob/552dbad59f02d5fe4ab27bd5637f067c" alt="">Revenue (13)</button>
+      <button type="button" class="{{expCls}}" onClick="{{setExp}}"><img src="/_blob/b48dbd06ac4b355ba2576e6090b98c0a" alt="">Expenditure (13)</button>
+    </div>
+
+    <sc-if value="{{isSwipe}}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="vp">
+          <div class="trk" style="transform: translateX({{trackX}}px);">
+            <sc-for list="{{slides}}" as="s" hint-placeholder-count="3">
+              <div class="slide {{s.slideCls}}">
+                <div class="top">
+                  <img src="{{s.icon}}" alt="">
+                  <div class="tt">
+                    <span class="{{s.stCls}}">{{s.stLabel}}</span>
+                    <h3>{{s.title}}</h3>
+                  </div>
+                </div>
+                <span class="imp-h">Impact</span>
+                <ul class="imp">
+                  <sc-for list="{{s.impact}}" as="b" hint-placeholder-count="3"><li>{{b.t}}</li></sc-for>
+                </ul>
+                <div class="foot">
+                  <span class="{{s.fxCls}}" style="align-self:flex-start"><i>{{s.arrow}}</i>{{s.fx}}</span>
+                  <sc-if value="{{s.btnOn}}" hint-placeholder-val="{{ false }}"><button type="button" class="btn primary">I move to adopt</button></sc-if>
+                  <sc-if value="{{s.btnOff}}" hint-placeholder-val="{{ true }}"><button type="button" class="btn off" disabled>Motion in progress</button></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div class="nav">
+          <button type="button" class="arrow" onClick="{{prev}}" aria-label="Previous card" style="opacity: {{prevOp}}"><img src="/_blob/ecb73c1aa77c142ec054118bc8701afb" alt=""></button>
+          <span class="count">{{countLabel}}</span>
+          <button type="button" class="arrow" onClick="{{next}}" aria-label="Next card" style="opacity: {{nextOp}}"><img src="/_blob/b0cd4ac63ccb122289657f6860f5637c" alt=""></button>
+        </div>
+        <div class="dots"><sc-for list="{{dots}}" as="d" hint-placeholder-count="3"><span class="{{d.cls}}"></span></sc-for></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
+      <div class="rows">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+          <div class="rowi">
+            <img src="{{r.icon}}" alt="">
+            <div class="tt"><b>{{r.title}}</b><span class="{{r.fxCls}}" style="align-self:flex-start"><i>{{r.arrow}}</i>{{r.fx}}</span></div>
+            <div class="rt">
+              <span class="{{r.stCls}}">{{r.stLabel}}</span>
+              <sc-if value="{{r.btnOn}}" hint-placeholder-val="{{ false }}"><button type="button" class="btn primary sm">I move to adopt</button></sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"motionInProgress":{"editor":"boolean","default":true},"$preview":{"width":390,"height":1850}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const tab = s.tab || 'rev';
+    const view = s.view || 'swipe';
+    const act = !!s.act;
+    const idxMap = s.idx || { rev: 0, exp: 0 };
+    const debate = this.props.motionInProgress ?? true;
+
+    const ST = {
+      avail:   { cls: 'st',         label: 'Available' },
+      applied: { cls: 'st applied', label: '✓ Applied' },
+      fail:    { cls: 'st fail',    label: '✕ Did not pass' },
+      prio:    { cls: 'st prio',    label: '★ Priority' },
+      lock:    { cls: 'st lock',    label: 'Locked out' }
+    };
+    const mk = (c) => {
+      const st = ST[c.st];
+      const canMove = c.st === 'avail' || c.st === 'prio';
+      return {
+        icon: c.icon, title: c.title, stCls: st.cls, stLabel: st.label,
+        fx: c.fx, arrow: c.help ? '▲' : '▼',
+        fxCls: 'fx ' + (c.help ? 'help' : 'hard'),
+        slideCls: c.st === 'lock' ? 'is-lock' : '',
+        impact: (c.impact || []).map((t) => ({ t })),
+        btnOn: canMove && !debate, btnOff: canMove && debate
+      };
+    };
+
+    const rev = [
+      { icon: '/_blob/1dcae830db270c02ccebbdc63bbf86d4', title: 'Increase Permitting & Inspection Fees', fx: 'Gain $1 revenue', help: true, st: 'avail',
+        impact: ['Would reduce general revenue needed for Development Services.', 'More general revenue available to fund other vital County services.', 'Will cause additional up-front building costs.', 'Will likely cause considerable outrage from the building community.'] },
+      { icon: '/_blob/9e8c0eea6de405a182f938451c090269', title: 'Reduce Millage Rate by 0.5 Mills', fx: 'Lose $2 revenue', help: false, st: 'lock',
+        impact: ['Property tax savings for property owners.', '$75 savings for a home with a taxable value of $150,000.', 'Loss of revenue for the County may impact services currently being provided.', 'Note: If this card is active, you cannot use Revenue #3 or #4.'] },
+      { icon: '/_blob/4f766d065c589a469af78279ba81c78a', title: 'Increase Millage Rate by 0.5 Mills', fx: 'Gain $2 revenue', help: true, st: 'applied',
+        impact: ['More general revenue available to fund other vital County services.', 'Increase in property taxes for property owners.', '$75 increase for a home with a taxable value of $150,000.', 'Note: If this card is active, you cannot use Revenue #2 or #4.'] }
+    ];
+    const revRows = [
+      rev[0], rev[1], rev[2],
+      { icon: '/_blob/96b756b1caa3234929345f52914d4e9b', title: 'Leave Millage Rate the Same', fx: 'Gain $1 revenue', help: true, st: 'lock' },
+      { icon: '/_blob/3356903ffcea4ed91849fc59032e79d5', title: 'Implement the Business Tax', fx: 'Gain $1 revenue', help: true, st: 'avail' },
+      { icon: '/_blob/47a7f4ae99d2fef7640fa27f90c51f2f', title: 'Implement a User Fee for County Ball Fields', fx: 'Gain $1 revenue', help: true, st: 'avail' },
+      { icon: '/_blob/3db84c186751b4597494d31a0c5eab0a', title: 'Reduce Stormwater Fee', fx: 'Lose $1 revenue', help: false, st: 'fail' }
+    ];
+    const ph = ['[Impact text from the card catalog]'];
+    const exp = [
+      { icon: '/_blob/20f2f1b869b980f42524c8ae6fef808b', title: 'Increase Human Services Funding', fx: 'Spend $1', help: false, st: 'prio', impact: ph },
+      { icon: '/_blob/e074600b7c1cdba8848f7d3fb88b072d', title: 'Increase Primary Healthcare Funding', fx: 'Spend $1', help: false, st: 'avail', impact: ph },
+      { icon: '/_blob/79f7e037ab93e6c63661a7db1fcdbdf6', title: 'Decrease Ambulance Services', fx: 'Save $1', help: true, st: 'avail', impact: ph }
+    ];
+
+    const cards = tab === 'rev' ? rev : exp;
+    const rowsSrc = tab === 'rev' ? revRows : exp;
+    const idx = Math.min(idxMap[tab] || 0, cards.length - 1);
+    const set = (n) => this.setState({ idx: { ...idxMap, [tab]: n } });
+
+    return {
+      debate, noDebate: !debate, act,
+      actCls: act ? 'act on' : 'act',
+      toggleAct: () => this.setState({ act: !act }),
+      isSwipe: view === 'swipe', isList: view === 'list',
+      swipeCls: view === 'swipe' ? 'on' : '', listCls: view === 'list' ? 'on' : '',
+      setSwipe: () => this.setState({ view: 'swipe' }), setList: () => this.setState({ view: 'list' }),
+      revCls: tab === 'rev' ? 'on' : '', expCls: tab === 'exp' ? 'on' : '',
+      setRev: () => this.setState({ tab: 'rev' }), setExp: () => this.setState({ tab: 'exp' }),
+      slides: cards.map(mk), rows: rowsSrc.map(mk),
+      trackX: -(idx * 322),
+      prev: () => set(Math.max(0, idx - 1)), next: () => set(Math.min(cards.length - 1, idx + 1)),
+      prevOp: idx === 0 ? 0.35 : 1, nextOp: idx === cards.length - 1 ? 0.35 : 1,
+      countLabel: (idx + 1) + ' of ' + (tab === 'rev' ? 13 : 13),
+      dots: cards.map((c, i) => ({ cls: i === idx ? 'on' : '' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

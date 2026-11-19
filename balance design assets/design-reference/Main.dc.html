@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home and join</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5d63f1ee5fdf67233d27dde62a18ba2">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.codebox input{width:60px;height:68px;border-radius:12px;border:2px solid var(--river);text-align:center;font:800 32px var(--f-head);color:var(--river);background:#fff;padding:0}
+.field input.inp{width:100%;font-family:var(--f-body)}
+</style>
+</helmet>
+<div class="ph" style="width: 390px; height: 844px;">
+  <div class="hero" style="height: 400px; display: flex; flex-direction: column; align-items: center; padding-top: 44px;">
+    <img src="/_blob/20bebcb301e3e494d675c4db884e4189" alt="Let's Balance! A Budget Simulation Game" style="width: 250px; height: auto;">
+    <svg viewBox="0 0 390 110" width="390" height="110" aria-hidden="true" style="position: absolute; left: 0; bottom: 0;">
+      <path d="M0 62 C70 20 140 30 210 56 C280 82 340 40 390 34 L390 110 L0 110 Z" fill="#34b78f"/>
+      <path d="M0 84 C60 58 150 66 230 84 C300 100 350 80 390 70 L390 110 L0 110 Z" fill="#00966c"/>
+      <g fill="#1d4289" opacity=".35"><rect x="52" y="52" width="6" height="14"/><rect x="318" y="46" width="6" height="14"/></g>
+      <circle cx="55" cy="46" r="14" fill="#00966c"/><circle cx="321" cy="40" r="16" fill="#00966c"/><circle cx="342" cy="52" r="11" fill="#34b78f"/>
+    </svg>
+  </div>
+  <div class="pad" style="margin-top: -36px; position: relative; z-index: 2;">
+    <div style="background: #fff; border-radius: 20px; box-shadow: 0 12px 30px rgba(29,66,137,.22); padding: 22px 18px; display: flex; flex-direction: column; gap: 18px;">
+      <h1 style="font-size: 24px; text-align: center;">Join a Game</h1>
+      <div class="field">
+        <label for="c1">Game code</label>
+        <div class="codebox">
+          <input id="c1" value="Y" readonly aria-label="Code letter 1">
+          <input value="M" readonly aria-label="Code letter 2">
+          <input value="K" readonly aria-label="Code letter 3">
+          <input value="L" readonly aria-label="Code letter 4">
+        </div>
+      </div>
+      <div class="field">
+        <label for="nm">Your name</label>
+        <input id="nm" class="inp" value="Comm1" readonly>
+      </div>
+      <a class="btn primary" href="Role.dc.html">Join Game</a>
+    </div>
+    <a class="link" href="#" style="text-align: center; display: block; line-height: 44px;">New Game (Facilitator)</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

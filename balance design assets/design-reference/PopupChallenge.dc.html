@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Challenge pop-up</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5d63f1ee5fdf67233d27dde62a18ba2">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="ph" style="width: 390px; height: 844px;">
+  <div class="hdr">
+    <div class="who"><span class="role">Commissioner</span><span class="meta">Kent · Main Game</span></div>
+    <span class="code">YMKL</span>
+    <button type="button" class="act"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Activity</span></button>
+  </div>
+  <div class="ghostbg">
+    <div class="tiles">
+      <div class="tile rev"><div class="lbl">Revenue</div><div class="val">$101</div></div>
+      <div class="tile exp"><div class="lbl">Expenditures</div><div class="val">$107</div></div>
+      <div class="tile neg"><div class="lbl">Deficit</div><div class="val">$6</div></div>
+      <div class="tile res"><div class="lbl">Reserves</div><div class="val">$20</div></div>
+    </div>
+    <div class="panel" style="height: 120px;"></div>
+    <div class="panel" style="height: 160px;"></div>
+  </div>
+
+  <div class="scrim">
+    <div class="modal challenge" role="dialog" aria-label="Challenge">
+      <div class="band">
+        <div class="ico"><img src="/_blob/0c402231b8765b8e6a7b7e6502a9d7c8" alt=""></div>
+        <div class="bt"><span class="eyebrow" style="color: var(--ink);">Applied to Kent</span><h2>Challenge</h2></div>
+        <button type="button" class="xbtn" aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#252a36" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="body">
+        <div class="cardrow">
+          <img src="/_blob/d010037fd869dcdac7847ea1fe51437c" alt="">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <h3>Natural Disaster</h3>
+            <span class="fx hard" style="align-self:flex-start"><i>▼</i>Spend $4 from reserves</span>
+          </div>
+        </div>
+        <p style="font-size: 15px; line-height: 1.5;">Tornado damage; FEMA covers part, $4 in reserves needed for recovery.</p>
+      </div>
+      <div class="acts">
+        <button type="button" class="btn primary">Got it</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
