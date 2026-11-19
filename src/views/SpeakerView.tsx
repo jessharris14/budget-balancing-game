@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
+import { buildCommissionActivity } from "../services/activityFeed";
 import { castBallotVote, getMyBallotVote } from "../services/ballotService";
 import { getCatalog } from "../services/catalogService";
+import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
 import { castEndorsement } from "../services/speakerService";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
+import CardUnderDebateBar from "./CardUnderDebateBar";
 import CompactCardStatusList from "./CompactCardStatusList";
 import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
+import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Session, type Speaker } from "../types/session";
 import "./session.css";
@@ -85,6 +89,19 @@ function SpeakerView({ code, session, speaker }: Props) {
         : catalog.expenditureCards.find((c) => c.id === activeBallot.cardId))
     : null;
 
+  const tableName = commission?.name ?? `Table ${speaker.commissionId}`;
+  const activityEntries = commission ? buildCommissionActivity(commission, catalog, session.participants) : [];
+
+  const debateCardId = commission?.chairHighlightedCardId ?? null;
+  const debateCard = debateCardId
+    ? (catalog.revenueCards.find((c) => c.id === debateCardId) ?? catalog.expenditureCards.find((c) => c.id === debateCardId))
+    : null;
+  const debateCardType: "revenue" | "expenditure" | null = debateCardId
+    ? (catalog.revenueCards.some((c) => c.id === debateCardId) ? "revenue" : "expenditure")
+    : null;
+  const debateEffect =
+    debateCard && debateCardType ? getCardLedgerLabel(debateCardType, debateCard.amount, debateCard.direction) : null;
+
   async function handleVote(vote: "yes" | "no") {
     if (!activeBallot || myVote || voting) return;
     setVoting(true);
@@ -119,6 +136,17 @@ function SpeakerView({ code, session, speaker }: Props) {
 
   return (
     <div className="session-view manager-console">
+      <RoleHeaderBar
+        viewLabel="Public Hearing Speaker View"
+        tableName={tableName}
+        code={code}
+        phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}
+        activityEntries={activityEntries}
+        activityStorageKey={`activity-feed-last-seen:${code}:${speaker.commissionId}:${speaker.id}`}
+      />
+      {session.phase !== "debrief" && debateCardId && debateCard && debateEffect && (
+        <CardUnderDebateBar cardTitle={debateCard.title} budgetEffectLabel={debateEffect.label} debateTimerEndsAt={commission?.debateTimerEndsAt ?? null} />
+      )}
       <h1>Public Hearing Speaker — {code}</h1>
       <p>{commission?.name ?? `Table ${speaker.commissionId} (unnamed)`}</p>
       <p>

@@ -91,14 +91,40 @@ export async function signalMotion(
   }
 }
 
-/** Any Commissioner other than the mover signals "I second." No-op guards are client-side (this is a signal, not a gate). */
-export async function signalSecond(code: string, commissionId: string): Promise<ActionResult> {
+export interface SecondResult extends ActionResult {
+  /** Set only when the second didn't take because someone else's already did -- the uid to resolve to a name for the friendly "Already seconded by X" message. */
+  alreadySecondedBy?: string;
+}
+
+/**
+ * Any Commissioner other than the mover signals "I second." Transactional
+ * (not a plain update()) so two near-simultaneous taps -- one Commissioner
+ * tapping Second from the catalog table at the same moment another taps it
+ * from the motion pop-up -- resolve to exactly one winner instead of one
+ * write silently clobbering the other's secondedAt. The loser gets back
+ * who actually got it first, instead of the raw RTDB rule-rejection error
+ * that surfaced here before (never caught, so a double-tap could look like
+ * a crash rather than "someone beat you to it").
+ */
+export async function signalSecond(code: string, commissionId: string): Promise<SecondResult> {
   const uid = requireUid();
-  await update(ref(rtdb), {
-    [`sessions/${code}/commissions/${commissionId}/activeMotion/secondedBy`]: uid,
-    [`sessions/${code}/commissions/${commissionId}/activeMotion/secondedAt`]: Date.now(),
-  });
-  return { ok: true };
+  const motionRef = ref(rtdb, `sessions/${code}/commissions/${commissionId}/activeMotion`);
+  try {
+    const result = await runTransaction(motionRef, (current: ActiveMotion | null) => {
+      if (!current || current.secondedBy || current.movedBy === uid) return undefined;
+      return { ...current, secondedBy: uid, secondedAt: Date.now() };
+    });
+    if (!result.committed) {
+      const current = result.snapshot.val() as ActiveMotion | null;
+      if (current?.secondedBy) {
+        return { ok: false, reason: "Already seconded.", alreadySecondedBy: current.secondedBy };
+      }
+      return { ok: false, reason: "Could not second that motion." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "Could not second that motion." };
+  }
 }
 
 /** Clears the pending motion -- available to any Commissioner, e.g. once debate has moved on. */

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { buildFacilitatorActivity } from "../services/activityFeed";
 import { getCatalog } from "../services/catalogService";
 import { getChallengeLedgerEffect } from "../services/challengeLedgerEffect";
 import {
@@ -12,6 +13,7 @@ import {
 import { persistGameResults } from "../services/resultsService";
 import { clearSessionData } from "../services/sessionService";
 import { useCountdown, formatDuration } from "../hooks/useCountdown";
+import ActivityFeedButton from "./ActivityFeedButton";
 import BudgetEffectLabel from "./BudgetEffectLabel";
 import DebriefScorecard from "./DebriefScorecard";
 import FacilitatorTableCard from "./FacilitatorTableCard";
@@ -21,6 +23,7 @@ import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
 import "./session.css";
 import "./FacilitatorConsole.css";
+import "./RoleHeaderBar.css";
 
 interface Props {
   code: string;
@@ -106,6 +109,7 @@ function FacilitatorConsole({ code, session }: Props) {
   }, [session, resultsPersisted]);
 
   const commissionEntries = Object.entries(session.commissions ?? {});
+  const facilitatorActivity = catalog ? buildFacilitatorActivity(session.commissions ?? {}, catalog, session.participants) : [];
   const phaseIdx = SESSION_PHASE_ORDER.indexOf(session.phase);
   const isLastPhase = phaseIdx === SESSION_PHASE_ORDER.length - 1;
 
@@ -263,6 +267,12 @@ function FacilitatorConsole({ code, session }: Props) {
         {reachedRollForChair && missingChairTables.length > 0 && (
           <span className="facilitator-top-bar__roll-flag">⚠ Roll for Chair needed ({missingChairTables.length})</span>
         )}
+
+        <ActivityFeedButton
+          entries={facilitatorActivity}
+          storageKey={`activity-feed-last-seen:${code}:facilitator:${session.facilitatorId}`}
+          showTableName
+        />
 
         <button onClick={() => setSeatResetOpen(true)} disabled={session.phase === "debrief"}>
           Seat reset

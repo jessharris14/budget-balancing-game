@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { buildCommissionActivity } from "../services/activityFeed";
 import { getCatalog } from "../services/catalogService";
 import {
   recordCommissionPriority,
@@ -13,12 +14,14 @@ import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardUnderDebateBar from "./CardUnderDebateBar";
 import { cardStatusRowClass } from "./cardStatusDisplay";
 import CardStatusLegend from "./CardStatusLegend";
 import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
+import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
 import "./session.css";
@@ -67,7 +70,6 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
   const clock = session.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
   const phaseTimerMs = useCountdown(clock.phaseTimer);
   const mainGameMs = useCountdown(clock.mainGameTimer);
-  const debateMs = useCountdown(commission.debateTimerEndsAt ?? null);
 
   useEffect(() => {
     setSelectedCardId(commission.chairHighlightedCardId ?? "");
@@ -138,6 +140,9 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
   const chairName = commission.members?.chairId
     ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
     : null;
+
+  const tableName = commission.name ?? `Table ${commissionId}`;
+  const activityEntries = buildCommissionActivity(commission, catalog, session.participants);
 
   const speakerCount = Object.values(session.publicHearingSpeakers ?? {}).filter(
     (s) => s.commissionId === commissionId,
@@ -211,8 +216,15 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
   async function handleSecond() {
     setBusy(true);
+    setError(null);
     try {
-      await signalSecond(code, commissionId);
+      const result = await signalSecond(code, commissionId);
+      if (!result.ok) {
+        const name = result.alreadySecondedBy
+          ? (session.participants[result.alreadySecondedBy]?.name ?? result.alreadySecondedBy)
+          : null;
+        setError(name ? `Already seconded by ${name}.` : (result.reason ?? "Could not second that motion."));
+      }
     } finally {
       setBusy(false);
     }
@@ -273,6 +285,21 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
 
   return (
     <div className="session-view manager-console">
+      <RoleHeaderBar
+        viewLabel={isMyChair ? "Chair View" : "Commissioner View"}
+        tableName={tableName}
+        code={code}
+        phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}
+        activityEntries={activityEntries}
+        activityStorageKey={`activity-feed-last-seen:${code}:${commissionId}:${myUid}`}
+      />
+      {session.phase !== "debrief" && commission.chairHighlightedCardId && highlightedCard && highlightedEffect && (
+        <CardUnderDebateBar
+          cardTitle={highlightedCard.title}
+          budgetEffectLabel={highlightedEffect.label}
+          debateTimerEndsAt={commission.debateTimerEndsAt}
+        />
+      )}
       <h1>{isMyChair ? "Board Chair" : "Commissioner"} View — {code}</h1>
       <p>{commission.name ?? `Table ${commissionId} (unnamed)`}</p>
 
@@ -430,7 +457,6 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
                 <button onClick={handleStopTimer} disabled={busy || commission.debateTimerEndsAt === null}>
                   Stop Timer
                 </button>
-                {debateMs !== null && <span className="debate-timer-remaining">{formatDuration(debateMs)}</span>}
               </div>
             </>
           ) : (
@@ -449,7 +475,6 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
                   Moved by {moverName}, seconded by {seconderName}
                 </p>
               )}
-              {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
             </>
           )}
         </div>

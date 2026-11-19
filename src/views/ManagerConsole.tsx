@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { buildCommissionActivity } from "../services/activityFeed";
 import { getCatalog } from "../services/catalogService";
 import { createBallotMeasure, isMillageCard } from "../services/ballotService";
 import { stopDebateTimer } from "../services/chairService";
@@ -19,12 +20,14 @@ import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
 import BallotMeasuresList from "./BallotMeasuresList";
 import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardUnderDebateBar from "./CardUnderDebateBar";
 import { cardStatusRowClass } from "./cardStatusDisplay";
 import CardStatusLegend from "./CardStatusLegend";
 import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
+import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
 import "./session.css";
@@ -68,7 +71,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const clock = session.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
   const phaseTimerMs = useCountdown(clock.phaseTimer);
   const mainGameMs = useCountdown(clock.mainGameTimer);
-  const debateMs = useCountdown(commission.debateTimerEndsAt ?? null);
 
   useEffect(() => {
     if (commission.activeBallotId && commission.activeBallotId !== lastBallotId) {
@@ -194,6 +196,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const debateCardType: CardType | null = debateCardId
     ? (catalog.revenueCards.some((c) => c.id === debateCardId) ? "revenue" : "expenditure")
     : null;
+  const debateEffect =
+    highlightedCard && debateCardType ? getCardLedgerLabel(debateCardType, highlightedCard.amount, highlightedCard.direction) : null;
 
   // Keeps showing the ballot (including its final result) until the
   // Administrator dismisses it, even after activeBallotId clears back to
@@ -236,6 +240,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
    */
   const reconsiderLocked = isMotionLocked(commission);
 
+  const tableName = commission.name ?? `Table ${commissionId}`;
+  const activityEntries = buildCommissionActivity(commission, catalog, session.participants);
+
   const canUseFreeCard = session.phase === "mainGame" && !commission.chairFreeCardUsed;
   const dollarCards = [
     ...catalog.revenueCards
@@ -248,6 +255,17 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
   return (
     <div className="session-view manager-console">
+      <RoleHeaderBar
+        viewLabel="Manager/Administrator View"
+        tableName={tableName}
+        code={code}
+        phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}
+        activityEntries={activityEntries}
+        activityStorageKey={`activity-feed-last-seen:${code}:${commissionId}:${commission.members?.managerAdminId ?? "admin"}`}
+      />
+      {session.phase !== "debrief" && debateCardId && highlightedCard && debateEffect && (
+        <CardUnderDebateBar cardTitle={highlightedCard.title} budgetEffectLabel={debateEffect.label} debateTimerEndsAt={commission.debateTimerEndsAt} />
+      )}
       <h1>Manager/Administrator Console — {code}</h1>
       <p>{commission.name ?? `Table ${commissionId} (unnamed)`}</p>
 
@@ -318,7 +336,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
               Moved by {moverName}, seconded by {seconderName}
             </p>
           )}
-          {debateMs !== null && <p>Debate timer: {formatDuration(debateMs)}</p>}
           {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over -- Motion Passes/Fails no longer apply until the ballot resolves. Phase 7 B2: also frozen once Debrief starts. */}
           {session.phase === "mainGame" && !commission.activeBallotId && (
             <div className="chair-timer-controls">

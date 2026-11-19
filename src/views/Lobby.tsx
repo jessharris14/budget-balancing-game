@@ -7,8 +7,8 @@ import { rememberSession } from "../services/localSession";
 import { startPresence } from "../services/presenceService";
 import { subscribeToSession } from "../services/sessionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
-import ChallengePopup from "./ChallengePopup";
 import CommissionerView from "./CommissionerView";
+import EventPopupHost from "./EventPopupHost";
 import FacilitatorConsole from "./FacilitatorConsole";
 import ManagerConsole from "./ManagerConsole";
 import SpeakerView from "./SpeakerView";
@@ -86,16 +86,27 @@ function Lobby() {
   const isMyChair = !!user && !!myCommission && myCommission.members?.chairId === user.uid;
 
   // One shared instance for every non-Facilitator role at a table (Manager/
-  // Administrator, Chair, Commissioners, Speakers) -- see ChallengePopup.tsx.
-  const challengePopup = myCommission && myParticipant?.commissionId && (
-    <ChallengePopup
-      code={code}
-      commissionId={myParticipant.commissionId}
-      commission={myCommission}
-      catalogVersion={session.catalogVersion}
-      phase={session.phase}
-    />
-  );
+  // Administrator, Chair, Commissioners, Speakers) -- see
+  // EventPopupHost.tsx. canSecond differs per role (Commissioners,
+  // including the Chair, may second; the Manager/Administrator and Public
+  // Hearing Speakers get the info-only motion pop-up), so this is built
+  // per-role below rather than once here.
+  const activeSession = session;
+  function eventPopupHost(canSecond: boolean) {
+    if (!myCommission || !myParticipant?.commissionId || !user) return null;
+    return (
+      <EventPopupHost
+        code={code}
+        commissionId={myParticipant.commissionId}
+        commission={myCommission}
+        catalogVersion={activeSession.catalogVersion}
+        phase={activeSession.phase}
+        myUid={user.uid}
+        participants={activeSession.participants}
+        canSecond={canSecond}
+      />
+    );
+  }
 
   // Same reasoning as the Facilitator check above: routed on the
   // one-shot-write members.managerAdminId (Phase 2's claimSingleSeatRole),
@@ -106,7 +117,7 @@ function Lobby() {
     return (
       <>
         {reconnectBanner}
-        {challengePopup}
+        {eventPopupHost(false)}
         <ManagerConsole code={code} session={session} commissionId={myParticipant.commissionId} commission={myCommission} />
       </>
     );
@@ -121,7 +132,7 @@ function Lobby() {
     return (
       <>
         {reconnectBanner}
-        {challengePopup}
+        {eventPopupHost(true)}
         <CommissionerView
           code={code}
           session={session}
@@ -142,7 +153,7 @@ function Lobby() {
     return (
       <>
         {reconnectBanner}
-        {challengePopup}
+        {eventPopupHost(false)}
         <SpeakerView code={code} session={session} speaker={mySpeaker} />
       </>
     );
