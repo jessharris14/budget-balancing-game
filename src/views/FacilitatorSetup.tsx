@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { createSession } from "../services/sessionService";
-import "./session.css";
+import "./lb-components.css";
 
 const CATALOG_VERSION = "countyBudgetSim_v1";
 
@@ -37,57 +37,52 @@ function FacilitatorSetup() {
   }
 
   if (authStatus !== "signed-in") {
-    return <p className="session-view">Signing in…</p>;
+    return <p className="lb-screen lb-pad">Signing in…</p>;
   }
 
   if (createdCode) {
     const joinUrl = `${window.location.origin}/join?code=${createdCode}`;
     return (
-      <div className="session-view">
+      <div className="lb-screen lb-pad" style={{ textAlign: "center" }}>
         <h1>Session Created</h1>
-        <div className="code-display">
-          <div className="code">{createdCode}</div>
+        <div style={{ margin: "2rem 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
+          <div className="codebox">
+            {createdCode.split("").map((letter, i) => (
+              <span key={i}>{letter}</span>
+            ))}
+          </div>
           <p>Share this code, or scan the QR code, to join.</p>
           <QRCodeSVG value={joinUrl} size={200} />
         </div>
-        <button onClick={() => navigate(`/session/${createdCode}`)}>Go to Lobby</button>
+        <button type="button" className="btn primary" onClick={() => navigate(`/session/${createdCode}`)}>
+          Go to Lobby
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="session-view">
+    <div className="lb-screen lb-pad">
       <h1>New Game</h1>
 
-      <label>
-        Your name (Facilitator)
-        <input value={facilitatorName} onChange={(e) => setFacilitatorName(e.target.value)} />
-      </label>
+      <div className="field">
+        <label htmlFor="fac-name">Your name (Facilitator)</label>
+        <input id="fac-name" className="inp" value={facilitatorName} onChange={(e) => setFacilitatorName(e.target.value)} />
+      </div>
 
-      <label>
-        Debate timer length (minutes)
-        <input
-          type="number"
-          min={1}
-          value={debateTimerMinutes}
-          onChange={(e) => setDebateTimerMinutes(Number(e.target.value))}
-        />
-      </label>
+      <div className="field">
+        <label htmlFor="fac-timer">Debate timer length (minutes)</label>
+        <input id="fac-timer" className="inp" type="number" min={1} value={debateTimerMinutes} onChange={(e) => setDebateTimerMinutes(Number(e.target.value))} />
+      </div>
 
-      <label>
-        Number of Commissions/tables
-        <input
-          type="number"
-          min={1}
-          max={6}
-          value={commissionCount}
-          onChange={(e) => setCommissionCount(Number(e.target.value))}
-        />
-      </label>
+      <div className="field">
+        <label htmlFor="fac-count">Number of Commissions/tables</label>
+        <input id="fac-count" className="inp" type="number" min={1} max={6} value={commissionCount} onChange={(e) => setCommissionCount(Number(e.target.value))} />
+      </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
 
-      <button onClick={handleCreate} disabled={creating}>
+      <button type="button" className="btn primary" onClick={handleCreate} disabled={creating}>
         {creating ? "Creating…" : "Create Session"}
       </button>
     </div>

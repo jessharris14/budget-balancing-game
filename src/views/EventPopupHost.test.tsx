@@ -250,7 +250,7 @@ describe("EventPopupHost", () => {
       />,
     );
 
-    expect(await screen.findByText("New Challenge!")).toBeInTheDocument();
+    expect(await screen.findByText("Challenge")).toBeInTheDocument();
     expect(screen.queryByText("Motion on the floor")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Got it" }));

@@ -1,0 +1,37 @@
+/*
+ * Design step 1: shared design tokens, transcribed exactly from the
+ * approved mockups' design-reference/lb.css (Kent County brand palette +
+ * Montserrat/Inter). Namespaced --lb-* so these can never collide with
+ * the pre-existing generic template tokens in src/index.css (--bg,
+ * --text, --muted, etc.), which belong to the app shell's own landing
+ * page and are left alone here -- this file only ADDS tokens, it does
+ * not touch global body/html styling, so Facilitator Console and Public
+ * View (Step 2, not restyled yet) are unaffected by it on their own;
+ * they only change where they use a shared component this round also
+ * restyles (the Activity button/panel), exactly as the brief allows.
+ */
+:root {
+  /* Brand colors -- exact hex values from the brief */
+  --lb-river: #1d4289;
+  --lb-sky: #307fe2;
+  --lb-field: #34b78f;
+  --lb-forest: #00966c;
+  --lb-ink: #252a36;
+  --lb-white: #ffffff;
+  --lb-gray: #d9e1e2;
+  --lb-sun: #ffb81c;
+  --lb-orange: #ff8f1c;
+  --lb-red: #f9423a;
+
+  /* Supporting tones used throughout the mockups */
+  --lb-bg: #eef2f5;
+  --lb-muted: #4f5a6b;
+  --lb-line: #d9e1e2;
+  --lb-rev-tint: rgba(0, 150, 108, 0.12);
+  --lb-exp-tint: rgba(48, 127, 226, 0.12);
+  --lb-neg-tint: rgba(249, 66, 58, 0.1);
+
+  /* Fonts -- self-hosted via @fontsource, see main.tsx */
+  --lb-f-head: "Montserrat", system-ui, sans-serif;
+  --lb-f-body: "Inter", system-ui, sans-serif;
+}

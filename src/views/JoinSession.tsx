@@ -9,16 +9,21 @@ import {
   joinAsPublicHearingSpeaker,
   setCommissionJurisdictionName,
 } from "../services/sessionService";
+import { ROLE_ICON } from "../services/icons";
+import HeroBanner from "./HeroBanner";
 import type { ParticipantRole, Session } from "../types/session";
-import "./session.css";
+import "./lb-components.css";
 
 type Step = "code" | "details";
 
 // Chair isn't selectable here -- it's elected among Commissioners via Roll
 // for Chair, not chosen at join. Clerk was removed entirely (spec Section
 // 8a #1): the Chair now handles debate timing and highlighting directly.
+// The zero-width space after "/" is display-only (invisible, same text
+// otherwise) -- it gives the role picker card a sane place to wrap this
+// label on a narrow phone instead of an arbitrary mid-word break.
 const ROLE_LABELS: Record<Exclude<ParticipantRole, "facilitator">, string> = {
-  managerAdmin: "Manager/Administrator",
+  managerAdmin: "Manager/​Administrator",
   commissioner: "Commissioner",
   publicHearingSpeaker: "Public Hearing Speaker",
 };
@@ -137,26 +142,34 @@ function JoinSession() {
   }
 
   if (authStatus !== "signed-in") {
-    return <p className="session-view">Signing in…</p>;
+    return <p className="lb-screen lb-pad">Signing in…</p>;
   }
 
   if (step === "code") {
     return (
-      <div className="session-view">
-        <h1>Join a Game</h1>
-        <label>
-          4-letter code
-          <input
-            value={code}
-            maxLength={4}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            autoFocus
-          />
-        </label>
-        {lookupError && <p className="error">{lookupError}</p>}
-        <button onClick={handleLookupCode} disabled={lookingUp || code.trim().length !== 4 || cooldownMsRemaining > 0}>
-          {lookingUp ? "Looking up…" : "Next"}
-        </button>
+      <div className="lb-screen">
+        <HeroBanner compact />
+        <div className="lb-pad">
+          <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 12px 30px rgba(29,66,137,.18)", padding: "22px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
+            <h1 style={{ fontSize: 24, textAlign: "center" }}>Join a Game</h1>
+            <div className="field">
+              <label htmlFor="join-code">4-letter code</label>
+              <input
+                id="join-code"
+                className="inp"
+                style={{ textAlign: "center", font: "800 28px var(--lb-f-head)", color: "var(--lb-river)", letterSpacing: "0.3em" }}
+                value={code}
+                maxLength={4}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                autoFocus
+              />
+            </div>
+            {lookupError && <p style={{ color: "var(--lb-red)" }}>{lookupError}</p>}
+            <button type="button" className="btn primary" onClick={handleLookupCode} disabled={lookingUp || code.trim().length !== 4 || cooldownMsRemaining > 0}>
+              {lookingUp ? "Looking up…" : "Next"}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -167,52 +180,63 @@ function JoinSession() {
   const selectedCommission = commissionId ? session.commissions?.[commissionId] : undefined;
 
   return (
-    <div className="session-view">
-      <h1>Join Session {code}</h1>
+    <div className="lb-screen">
+      <HeroBanner compact />
+      <div className="lb-pad">
+        <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 12px 30px rgba(29,66,137,.18)", padding: "22px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
+          <h1 style={{ fontSize: 22, textAlign: "center" }}>Join Session {code}</h1>
 
-      <label>
-        Your name
-        <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoFocus />
-      </label>
+          <div className="field">
+            <label htmlFor="join-name">Your name</label>
+            <input id="join-name" className="inp" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoFocus />
+          </div>
 
-      <label>Role</label>
-      <div className="role-options">
-        {(Object.keys(ROLE_LABELS) as Array<Exclude<ParticipantRole, "facilitator">>).map((r) => (
-          <label key={r}>
-            <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} />
-            {ROLE_LABELS[r]}
-          </label>
-        ))}
+          <div className="field">
+            <label>Role</label>
+            <div className="roles">
+              {(Object.keys(ROLE_LABELS) as Array<Exclude<ParticipantRole, "facilitator">>).map((r) => (
+                <label key={r} className={`role${role === r ? " sel" : ""}`} style={{ cursor: "pointer" }}>
+                  <img src={ROLE_ICON[r]} alt="" />
+                  <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} style={{ width: "auto", margin: 0 }} />
+                  <b>{ROLE_LABELS[r]}</b>
+                  {role === r && <span className="st tag">Selected</span>}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {commissionEntries.length > 1 && (
+            <div className="field">
+              <label htmlFor="join-commission">Commission/table</label>
+              <select id="join-commission" className="inp" value={commissionId} onChange={(e) => setCommissionId(e.target.value)}>
+                {commissionEntries.map(([id, commission]) => (
+                  <option key={id} value={id}>
+                    {commission.name ?? `Table ${id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="field">
+            <label htmlFor="join-jurisdiction">{selectedCommission?.name ? "Jurisdiction name (already set for this table)" : "Jurisdiction's name"}</label>
+            <input
+              id="join-jurisdiction"
+              className="inp"
+              value={selectedCommission?.name ?? jurisdictionName}
+              disabled={!!selectedCommission?.name}
+              onChange={(e) => setJurisdictionName(e.target.value)}
+              placeholder="e.g. Kent County"
+            />
+          </div>
+
+          {joinError && <p style={{ color: "var(--lb-red)" }}>{joinError}</p>}
+
+          <button type="button" className="btn primary" onClick={handleJoin} disabled={joining}>
+            {joining ? "Joining…" : "Join"}
+          </button>
+        </div>
       </div>
-
-      {commissionEntries.length > 1 && (
-        <label>
-          Commission/table
-          <select value={commissionId} onChange={(e) => setCommissionId(e.target.value)}>
-            {commissionEntries.map(([id, commission]) => (
-              <option key={id} value={id}>
-                {commission.name ?? `Table ${id}`}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      <label>
-        {selectedCommission?.name ? "Jurisdiction name (already set for this table)" : "Jurisdiction's name"}
-        <input
-          value={selectedCommission?.name ?? jurisdictionName}
-          disabled={!!selectedCommission?.name}
-          onChange={(e) => setJurisdictionName(e.target.value)}
-          placeholder="e.g. Kent County"
-        />
-      </label>
-
-      {joinError && <p className="error">{joinError}</p>}
-
-      <button onClick={handleJoin} disabled={joining}>
-        {joining ? "Joining…" : "Join"}
-      </button>
     </div>
   );
 }

@@ -1,5 +1,9 @@
 import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
+import { uiIconUrl } from "../services/icons";
 import type { MotionPopupView } from "../services/motionPopupLogic";
+import type { EventPopupAction } from "./EventPopup";
+import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardIcon from "./CardIcon";
 import EventPopup from "./EventPopup";
 import type { CardCatalog } from "../types/catalog";
 import type { ActiveMotion, Participant } from "../types/session";
@@ -33,37 +37,48 @@ function MotionPopup({ motion, catalog, participants, view, onSecond, onDismiss,
   const effect = card ? getCardLedgerLabel(motion.cardType, card.amount, card.direction) : null;
   const moverName = participants[motion.movedBy]?.name ?? motion.movedBy;
 
-  const actions =
+  const actions: EventPopupAction[] =
     view === "second"
-      ? [{ label: seconding ? "Seconding…" : "Second this motion", onClick: onSecond, disabled: seconding, autoFocus: true }]
+      ? [
+          { label: seconding ? "Seconding…" : "Second this motion", onClick: onSecond, disabled: seconding, autoFocus: true },
+          { label: "Not now", onClick: onDismiss, variant: "link" },
+        ]
       : [{ label: "Got it", onClick: onDismiss, autoFocus: true }];
 
   return (
     <EventPopup
       tone="motion"
-      icon="📋"
+      iconSrc={uiIconUrl("card-swipe")}
+      eyebrow={`Moved by ${moverName}`}
       heading="Motion on the floor"
       headingId="motion-popup-heading"
       onRequestClose={onDismiss}
       vibrate
       actions={actions}
     >
-      <p className="event-popup-title">{title}</p>
-      {card && <p className="event-popup-text">{card.impactBullets.join("; ")}</p>}
-      <p className="event-popup-mover">Moved by {moverName}</p>
-      {effect && (
-        <p className="event-popup-effect">
-          <strong>{effect.label}</strong>
-          <br />
-          {effect.subtext}
-        </p>
+      <div className="cardrow">
+        <CardIcon cardId={motion.cardId} cardType={motion.cardType} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <h3>{title}</h3>
+          {effect && <BudgetEffectLabel label={effect.label} />}
+        </div>
+      </div>
+      {card && card.impactBullets.length > 0 && (
+        <>
+          <span className="imp-h">Impact</span>
+          <ul className="imp" style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "13.5px", lineHeight: 1.4 }}>
+            {card.impactBullets.map((bullet, i) => (
+              <li key={i} style={{ display: "flex", gap: "8px" }}>
+                {bullet}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       {secondError ? (
-        <p className="event-popup-already-seconded">{secondError}</p>
+        <p className="modal-already-seconded">{secondError}</p>
       ) : (
-        <p className="event-popup-note">
-          {view === "second" ? "Second it to bring it up for debate." : "Awaiting a second from a Commissioner."}
-        </p>
+        <p className="modal-note">{view === "second" ? "Second it to bring it up for debate." : "Awaiting a second from a Commissioner."}</p>
       )}
     </EventPopup>
   );

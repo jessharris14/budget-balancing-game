@@ -1,5 +1,8 @@
 import { getChallengeNarrative } from "../services/challengePopupLogic";
 import { getChallengeLedgerEffect, type LedgerLine } from "../services/challengeLedgerEffect";
+import { uiIconUrl } from "../services/icons";
+import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardIcon from "./CardIcon";
 import EventPopup from "./EventPopup";
 import type { ChallengeCard } from "../types/catalog";
 import type { Commission } from "../types/session";
@@ -42,29 +45,34 @@ function ChallengePopup({ commission, card, onDismiss }: Props) {
   return (
     <EventPopup
       tone="challenge"
-      icon="⚡"
-      heading="New Challenge!"
+      iconSrc={uiIconUrl("challenge")}
+      eyebrow={`Applied to ${commission.name ?? "this table"}`}
+      heading="Challenge"
       headingId="challenge-popup-heading"
       vibrate
       actions={[{ label: "Got it", onClick: onDismiss, autoFocus: true }]}
     >
-      <p className="event-popup-title">{card.title}</p>
-      <p className="event-popup-text">{card.printedText}</p>
+      <div className="cardrow">
+        <CardIcon cardId={card.id} cardType="challenge" />
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <h3>{card.title}</h3>
+          <BudgetEffectLabel label={effect.label} />
+        </div>
+      </div>
+      <p style={{ fontSize: "15px", lineHeight: 1.5, margin: 0 }}>{card.printedText}</p>
       {narrative && (
-        <p className="event-popup-narrative">
+        <p style={{ fontStyle: "italic", color: "var(--lb-muted)", borderLeft: "3px solid var(--lb-sun)", paddingLeft: "0.6rem", margin: 0 }}>
           <strong>What's happening:</strong> {narrative}
         </p>
       )}
-      <p className="event-popup-effect">
-        <strong>{effect.label}</strong>
-        <br />
-        {LEDGER_LINE_LABELS[effect.line]} {formatSigned(effect.amount)}
-        <br />
+      <p className="modal-note">
+        {LEDGER_LINE_LABELS[effect.line]} {formatSigned(effect.amount)} —{" "}
         {effect.line === "reserves"
           ? `Reserves is now $${commission.ledger.reserves.toLocaleString()}`
           : `${deficitOrSurplus >= 0 ? "Surplus" : "Deficit"} is now $${Math.abs(deficitOrSurplus).toLocaleString()}`}
+        <br />
+        Applied to the ledger automatically -- Challenges can't be debated or declined.
       </p>
-      <p className="event-popup-note">Applied to the ledger automatically -- Challenges can't be debated or declined.</p>
     </EventPopup>
   );
 }

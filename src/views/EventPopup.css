@@ -1,30 +1,36 @@
-.event-popup-backdrop {
+.scrim,
+.scrim * {
+  box-sizing: border-box;
+}
+
+.scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(21, 38, 82, 0.66);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 16px;
   z-index: 200;
 }
 
-.event-popup {
-  position: relative;
-  background: #fff;
-  border: 3px solid transparent;
-  border-radius: 0.75rem;
+.modal {
   width: 100%;
-  max-width: 28rem;
+  max-width: 420px;
   max-height: 85vh;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  font-family: var(--lb-f-body);
+  font-size: 14px;
+  color: var(--lb-ink);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .event-popup {
+  .modal {
     animation: event-popup-in 0.22s ease-out;
   }
 }
@@ -40,150 +46,119 @@
   }
 }
 
-.event-popup--challenge {
-  border-color: #b06000;
+/* Each tone gets a visibly different top band, so a Challenge, a Motion,
+   and (once wired up) a Chair's free card are never confusable at a
+   glance -- a light tint + a solid colored top border, never relying on
+   that color alone (the icon + eyebrow + title all say which one it is
+   too). */
+.modal .band {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 8px 14px 16px;
+  border-top: 10px solid var(--lb-sky);
+  background: rgba(48, 127, 226, 0.14);
 }
 
-.event-popup--challenge h2 {
-  color: #b06000;
+.modal.motion .band {
+  border-top-color: var(--lb-sky);
+  background: rgba(48, 127, 226, 0.14);
 }
 
-.event-popup--motion {
-  border-color: #4a2a8a;
+.modal.challenge .band {
+  border-top-color: var(--lb-orange);
+  background: rgba(255, 143, 28, 0.17);
 }
 
-.event-popup--motion h2 {
-  color: #4a2a8a;
+.modal.chair .band {
+  border-top-color: var(--lb-forest);
+  background: rgba(0, 150, 108, 0.14);
 }
 
-.event-popup-close {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 2.25rem;
-  height: 2.25rem;
-  min-width: 44px;
-  min-height: 44px;
+.modal .band .ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  flex: none;
+}
+
+.modal .band .ico img {
+  width: 28px;
+  height: 28px;
+}
+
+.modal .band .bt {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal .band h2 {
+  font: 700 20px/1.1 var(--lb-f-head);
+  color: var(--lb-ink);
+  margin: 0;
+}
+
+.modal .xbtn {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.06);
-  font-size: 1.1rem;
-  line-height: 1;
+  border: 0;
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
   cursor: pointer;
-  z-index: 1;
 }
 
-.event-popup-close:hover {
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.event-popup-scroll {
-  padding: 1.25rem 1.25rem 0.5rem;
+.modal .body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   overflow-y: auto;
 }
 
-.event-popup h2 {
+.modal .cardrow {
   display: flex;
+  gap: 12px;
   align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.75rem;
-  padding-right: 2rem;
-  font-size: 1.2rem;
 }
 
-.event-popup-title {
-  font-weight: 700;
-  font-size: 1.1rem;
-  margin: 0 0 0.5rem;
+.modal .cardrow img {
+  width: 56px;
+  height: 56px;
+  flex: none;
 }
 
-.event-popup-text {
-  margin: 0 0 0.75rem;
+.modal .cardrow h3 {
+  font: 700 18px/1.2 var(--lb-f-head);
 }
 
-.event-popup-narrative {
-  font-style: italic;
-  color: #444;
-  border-left: 3px solid #d9a441;
-  padding-left: 0.6rem;
-  margin: 0 0 0.75rem;
-}
-
-.event-popup-effect {
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  font-weight: 700;
-  margin: 0 0 0.75rem;
-}
-
-.event-popup--challenge .event-popup-effect {
-  background: rgba(255, 200, 0, 0.2);
-  border: 1px solid rgba(200, 150, 0, 0.5);
-}
-
-.event-popup--motion .event-popup-effect {
-  background: rgba(74, 42, 138, 0.1);
-  border: 1px solid rgba(74, 42, 138, 0.4);
-}
-
-.event-popup-note {
-  font-size: 0.85rem;
-  color: #555;
-  margin: 0 0 0.5rem;
-}
-
-.event-popup-mover {
-  font-weight: 600;
-  margin: 0 0 0.5rem;
-}
-
-.event-popup-already-seconded {
-  font-weight: 600;
-  color: #4a2a8a;
-  margin: 0 0 0.5rem;
-}
-
-.event-popup-actions {
-  flex-shrink: 0;
+.modal .acts {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin: 0.5rem 1.25rem 1.25rem;
+  gap: 8px;
+  padding: 0 16px 16px;
 }
 
-.event-popup-action {
-  min-height: 44px;
-  padding: 1rem;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #fff;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
+.modal-already-seconded {
+  font-weight: 600;
+  color: var(--lb-river);
+  margin: 0;
 }
 
-.event-popup--challenge .event-popup-action {
-  background: #b06000;
-}
-
-.event-popup--challenge .event-popup-action:hover {
-  background: #8f4d00;
-}
-
-.event-popup--motion .event-popup-action {
-  background: #4a2a8a;
-}
-
-.event-popup--motion .event-popup-action:hover {
-  background: #3a2070;
-}
-
-.event-popup-action:disabled {
-  opacity: 0.6;
-  cursor: default;
+.modal-note {
+  font-size: 13px;
+  color: var(--lb-muted);
+  margin: 0;
 }
 
 .event-toast {
@@ -191,11 +166,11 @@
   left: 50%;
   bottom: 1.25rem;
   transform: translateX(-50%);
-  background: #2a2a2a;
+  background: var(--lb-ink);
   color: #fff;
-  padding: 0.6rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font: 600 0.9rem var(--lb-f-body);
   max-width: 90vw;
   text-align: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -203,7 +178,7 @@
 }
 
 @media (max-width: 480px) {
-  .event-popup {
+  .modal {
     max-width: 100%;
   }
 }

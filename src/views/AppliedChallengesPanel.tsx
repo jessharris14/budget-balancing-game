@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { getChallengeNarrative } from "../services/challengePopupLogic";
 import { challengeLedgerDelta, getChallengeLedgerEffect, type LedgerLine } from "../services/challengeLedgerEffect";
+import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardIcon from "./CardIcon";
 import type { CardCatalog } from "../types/catalog";
 import type { Commission } from "../types/session";
-import "./ManagerConsole.css";
+import "./lb-components.css";
 
 interface Props {
   commission: Commission;
@@ -24,20 +26,14 @@ function formatSigned(delta: number): string {
 /**
  * Change 2: read-only "Applied Challenges" panel shown to every
  * non-Facilitator role (Commissioner, Chair, Manager/Administrator,
- * Speaker, and the Debrief Scorecard) wherever the old single-challenge
- * "Active Challenge" panel used to appear. Challenges auto-apply
- * instantly and can never be changed or undone once triggered, so
- * "active" was misleading -- there's nothing active about a Challenge
- * once it's landed, only a permanent record of it. The Facilitator's own
- * console does NOT use this component: it still triggers Challenges, so
- * it keeps its own "Challenges Triggered" wording and controls.
+ * Speaker, and the Debrief Scorecard). Challenges auto-apply instantly
+ * and can never be changed or undone once triggered, so "active" was
+ * misleading -- there's nothing active about a Challenge once it's
+ * landed, only a permanent record of it.
  *
- * Sourced entirely from commission.challengesApplied (card id -> the
- * server timestamp it was triggered at) joined against the catalog's own
- * challengeCards for title/amount -- and getChallengeLedgerEffect
- * (challengeLedgerEffect.ts), the exact same mapping applyChallengeToLedger
- * itself applies, for which line each challenge hit and by how much.
- * Nothing here recomputes an effect independently.
+ * Sourced entirely from commission.challengesApplied joined against the
+ * catalog's own challengeCards, same as before this round -- design step
+ * 1 only restyled the look.
  */
 function AppliedChallengesPanel({ commission, catalog }: Props) {
   const [expanded, setExpanded] = useState(false);
@@ -68,55 +64,38 @@ function AppliedChallengesPanel({ commission, catalog }: Props) {
   );
 
   return (
-    <div className="lobby-commission">
+    <div className="panel">
       <h3>Applied Challenges</h3>
       <p>{mostRecent.card.printedText}</p>
-      <p>Applied to the ledger automatically when triggered -- Challenges can't be debated or declined.</p>
+      <p style={{ fontSize: "13px", color: "var(--lb-muted)" }}>Applied to the ledger automatically when triggered -- Challenges can't be debated or declined.</p>
       {entries.length > 1 && (
-        <button onClick={() => setExpanded((v) => !v)}>
+        <button type="button" className="btn ghost sm" onClick={() => setExpanded((v) => !v)}>
           {expanded ? "Hide" : `Show all ${entries.length} challenges`}
         </button>
       )}
       {expanded && (
-        <table className="applied-challenges-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Action</th>
-              <th>Line</th>
-              <th>Effect</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e) => {
-              const effect = getChallengeLedgerEffect(e.card);
-              const narrative = getChallengeNarrative(e.card);
-              return (
-                <tr key={e.card.id}>
-                  <td data-label="Title">
-                    {e.card.title}
-                    {narrative && (
-                      <>
-                        <br />
-                        <span className="applied-challenges-narrative">{narrative}</span>
-                      </>
-                    )}
-                  </td>
-                  <td data-label="Action">{effect.label}</td>
-                  <td data-label="Line">{LEDGER_LINE_LABELS[effect.line]}</td>
-                  <td data-label="Effect">{formatSigned(effect.amount)}</td>
-                </tr>
-              );
-            })}
-            <tr className="scorecard-total-row">
-              <td data-label="Title">Running total</td>
-              <td data-label="Action" colSpan={3}>
-                Expenditures {formatSigned(totals.expenditures)} · Revenue {formatSigned(totals.revenue)} · Reserves{" "}
-                {formatSigned(totals.reserves)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="rows">
+          {entries.map((e) => {
+            const effect = getChallengeLedgerEffect(e.card);
+            const narrative = getChallengeNarrative(e.card);
+            return (
+              <div className="rowi" key={e.card.id}>
+                <CardIcon cardId={e.card.id} cardType="challenge" />
+                <div className="tt">
+                  <b>{e.card.title}</b>
+                  {narrative && <span style={{ fontStyle: "italic", fontSize: "12px", color: "var(--lb-muted)" }}>{narrative}</span>}
+                  <BudgetEffectLabel label={effect.label} />
+                </div>
+                <span style={{ fontSize: "13px", color: "var(--lb-muted)" }}>
+                  {LEDGER_LINE_LABELS[effect.line]} {formatSigned(effect.amount)}
+                </span>
+              </div>
+            );
+          })}
+          <p style={{ fontWeight: 700, fontSize: "13px", marginTop: "0.5rem" }}>
+            Running total: Expenditures {formatSigned(totals.expenditures)} · Revenue {formatSigned(totals.revenue)} · Reserves {formatSigned(totals.reserves)}
+          </p>
+        </div>
       )}
     </div>
   );

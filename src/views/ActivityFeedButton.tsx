@@ -40,6 +40,12 @@ function formatClockTime(timestamp: number): string {
 function ActivityFeedButton({ entries, storageKey, showTableName }: Props) {
   const [open, setOpen] = useState(false);
   const [lastSeen, setLastSeen] = useState<number>(() => readLastSeen(storageKey));
+  // The lastSeen value from BEFORE this opening -- used only to highlight
+  // "new since last time" rows while the panel stays open. lastSeen
+  // itself gets bumped to "now" the instant the panel opens (clearing the
+  // dot for next time), so highlighting off that updated value would
+  // immediately un-highlight everything.
+  const [openedAtSeen, setOpenedAtSeen] = useState(lastSeen);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -67,6 +73,7 @@ function ActivityFeedButton({ entries, storageKey, showTableName }: Props) {
     setOpen((wasOpen) => {
       const next = !wasOpen;
       if (next) {
+        setOpenedAtSeen(lastSeen);
         const latest = latestTimestamp(entries);
         writeLastSeen(storageKey, latest);
         setLastSeen(latest);
@@ -106,7 +113,10 @@ function ActivityFeedButton({ entries, storageKey, showTableName }: Props) {
           <div className="activity-feed-panel__list">
             {entries.length === 0 && <p className="activity-feed-empty">Nothing yet.</p>}
             {entries.map((entry) => (
-              <div key={entry.id} className="activity-feed-entry">
+              <div
+                key={entry.id}
+                className={`activity-feed-entry${entry.timestamp > openedAtSeen ? " activity-feed-entry--new" : ""}`}
+              >
                 <span className="activity-feed-entry__time">{formatClockTime(entry.timestamp)}</span>
                 <span className="activity-feed-entry__text">
                   {showTableName && entry.tableName && <strong>{entry.tableName}: </strong>}

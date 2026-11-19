@@ -1,6 +1,6 @@
 import type { CardCatalog } from "../types/catalog";
 import type { Commission } from "../types/session";
-import "./ManagerConsole.css";
+import "./lb-components.css";
 
 interface Props {
   commission: Commission;
@@ -13,7 +13,7 @@ interface Props {
  * Exists mainly for FAILED measures -- a passed one also gets a normal
  * decisionsLog entry via the same applyCard path every other card uses,
  * but a failed one never does, so without this it would be as if the
- * vote never happened at all.
+ * vote never happened at all. Design step 1: restyled only.
  */
 function BallotMeasuresList({ commission, catalog }: Props) {
   const resolved = Object.values(commission.ballotMeasures ?? {})
@@ -23,9 +23,9 @@ function BallotMeasuresList({ commission, catalog }: Props) {
   if (resolved.length === 0) return null;
 
   return (
-    <div className="decisions-list">
-      <h2>Ballot Measures</h2>
-      <ol>
+    <div className="panel">
+      <h3>Ballot Measures</h3>
+      <div className="rows">
         {resolved.map((ballot) => {
           const card =
             ballot.cardType === "revenue"
@@ -35,15 +35,20 @@ function BallotMeasuresList({ commission, catalog }: Props) {
           const no = ballot.noCount ?? 0;
           const passed = ballot.outcome === "passed";
           return (
-            <li key={ballot.id}>
-              {card?.title ?? ballot.cardId} — Yes {yes}, No {no} —{" "}
-              <span className={`decision-amount ${passed ? "positive" : "negative"}`}>
-                {passed ? "Passed" : "Failed"}
+            <div className="rowi" key={ballot.id} style={{ gridTemplateColumns: "minmax(0, 1fr) auto" }}>
+              <div className="tt">
+                <b>{card?.title ?? ballot.cardId}</b>
+                <span style={{ fontSize: "12px", color: "var(--lb-muted)" }}>
+                  Yes {yes}, No {no}
+                </span>
+              </div>
+              <span className={passed ? "st" : "st fail"} style={passed ? { background: "var(--lb-rev-tint)", borderColor: "rgba(0,150,108,.4)", color: "var(--lb-forest)" } : undefined}>
+                {passed ? "✓ Passed" : "✕ Failed"}
               </span>
-            </li>
+            </div>
           );
         })}
-      </ol>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { cancelBallotMeasure, closeBallotMeasure, openBallotMeasure } from "../services/ballotService";
 import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
+import { uiIconUrl } from "../services/icons";
 import BudgetEffectLabel from "./BudgetEffectLabel";
 import type { CardCatalog, ExpenditureCard, RevenueCard } from "../types/catalog";
 import type { BallotMeasure } from "../types/session";
-import "./ManagerConsole.css";
+import "./lb-components.css";
+import "./EventPopup.css";
 
 interface Props {
   code: string;
@@ -69,72 +71,79 @@ function BallotMeasureModal({ code, commissionId, catalog, card, ballot, onDismi
   }
 
   return (
-    <div className="ballot-modal-backdrop">
-      <div className="ballot-modal">
-        <h2>Run the Election{card ? `: ${card.title}` : ""}</h2>
-        {card && (
-          <>
-            <ul>
-              {card.impactBullets.map((bullet, idx) => (
-                <li key={idx}>{bullet}</li>
-              ))}
-            </ul>
-            {effect && (
-              <p>
-                <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
-              </p>
-            )}
-          </>
-        )}
-
-        {resolved && (
-          <div className={`ballot-result ballot-result-${ballot.outcome}`}>
-            <p className="ballot-result-tally">
-              Yes: {ballot.yesCount ?? 0} — No: {ballot.noCount ?? 0}
-            </p>
-            <p className="ballot-result-outcome">
-              {ballot.outcome === "passed" ? "✅ Measure Passed" : "❌ Measure Failed"}
-            </p>
-            <button onClick={onDismiss}>Done</button>
+    <div className="scrim">
+      <div className="modal motion" role="dialog" aria-label="Run the Election">
+        <div className="band">
+          <div className="ico">
+            <img src={uiIconUrl("budget-chart")} alt="" />
           </div>
-        )}
+          <div className="bt">
+            <span className="eyebrow" style={{ color: "var(--lb-ink)" }}>
+              Ballot Measure
+            </span>
+            <h2>Run the Election{card ? `: ${card.title}` : ""}</h2>
+          </div>
+        </div>
+        <div className="body">
+          {card && (
+            <>
+              <ul className="imp">
+                {card.impactBullets.map((bullet, idx) => (
+                  <li key={idx}>{bullet}</li>
+                ))}
+              </ul>
+              {effect && <BudgetEffectLabel label={effect.label} />}
+            </>
+          )}
 
-        {!resolved && needsRetry && (
-          <>
-            <p className="error">Voting closed, but applying the passed measure failed. You can safely retry.</p>
-            <button onClick={handleClose} disabled={busy}>
-              Retry
-            </button>
-          </>
-        )}
-
-        {!resolved && !needsRetry && pending && (
-          <>
-            <p>Explain the ballot measure to the room, then open voting to Public Hearing Speakers.</p>
-            <div className="chair-timer-controls">
-              <button onClick={() => run(() => openBallotMeasure(code, commissionId, ballot.id))} disabled={busy}>
-                Open Voting to Speakers
-              </button>
-              <button onClick={() => run(() => cancelBallotMeasure(code, commissionId, ballot.id))} disabled={busy}>
-                Cancel
+          {resolved && (
+            <div className={`panel ${ballot.outcome === "passed" ? "pos" : "neg"}`} style={{ background: ballot.outcome === "passed" ? "var(--lb-rev-tint)" : "var(--lb-neg-tint)" }}>
+              <p style={{ fontWeight: 700 }}>
+                Yes: {ballot.yesCount ?? 0} — No: {ballot.noCount ?? 0}
+              </p>
+              <p style={{ font: "800 18px var(--lb-f-head)" }}>{ballot.outcome === "passed" ? "✅ Measure Passed" : "❌ Measure Failed"}</p>
+              <button type="button" className="btn primary sm" onClick={onDismiss}>
+                Done
               </button>
             </div>
-          </>
-        )}
+          )}
 
-        {!resolved && !needsRetry && open && (
-          <>
-            <p>
-              Voting is open. {voteCount} Speaker{voteCount === 1 ? "" : "s"} {voteCount === 1 ? "has" : "have"} voted so
-              far.
-            </p>
-            <button onClick={handleClose} disabled={busy}>
-              Close Ballot &amp; Tally Votes
-            </button>
-          </>
-        )}
+          {!resolved && needsRetry && (
+            <>
+              <p style={{ color: "var(--lb-red)" }}>Voting closed, but applying the passed measure failed. You can safely retry.</p>
+              <button type="button" className="btn primary sm" onClick={handleClose} disabled={busy}>
+                Retry
+              </button>
+            </>
+          )}
 
-        {error && <p className="error">{error}</p>}
+          {!resolved && !needsRetry && pending && (
+            <>
+              <p>Explain the ballot measure to the room, then open voting to Public Hearing Speakers.</p>
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                <button type="button" className="btn primary sm" onClick={() => run(() => openBallotMeasure(code, commissionId, ballot.id))} disabled={busy}>
+                  Open Voting to Speakers
+                </button>
+                <button type="button" className="btn ghost sm" onClick={() => run(() => cancelBallotMeasure(code, commissionId, ballot.id))} disabled={busy}>
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+
+          {!resolved && !needsRetry && open && (
+            <>
+              <p>
+                Voting is open. {voteCount} Speaker{voteCount === 1 ? "" : "s"} {voteCount === 1 ? "has" : "have"} voted so far.
+              </p>
+              <button type="button" className="btn primary sm" onClick={handleClose} disabled={busy}>
+                Close Ballot &amp; Tally Votes
+              </button>
+            </>
+          )}
+
+          {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
+        </div>
       </div>
     </div>
   );

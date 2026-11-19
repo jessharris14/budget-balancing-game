@@ -1,4 +1,5 @@
 import { getPublicTrustTier } from "../services/ledgerService";
+import "./lb-components.css";
 
 interface Props {
   publicTrustTally: number;
@@ -11,14 +12,6 @@ const TIER_LABELS: Record<string, string> = {
   neutral: "Neutral",
   negative: "Negative",
 };
-
-// Diverging pair validated for CVD-safe adjacency (see dataviz skill --
-// green/red, this app's convention elsewhere, fails CVD separation hard at
-// ~1.7 ΔE under deuteranopia; blue/red clears every check at ~20+ ΔE).
-const POSITIVE_COLOR = "#2a78d6";
-const NEGATIVE_COLOR = "#e34948";
-const NEUTRAL_COLOR = "#9a9992";
-const TRACK_COLOR = "#e3e2df";
 
 const CX = 100;
 const CY = 100;
@@ -41,52 +34,50 @@ function arcPath(angleStart: number, angleEnd: number): string {
 /**
  * Half-circle Public Trust gauge (spec Section 8a #6): scale is this
  * Commission's actual maximum possible magnitude -- 3 lifetime actions per
- * assigned Speaker -- recomputed live as Speakers join. The needle/fill
- * position communicates degree within that range, not just direction;
- * the Positive/Neutral/Negative label still ties to the scoring bucket.
- * Deliberately separate from the Reserve Tier indicator, not crammed next
- * to it (an earlier version placed them confusingly close together).
+ * assigned Speaker -- recomputed live as Speakers join, same as before
+ * this round. Design step 1 restyle: a fixed three-band arc (red left,
+ * gray middle, green right -- design tokens, not the old dynamic-fill
+ * blue/red pair) with a white knob marking the live position, instead of
+ * a colored arc that grew/shrank with the tally. The "No Speakers
+ * assigned yet" state (hasSpeakers false) is unchanged: the knob centers
+ * and the value/tier read em-dashes, exactly as before.
  */
 function PublicTrustGauge({ publicTrustTally, speakerCount }: Props) {
   const maxMagnitude = 3 * speakerCount;
   const hasSpeakers = maxMagnitude > 0;
   const clampedTally = hasSpeakers ? Math.max(-maxMagnitude, Math.min(maxMagnitude, publicTrustTally)) : 0;
   const percent = hasSpeakers ? ((clampedTally + maxMagnitude) / (2 * maxMagnitude)) * 100 : 50;
-  const needleAngle = 180 - (percent / 100) * 180;
-
-  const fillColor = clampedTally > 0 ? POSITIVE_COLOR : clampedTally < 0 ? NEGATIVE_COLOR : NEUTRAL_COLOR;
-  const fillPath = clampedTally === 0 ? null : clampedTally > 0 ? arcPath(90, needleAngle) : arcPath(needleAngle, 90);
-  const needleTip = polarToCartesian(needleAngle);
+  const knobAngle = 180 - (percent / 100) * 180;
+  const knob = polarToCartesian(knobAngle);
 
   const tier = getPublicTrustTier(publicTrustTally);
   const tierLabel = hasSpeakers ? TIER_LABELS[tier] : "No Speakers assigned yet";
   const tallyLabel = hasSpeakers ? (clampedTally >= 0 ? `+${clampedTally}` : `${clampedTally}`) : "—";
 
   return (
-    <div className="public-trust-gauge">
-      <h3>Public Trust</h3>
-      <svg viewBox="0 0 200 180" role="img" aria-label={`Public Trust: ${tallyLabel} of a possible ±${maxMagnitude}, ${tierLabel}`}>
-        <path d={arcPath(180, 0)} fill="none" stroke={TRACK_COLOR} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
-        {fillPath && (
-          <path d={fillPath} fill="none" stroke={fillColor} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
-        )}
-        {/* Zero tick */}
-        <line x1={CX} y1={CY - R - 6} x2={CX} y2={CY - R + 10} stroke="#b5b3ac" strokeWidth={2} />
-        {/* Needle-tip marker */}
-        <circle cx={needleTip.x} cy={needleTip.y} r={7} fill={fillColor} stroke="#fff" strokeWidth={2} />
-        <text x={CX - R} y={CY + 24} textAnchor="middle" className="gauge-pole-label">
-          {hasSpeakers ? `-${maxMagnitude}` : "—"}
+    <div className="panel gaugeBox">
+      <h3 style={{ fontSize: "16px" }}>Public Trust</h3>
+      <svg
+        viewBox="0 0 200 112"
+        width="220"
+        height="123"
+        role="img"
+        aria-label={`Public Trust: ${tallyLabel} of a possible ±${maxMagnitude}, ${tierLabel}`}
+      >
+        {/* Fixed three-band track: red (negative third) / gray (neutral third) / green (positive third). */}
+        <path d={arcPath(180, 120)} stroke="var(--lb-red)" strokeWidth={STROKE_WIDTH} fill="none" strokeLinecap="round" />
+        <path d={arcPath(120, 60)} stroke="var(--lb-gray)" strokeWidth={STROKE_WIDTH} fill="none" />
+        <path d={arcPath(60, 0)} stroke="var(--lb-field)" strokeWidth={STROKE_WIDTH} fill="none" strokeLinecap="round" />
+        <circle cx={knob.x} cy={knob.y} r={10} fill="#fff" stroke="var(--lb-ink)" strokeWidth={4} />
+        <text x={CX - R} y={CY + 11} textAnchor="middle" className="gauge-pole-label">
+          {hasSpeakers ? "−" : "—"}
         </text>
-        <text x={CX + R} y={CY + 24} textAnchor="middle" className="gauge-pole-label">
-          {hasSpeakers ? `+${maxMagnitude}` : "—"}
-        </text>
-        <text x={CX} y={CY + 45} textAnchor="middle" className="gauge-tally-readout">
-          {tallyLabel}
-        </text>
-        <text x={CX} y={CY + 65} textAnchor="middle" className="gauge-tier-label">
-          {tierLabel}
+        <text x={CX + R} y={CY + 11} textAnchor="middle" className="gauge-pole-label">
+          {hasSpeakers ? "+" : "—"}
         </text>
       </svg>
+      <div className="gv">{tallyLabel}</div>
+      <div className="gauge-tier-label">{tierLabel}</div>
     </div>
   );
 }

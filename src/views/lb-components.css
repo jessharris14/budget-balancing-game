@@ -1,0 +1,772 @@
+/*
+ * Design step 1: shared visual language for every screen players see,
+ * ported from design-reference/lb.css (the approved mockups). Classes
+ * are named to match the mockups directly (.st, .fx, .btn, .tile, …) so
+ * the mapping back to design-reference stays obvious. Unlike the mockup
+ * HTML (fixed 390px preview frames), everything here is fluid/responsive:
+ * phone-first (360-430px), centered in a column up to ~720px wide on
+ * larger screens -- see .lb-screen.
+ */
+
+.lb-screen {
+  /*
+   * #root (index.css, pre-existing/untouched) is `display: flex;
+   * flex-direction: column`, and every route -- this one included --
+   * mounts as its single flex-item child. A flex item's cross-axis
+   * `margin: auto` (the usual way to center a block) disables stretch
+   * alignment AND falls back to the item's own content-based width
+   * instead of the flex container's width, so `max-width: 720px; margin:
+   * 0 auto` here was rendering at a fixed ~720px even in a narrow phone
+   * viewport (confirmed live: a ~400px horizontal overflow on every
+   * player screen). `width: 100%` + `align-self: center` centers the
+   * same way on wide screens without that flex quirk, and fills the
+   * actual viewport width below 720px as intended.
+   */
+  width: 100%;
+  max-width: 720px;
+  align-self: center;
+  background: var(--lb-bg);
+  font-family: var(--lb-f-body);
+  color: var(--lb-ink);
+  font-size: 14px;
+  line-height: 1.4;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.lb-screen * {
+  box-sizing: border-box;
+}
+
+.lb-screen h1,
+.lb-screen h2,
+.lb-screen h3,
+.lb-screen h4 {
+  font-family: var(--lb-f-head);
+  color: var(--lb-ink);
+  margin: 0;
+}
+
+.lb-screen img {
+  display: block;
+}
+
+.lb-screen button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.lb-screen ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lb-pad {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lb-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.eyebrow {
+  font: 700 10px/1 var(--lb-f-head);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lb-muted);
+}
+
+/* ---------- budget effect chip ---------- */
+.fx {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font: 700 12px/1 var(--lb-f-body);
+  background: #fff;
+  border: 1.5px solid #b9c2cc;
+  color: var(--lb-ink);
+  white-space: nowrap;
+}
+
+.fx i {
+  font-style: normal;
+  font-size: 10px;
+}
+
+.fx.help i {
+  color: var(--lb-forest);
+}
+
+.fx.hard i {
+  color: #c9531a;
+}
+
+.fx.big {
+  font-size: 14px;
+  padding: 6px 12px;
+}
+
+/* ---------- status chips ---------- */
+.st {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font: 600 11px/1 var(--lb-f-body);
+  border: 1px solid var(--lb-line);
+  background: #fff;
+  color: var(--lb-ink);
+  white-space: nowrap;
+}
+
+.st.applied {
+  background: #e6eaee;
+  border-color: #b9c2cc;
+}
+
+.st.fail {
+  background: #fde4e2;
+  border-color: #f3a7a2;
+}
+
+.st.prio {
+  background: #fff0c2;
+  border-color: var(--lb-sun);
+}
+
+.st.lock {
+  background: repeating-linear-gradient(45deg, #eef2f5, #eef2f5 5px, #dfe5ea 5px, #dfe5ea 10px);
+  border-color: #b9c2cc;
+  color: var(--lb-muted);
+}
+
+.lb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 2px solid var(--lb-river);
+  font: 700 15px var(--lb-f-head);
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  text-decoration: none;
+  background: #fff;
+  color: var(--lb-river);
+}
+
+.btn.primary {
+  background: var(--lb-river);
+  color: #fff;
+}
+
+.btn.ghost {
+  background: #fff;
+  color: var(--lb-river);
+}
+
+.btn.off,
+.btn:disabled {
+  background: #e3e8ec;
+  border: 2px dashed #b9c2cc;
+  color: var(--lb-ink);
+  cursor: default;
+}
+
+.btn.sm {
+  min-height: 40px;
+  font-size: 13px;
+  width: auto;
+  padding: 0 14px;
+}
+
+.lb-link {
+  background: transparent;
+  border: 0;
+  color: var(--lb-river);
+  font: 700 14px var(--lb-f-head);
+  min-height: 44px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- budget tiles ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--lb-line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tile .lbl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 11px/1 var(--lb-f-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lb-muted);
+}
+
+.tile .lbl img {
+  width: 22px;
+  height: 22px;
+}
+
+.tile .val {
+  font: 800 28px/1 var(--lb-f-head);
+  font-variant-numeric: tabular-nums;
+}
+
+.tile.rev {
+  background: var(--lb-rev-tint);
+  border-color: rgba(0, 150, 108, 0.4);
+}
+
+.tile.exp {
+  background: var(--lb-exp-tint);
+  border-color: rgba(48, 127, 226, 0.4);
+}
+
+.tile.neg {
+  background: var(--lb-neg-tint);
+  border-color: rgba(249, 66, 58, 0.5);
+}
+
+.tile.neg .val {
+  color: var(--lb-red);
+}
+
+.tile.pos {
+  background: var(--lb-rev-tint);
+  border-color: rgba(0, 150, 108, 0.4);
+}
+
+.tile.pos .val {
+  color: var(--lb-forest);
+}
+
+.tile.bal .val {
+  color: var(--lb-muted);
+}
+
+.tile.res .val {
+  color: var(--lb-forest);
+}
+
+/* ---------- panels ---------- */
+.panel {
+  background: #fff;
+  border: 1px solid var(--lb-line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- balance track ---------- */
+.track {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--lb-red), var(--lb-gray) 50%, var(--lb-forest));
+  position: relative;
+  margin: 8px 0;
+}
+
+.track .knob {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--lb-ink);
+  transform: translate(-50%, -50%);
+}
+
+.track .tick {
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 2px;
+  height: 20px;
+  background: var(--lb-ink);
+  opacity: 0.6;
+}
+
+.lb-cap {
+  text-align: center;
+  font: 700 13px/1 var(--lb-f-body);
+}
+
+.lb-tier {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  font: 600 12px/1.2 var(--lb-f-body);
+  color: #00704f;
+}
+
+/* ---------- public trust gauge ---------- */
+.gaugeBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px;
+}
+
+.gaugeBox .gv {
+  font: 800 22px/1 var(--lb-f-head);
+}
+
+.gauge-pole-label {
+  font: 800 14px var(--lb-f-head);
+  fill: var(--lb-ink);
+}
+
+.gauge-tier-label {
+  font: 600 12px var(--lb-f-body);
+  fill: var(--lb-muted);
+}
+
+/* ---------- priority panel ---------- */
+.prio-panel {
+  background: #fff7dc;
+  border: 1.5px solid var(--lb-sun);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.prio-panel img {
+  width: 48px;
+  height: 48px;
+  flex: none;
+}
+
+.prio-panel .tx {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.prio-panel h3 {
+  font-size: 15px;
+}
+
+/* ---------- section heading + segmented control ---------- */
+.sec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sec h2 {
+  font-size: 18px;
+}
+
+.seg {
+  display: flex;
+  background: #fff;
+  border: 1.5px solid #b9c2cc;
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.seg button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--lb-ink);
+  font: 700 13px var(--lb-f-head);
+  padding: 0 10px;
+}
+
+.seg button img {
+  width: 20px;
+  height: 20px;
+}
+
+.seg button.on {
+  background: var(--lb-river);
+  color: #fff;
+}
+
+.seg.sm button {
+  min-height: 36px;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+/* ---------- debate panel (in-page Card Under Debate, separate from bar 2) ---------- */
+.lb-debate-panel {
+  background: #fff;
+  border: 1.5px solid var(--lb-sky);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---------- carousel ---------- */
+.vp {
+  overflow: hidden;
+  margin: 0 -16px;
+  padding: 4px 16px 12px;
+}
+
+.trk {
+  display: flex;
+  gap: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trk {
+    transition: transform 0.3s ease;
+  }
+}
+
+.slide {
+  flex: 0 0 min(310px, calc(100vw - 64px));
+  background: #fff;
+  border: 1px solid var(--lb-line);
+  border-radius: 18px;
+  box-shadow: 0 6px 16px rgba(29, 66, 137, 0.1);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+.slide.is-lock {
+  background: #f6f8fa;
+}
+
+.slide .top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.slide .top img {
+  width: 48px;
+  height: 48px;
+  flex: none;
+}
+
+.slide .top .tt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.slide h3 {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.imp-h {
+  font: 700 11px/1 var(--lb-f-head);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lb-muted);
+}
+
+ul.imp {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+ul.imp li {
+  display: flex;
+  gap: 8px;
+}
+
+ul.imp li::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lb-sky);
+  margin-top: 7px;
+}
+
+.slide .foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.nav button.arrow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid #b9c2cc;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.nav button.arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.nav button.arrow img {
+  width: 22px;
+  height: 22px;
+}
+
+.nav .count {
+  font: 700 13px var(--lb-f-head);
+  min-width: 64px;
+  text-align: center;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #b9c2cc;
+  display: block;
+}
+
+.dots span.on {
+  width: 22px;
+  background: var(--lb-river);
+}
+
+/* ---------- list view ---------- */
+.rows {
+  background: #fff;
+  border: 1px solid var(--lb-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.rowi {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--lb-line);
+}
+
+.rowi:last-child {
+  border-bottom: 0;
+}
+
+.rowi img {
+  width: 36px;
+  height: 36px;
+}
+
+.rowi .tt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rowi .tt b {
+  font: 700 13.5px/1.2 var(--lb-f-head);
+}
+
+.rowi .chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rowi .rt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+/* ---------- home / join / role screens ---------- */
+.hero {
+  background: var(--lb-river);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.codebox {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.codebox span,
+.codebox input {
+  width: 56px;
+  height: 64px;
+  border-radius: 12px;
+  border: 2px solid var(--lb-river);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 30px var(--lb-f-head);
+  color: var(--lb-river);
+  text-align: center;
+  padding: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font: 700 13px var(--lb-f-head);
+}
+
+.field .inp {
+  height: 52px;
+  border-radius: 12px;
+  border: 2px solid #b9c2cc;
+  background: #fff;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font: 400 16px var(--lb-f-body);
+  width: 100%;
+  color: var(--lb-ink);
+}
+
+.roles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.role {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  background: #fff;
+  border: 2px solid var(--lb-line);
+  border-radius: 16px;
+  padding: 14px;
+  min-height: 76px;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.role img {
+  width: 44px;
+  height: 44px;
+  flex: none;
+}
+
+.role b {
+  font: 700 17px var(--lb-f-head);
+  /*
+   * A flex item's default min-width is its content's own unbroken size,
+   * which for "Manager/Administrator" (no space to wrap at) is wide
+   * enough to push the whole row past a 320-375px phone viewport.
+   * flex-basis gives it first claim on the row's width (so the "Selected"
+   * tag wraps to its own line below instead of squeezing the title down
+   * to an awkward mid-word break), min-width: 0 lets it still shrink as a
+   * last resort, and overflow-wrap covers the no-space-to-break-at case
+   * the same way index.css's h1/h2 rule already does for this exact
+   * title elsewhere.
+   */
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.role.sel {
+  border-color: var(--lb-river);
+  background: #f2f7fe;
+}
+
+.role.taken {
+  background: #f3f5f7;
+  border-style: dashed;
+  color: var(--lb-muted);
+}
+
+.role .tag {
+  margin-left: auto;
+}

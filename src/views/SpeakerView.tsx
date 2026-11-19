@@ -4,6 +4,7 @@ import { castBallotVote, getMyBallotVote } from "../services/ballotService";
 import { getCatalog } from "../services/catalogService";
 import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
 import { castEndorsement } from "../services/speakerService";
+import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import CardUnderDebateBar from "./CardUnderDebateBar";
@@ -15,8 +16,7 @@ import PublicTrustGauge from "./PublicTrustGauge";
 import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Session, type Speaker } from "../types/session";
-import "./session.css";
-import "./ManagerConsole.css";
+import "./lb-components.css";
 
 interface Props {
   code: string;
@@ -33,6 +33,13 @@ const MAX_ENDORSEMENTS = 3;
  * card). Each Speaker picks one Commission/table to watch at join, same as
  * a Commissioner, so this shows just that one Commission's status bar and
  * decisions log -- endorsements only ever affect that table's Public Trust.
+ *
+ * Design step 1: restyled to the approved look. The full Revenue/
+ * Expenditure Cards section (Swipe/List) is deliberately NOT added here --
+ * see the delivery notes for why: it would show a Speaker cards they
+ * can't currently see at all (Available/Locked out), which is more than a
+ * reskin. CompactCardStatusList keeps its exact existing scope (only
+ * cards with something to report), just restyled with the same chips.
  */
 function SpeakerView({ code, session, speaker }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
@@ -66,8 +73,11 @@ function SpeakerView({ code, session, speaker }: Props) {
     void getMyBallotVote(code, speaker.commissionId, activeBallotId, speaker.id).then(setMyVote);
   }, [code, speaker.commissionId, speaker.id, activeBallotId]);
 
-  if (error && !catalog) return <p className="session-view error">{error}</p>;
-  if (!catalog) return <p className="session-view">Loading…</p>;
+  const clock = session.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
+  const mainGameMs = useCountdown(clock.mainGameTimer);
+
+  if (error && !catalog) return <p className="lb-screen lb-pad error">{error}</p>;
+  if (!catalog) return <p className="lb-screen lb-pad">Loading…</p>;
 
   const prompts = speaker.assignedPrompts
     .map((id) => catalog.promptBank.find((p) => p.id === id))
@@ -102,6 +112,10 @@ function SpeakerView({ code, session, speaker }: Props) {
   const debateEffect =
     debateCard && debateCardType ? getCardLedgerLabel(debateCardType, debateCard.amount, debateCard.direction) : null;
 
+  const chairName = commission?.members?.chairId
+    ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
+    : null;
+
   async function handleVote(vote: "yes" | "no") {
     if (!activeBallot || myVote || voting) return;
     setVoting(true);
@@ -135,7 +149,7 @@ function SpeakerView({ code, session, speaker }: Props) {
   }
 
   return (
-    <div className="session-view manager-console">
+    <div className="lb-screen">
       <RoleHeaderBar
         viewLabel="Public Hearing Speaker View"
         shortRoleLabel="Speaker"
@@ -148,86 +162,97 @@ function SpeakerView({ code, session, speaker }: Props) {
       {session.phase !== "debrief" && debateCardId && debateCard && debateEffect && (
         <CardUnderDebateBar cardTitle={debateCard.title} budgetEffectLabel={debateEffect.label} debateTimerEndsAt={commission?.debateTimerEndsAt ?? null} />
       )}
-      <h1>Public Hearing Speaker — {code}</h1>
-      <p>{commission?.name ?? `Table ${speaker.commissionId} (unnamed)`}</p>
-      <p>
-        Chair:{" "}
-        {commission?.members?.chairId
-          ? (session.participants[commission.members.chairId]?.name ?? commission.members.chairId)
-          : "not yet elected"}
-      </p>
-      <p>
-        Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
-      </p>
+      <h1 className="lb-visually-hidden">
+        Public Hearing Speaker View — {tableName} — {code}
+      </h1>
 
-      <h2>Your Prompt{prompts.length > 1 ? "s" : ""}</h2>
-      {prompts.length === 0 && <p>No prompts assigned.</p>}
-      <ul>
-        {prompts.map((p) => (
-          <li key={p.id}>{p.text}</li>
-        ))}
-      </ul>
+      <div className="lb-pad">
+        {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
 
-      {session.phase !== "debrief" && (
-        <div className="lobby-commission">
-          <h3>Endorse / Oppose</h3>
-          <p>
-            You have <strong>{remaining}</strong> of {MAX_ENDORSEMENTS} lifetime actions remaining. Each is permanent
-            once cast -- there's no undo, and it doesn't need to target a specific card.
-          </p>
-          {session.phase !== "mainGame" && <p>Available once Main Game begins.</p>}
-          <div className="chair-timer-controls">
-            <button onClick={() => handleCast("endorse")} disabled={!canCast}>
-              👍 Endorse
-            </button>
-            <button onClick={() => handleCast("oppose")} disabled={!canCast}>
-              👎 Oppose
-            </button>
-          </div>
-          {castError && <p className="error">{castError}</p>}
-        </div>
-      )}
-
-      {ballotOpen && ballotCard && (
-        <div className="lobby-commission">
-          <h3>Ballot Measure: {ballotCard.title}</h3>
-          <ul>
-            {ballotCard.impactBullets.map((bullet, idx) => (
-              <li key={idx}>{bullet}</li>
+        <div className="panel">
+          <h3>Your Prompt{prompts.length > 1 ? "s" : ""}</h3>
+          {prompts.length === 0 && <p>No prompts assigned.</p>}
+          <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            {prompts.map((p) => (
+              <li key={p.id}>{p.text}</li>
             ))}
           </ul>
-          {myVote ? (
-            <p>You voted. Thanks for participating — results will be announced once voting closes.</p>
-          ) : (
-            <div className="chair-timer-controls">
-              <button onClick={() => handleVote("yes")} disabled={voting}>
-                Yes
-              </button>
-              <button onClick={() => handleVote("no")} disabled={voting}>
-                No
-              </button>
-            </div>
-          )}
-          {voteError && <p className="error">{voteError}</p>}
         </div>
-      )}
 
-      {commission && session.phase === "debrief" && (
-        <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
-      )}
+        {session.phase === "debrief" ? (
+          commission && <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              {session.phase === "mainGame" && mainGameMs !== null && (
+                <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+                  <span className="eyebrow">Main Game time remaining</span>
+                  <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
+                </div>
+              )}
+              <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+                <span className="eyebrow">Chair</span>
+                <b style={{ font: "800 22px/1 var(--lb-f-head)" }}>{chairName ?? "Not yet elected"}</b>
+              </div>
+            </div>
 
-      {commission && session.phase !== "debrief" && (
-        <>
-          <LedgerStatusBar ledger={commission.ledger} />
-          <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
-          {session.phase === "mainGame" && (
-            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
-          )}
-          <AppliedChallengesPanel commission={commission} catalog={catalog} />
-          <CompactCardStatusList commission={commission} catalog={catalog} />
-          <BallotMeasuresList commission={commission} catalog={catalog} />
-        </>
-      )}
+            <div className="panel">
+              <h3>Endorse / Oppose</h3>
+              <p>
+                You have <strong>{remaining}</strong> of {MAX_ENDORSEMENTS} lifetime actions remaining. Each is permanent
+                once cast -- there's no undo, and it doesn't need to target a specific card.
+              </p>
+              {session.phase !== "mainGame" && <p style={{ color: "var(--lb-muted)" }}>Available once Main Game begins.</p>}
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <button type="button" className="btn primary sm" onClick={() => handleCast("endorse")} disabled={!canCast}>
+                  👍 Endorse
+                </button>
+                <button type="button" className="btn ghost sm" onClick={() => handleCast("oppose")} disabled={!canCast}>
+                  👎 Oppose
+                </button>
+              </div>
+              {castError && <p style={{ color: "var(--lb-red)" }}>{castError}</p>}
+            </div>
+
+            {ballotOpen && ballotCard && (
+              <div className="panel">
+                <h3>Ballot Measure: {ballotCard.title}</h3>
+                <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                  {ballotCard.impactBullets.map((bullet, idx) => (
+                    <li key={idx}>{bullet}</li>
+                  ))}
+                </ul>
+                {myVote ? (
+                  <p>You voted. Thanks for participating — results will be announced once voting closes.</p>
+                ) : (
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <button type="button" className="btn primary sm" onClick={() => handleVote("yes")} disabled={voting}>
+                      Yes
+                    </button>
+                    <button type="button" className="btn ghost sm" onClick={() => handleVote("no")} disabled={voting}>
+                      No
+                    </button>
+                  </div>
+                )}
+                {voteError && <p style={{ color: "var(--lb-red)" }}>{voteError}</p>}
+              </div>
+            )}
+
+            {commission && (
+              <>
+                <LedgerStatusBar ledger={commission.ledger} />
+                <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+                {session.phase === "mainGame" && (
+                  <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+                )}
+                <AppliedChallengesPanel commission={commission} catalog={catalog} />
+                <CompactCardStatusList commission={commission} catalog={catalog} />
+                <BallotMeasuresList commission={commission} catalog={catalog} />
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

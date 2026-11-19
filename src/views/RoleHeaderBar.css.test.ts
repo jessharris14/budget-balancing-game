@@ -5,15 +5,17 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "RoleHeaderBar.css"), "utf-8");
+const tokensCss = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "styles", "tokens.css"), "utf-8");
 
 /**
  * Fix 1's root cause was exactly this: bar 2's background was
  * `rgba(74, 42, 138, 0.06)` -- 94% see-through, so scrolled table rows
  * behind it read right through it. jsdom doesn't run real CSS layout, so
  * this checks the source directly: both sticky bars' `background` must be
- * a solid color (a hex value, never an rgba()/hsla() with any alpha), and
- * neither may use backdrop-filter/opacity, which would reintroduce the
- * same see-through effect a different way.
+ * a solid color (a hex value, or a design-token var() that itself
+ * resolves to one -- never an rgba()/hsla() with any alpha), and neither
+ * may use backdrop-filter/opacity, which would reintroduce the same
+ * see-through effect a different way.
  */
 function ruleBodyFor(selector: string): string {
   const ruleMatch = css.match(new RegExp(`${selector.replace(/[.#]/g, "\\$&")}\\s*{([^}]*)}`));
@@ -27,15 +29,24 @@ function backgroundFor(selector: string): string {
   return bgMatch![1].trim();
 }
 
+/** Resolves a literal hex color, or a var(--lb-*) reference, to its final hex value by reading tokens.css. */
+function resolveSolidColor(value: string): string {
+  const varMatch = value.match(/^var\((--[\w-]+)\)$/);
+  if (!varMatch) return value;
+  const tokenMatch = tokensCss.match(new RegExp(`${varMatch[1]}:\\s*([^;]+);`));
+  expect(tokenMatch, `expected ${varMatch[1]} to be defined in tokens.css`).toBeTruthy();
+  return tokenMatch![1].trim();
+}
+
 describe("RoleHeaderBar.css: opaque sticky bars (Fix 1)", () => {
   it("bar 1 (.role-header-bar) has a solid hex background, no alpha", () => {
-    const bg = backgroundFor(".role-header-bar");
+    const bg = resolveSolidColor(backgroundFor(".role-header-bar"));
     expect(bg).toMatch(/^#[0-9a-fA-F]{3,8}$/);
     expect(bg.toLowerCase()).not.toBe("transparent");
   });
 
   it("bar 2 (.debate-bar) has a solid hex background, no alpha", () => {
-    const bg = backgroundFor(".debate-bar");
+    const bg = resolveSolidColor(backgroundFor(".debate-bar"));
     expect(bg).toMatch(/^#[0-9a-fA-F]{3,8}$/);
   });
 

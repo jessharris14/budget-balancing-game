@@ -13,7 +13,7 @@ import FacilitatorConsole from "./FacilitatorConsole";
 import ManagerConsole from "./ManagerConsole";
 import SpeakerView from "./SpeakerView";
 import { SESSION_PHASE_LABELS, type Session } from "../types/session";
-import "./session.css";
+import "./lb-components.css";
 
 const ROLE_LABELS: Record<string, string> = {
   facilitator: "Facilitator",
@@ -60,7 +60,7 @@ function Lobby() {
   const myParticipant = user ? session.participants[user.uid] : undefined;
   const joinUrl = `${window.location.origin}/join?code=${code}`;
   const reconnectBanner = !connected && (
-    <p className="reconnect-banner" role="status">
+    <p role="status" style={{ background: "rgba(255,184,28,.18)", border: "1px solid rgba(255,184,28,.6)", borderRadius: "0.5rem", padding: "0.6rem 0.9rem", fontWeight: 600, margin: "0.5rem 0" }}>
       ⏳ Reconnecting… your last known state is still shown below.
     </p>
   );
@@ -160,59 +160,69 @@ function Lobby() {
   }
 
   return (
-    <div className="session-view">
-      {reconnectBanner}
-      <h1>Lobby — {code}</h1>
-      <p>Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong></p>
-      {session.phase === "rankPriorities" && phaseTimerMs !== null && (
-        <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>
-      )}
-      {session.phase === "mainGame" && mainGameMs !== null && (
-        <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
-      )}
-      <p>Debate timer: {session.settings.debateTimerMinutes} min</p>
-      {myParticipant && (
-        <p>
-          You are: <span className="lobby-you">{ROLE_LABELS[myParticipant.role]}{isMyChair && " (Chair)"}</span>
-          {myParticipant.commissionId && ` — ${session.commissions[myParticipant.commissionId]?.name ?? myParticipant.commissionId}`}
-        </p>
-      )}
-
-      {myCommission?.activeChallenge && (
-        <p className="challenge-banner">📢 Challenge: {myCommission.activeChallenge.printedText}</p>
-      )}
-
-      <div className="code-display">
-        <div className="code">{code}</div>
-        <QRCodeSVG value={joinUrl} size={150} />
+    <div className="lb-screen">
+      <div className="hero" style={{ height: 96, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px" }}>
+        <img src="/assets/logo.png" alt="Let's Balance!" style={{ height: 64, width: "auto" }} />
+        <span style={{ border: "1.5px solid rgba(255,255,255,.75)", borderRadius: 8, padding: "5px 8px", font: "700 13px var(--lb-f-head)", letterSpacing: "0.14em", color: "#fff" }}>{code}</span>
       </div>
+      <div className="lb-pad">
+        {reconnectBanner}
+        <span className="eyebrow">Phase: {SESSION_PHASE_LABELS[session.phase] ?? session.phase}</span>
+        <h1 style={{ fontSize: 24 }}>Lobby</h1>
+        {session.phase === "rankPriorities" && phaseTimerMs !== null && <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>}
+        {session.phase === "mainGame" && mainGameMs !== null && <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>}
+        <p style={{ color: "var(--lb-muted)" }}>Debate timer: {session.settings.debateTimerMinutes} min</p>
+        {myParticipant && (
+          <p>
+            You are:{" "}
+            <strong>
+              {ROLE_LABELS[myParticipant.role]}
+              {isMyChair && " (Chair)"}
+            </strong>
+            {myParticipant.commissionId && ` — ${session.commissions[myParticipant.commissionId]?.name ?? myParticipant.commissionId}`}
+          </p>
+        )}
 
-      <h2>Commissions</h2>
-      {Object.entries(session.commissions ?? {}).map(([id, commission]) => {
-        // RTDB prunes empty objects and null values from storage, so a
-        // freshly created commission with nobody joined yet has no
-        // `members` node at all -- everything here must tolerate that.
-        const members = commission.members ?? { managerAdminId: null, chairId: null, commissionerIds: {} };
-        const commissioners = Object.keys(members.commissionerIds ?? {}).map(
-          (uid) => session.participants[uid]?.name ?? uid,
-        );
-        return (
-          <div key={id} className="lobby-commission">
-            <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
-            <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
-            <p>Commissioners ({commissioners.length}): {commissioners.length > 0 ? commissioners.join(", ") : "none yet"}</p>
-            {members.chairId && <p>Chair: {session.participants[members.chairId]?.name ?? members.chairId}</p>}
-          </div>
-        );
-      })}
+        {myCommission?.activeChallenge && (
+          <p className="panel" style={{ background: "rgba(255,143,28,.17)", borderColor: "var(--lb-orange)" }}>
+            📢 Challenge: {myCommission.activeChallenge.printedText}
+          </p>
+        )}
 
-      <h2>Public Hearing Speakers</h2>
-      {Object.keys(session.publicHearingSpeakers ?? {}).length === 0 && <p>None yet.</p>}
-      <ul>
-        {Object.values(session.publicHearingSpeakers ?? {}).map((speaker) => (
-          <li key={speaker.id}>{speaker.name}</li>
-        ))}
-      </ul>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", margin: "1rem 0" }}>
+          <QRCodeSVG value={joinUrl} size={140} />
+          <p style={{ color: "var(--lb-muted)", fontSize: 13 }}>Scan to join, or share the code above.</p>
+        </div>
+
+        <h2>Commissions</h2>
+        <div className="roles">
+          {Object.entries(session.commissions ?? {}).map(([id, commission]) => {
+            // RTDB prunes empty objects and null values from storage, so a
+            // freshly created commission with nobody joined yet has no
+            // `members` node at all -- everything here must tolerate that.
+            const members = commission.members ?? { managerAdminId: null, chairId: null, commissionerIds: {} };
+            const commissioners = Object.keys(members.commissionerIds ?? {}).map((uid) => session.participants[uid]?.name ?? uid);
+            return (
+              <div key={id} className="panel">
+                <h3>{commission.name ?? `Table ${id} (unnamed)`}</h3>
+                <p>Manager/Administrator: {members.managerAdminId ? (session.participants[members.managerAdminId]?.name ?? members.managerAdminId) : "— open —"}</p>
+                <p>
+                  Commissioners ({commissioners.length}): {commissioners.length > 0 ? commissioners.join(", ") : "none yet"}
+                </p>
+                {members.chairId && <p>Chair: {session.participants[members.chairId]?.name ?? members.chairId}</p>}
+              </div>
+            );
+          })}
+        </div>
+
+        <h2>Public Hearing Speakers</h2>
+        {Object.keys(session.publicHearingSpeakers ?? {}).length === 0 && <p>None yet.</p>}
+        <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+          {Object.values(session.publicHearingSpeakers ?? {}).map((speaker) => (
+            <li key={speaker.id}>{speaker.name}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

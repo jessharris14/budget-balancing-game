@@ -1,15 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { buildCommissionActivity } from "../services/activityFeed";
 import { getCatalog } from "../services/catalogService";
 import { createBallotMeasure, isMillageCard } from "../services/ballotService";
 import { stopDebateTimer } from "../services/chairService";
 import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
+import type { CardDisplayItem } from "../services/cardDisplay";
 import {
   applyCard,
   applyChairFreeCard,
-  getCardStatus,
   isCardAvailable,
-  isSelectedPriorityCard,
   reconsiderCard,
   resolveMotionFails,
   type CardType,
@@ -20,8 +19,8 @@ import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
 import BallotMeasuresList from "./BallotMeasuresList";
 import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardsSection from "./CardsSection";
 import CardUnderDebateBar from "./CardUnderDebateBar";
-import { cardStatusRowClass } from "./cardStatusDisplay";
 import CardStatusLegend from "./CardStatusLegend";
 import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -30,8 +29,7 @@ import PublicTrustGauge from "./PublicTrustGauge";
 import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
-import "./session.css";
-import "./ManagerConsole.css";
+import "./lb-components.css";
 
 interface Props {
   code: string;
@@ -40,6 +38,14 @@ interface Props {
   commission: Commission;
 }
 
+/**
+ * Design step 1: visually restyled to the approved look. Every control,
+ * write path, and rule is unchanged from before this round -- apply,
+ * Reconsider, Priority funding, and Motion Passes/Fails all still go
+ * through the exact same functions, just restyled with the shared
+ * components (CardsSection defaults to List here, "they need the
+ * overview," but Swipe is fully wired too -- see the delivery notes).
+ */
 function ManagerConsole({ code, session, commissionId, commission }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +98,9 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     }
   }
 
-  if (error && !catalog) return <p className="session-view error">{error}</p>;
-  if (!catalog) return <p className="session-view">Loading ledger…</p>;
+  if (error && !catalog) return <p className="lb-screen lb-pad error">{error}</p>;
+  if (!catalog) return <p className="lb-screen lb-pad">Loading ledger…</p>;
+  const loadedCatalog = catalog;
 
   const highlightedCardType: CardType | null = commission.chairHighlightedCardId
     ? (catalog.revenueCards.some((c) => c.id === commission.chairHighlightedCardId) ? "revenue" : "expenditure")
@@ -107,26 +114,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
    * applying it, this opens a Ballot Measure for the room to vote on --
    * the card only actually gets applied if that ballot later passes, via
    * closeBallotMeasure calling this exact same applyCard.
-   *
-   * Phase 7 A1: stops the Chair's debate timer the instant the motion is
-   * resolved (or, for a millage card, handed off to the Ballot Measure
-   * flow -- the Board's debate is over once it has voted, not once the
-   * ballot itself later closes). debateTimerEndsAt is a shared field, so
-   * clearing it here updates every role watching it, not just the Chair's
-   * own screen; the Chair's manual Start/Restart/Stop controls are
-   * untouched.
-   *
-   * resolvingCardId (set here, cleared in `finally`) is what keeps the
-   * Card Under Debate panel below visible and its buttons in a "Working…"
-   * state for the whole resolution -- see its own comment for why that
-   * matters. Two sequential writes still happen here on a normal card
-   * (applyCard's own claim+combined-update+ledger, then this function's
-   * own stopDebateTimer) and on the Chair's OWN separate device, a third,
-   * unrelated write clears chairHighlightedCardId once it sees the card
-   * land in cardsInPlay (CommissionerView.tsx) -- none of that can be
-   * collapsed into a single update across two different clients, which is
-   * exactly why the fix here is pinning what's ON SCREEN, not just
-   * reducing the write count.
    */
   async function handleMotionPasses() {
     const cardId = commission.chairHighlightedCardId;
@@ -151,22 +138,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     }
   }
 
-  /**
-   * Resolves Card Under Debate as Motion Fails via the single combined
-   * write in resolveMotionFails (ledgerService.ts) -- see its own comment
-   * for the full root-cause story (that used to be four separate writes,
-   * the first of which unmounted this very panel -- buttons included --
-   * well before the rest had even started, which is what made a single
-   * press look like it needed a second one).
-   *
-   * Previously had no catch block around its old multi-step version: if
-   * one write was rejected (e.g. an RTDB rule not actually deployed yet),
-   * the error propagated uncaught while `finally` still cleared
-   * busyCardId -- from the Administrator's side that looked exactly like
-   * "starts processing, then resets itself" with no visible explanation.
-   * Routing through runAction surfaces that failure the same way every
-   * other action here does.
-   */
   async function handleMotionFails() {
     const cardId = commission.chairHighlightedCardId;
     if (!cardId || !highlightedCardType) return;
@@ -181,12 +152,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   // Keeps the Card Under Debate panel (and its buttons' disabled/"Working…"
   // state) showing the SAME card throughout a Motion Passes/Fails
   // resolution, even once the live chairHighlightedCardId has already
-  // gone null partway through that resolution's sequence of writes --
-  // see handleMotionPasses/handleMotionFails above for why that in-
-  // between moment exists at all. Once resolvingCardId itself clears
-  // (the whole action, not just its first write, has finished) and the
-  // live value is also null, the panel disappears in one clean step
-  // instead of mid-sequence.
+  // gone null partway through that resolution's sequence of writes.
   const debateCardId = commission.chairHighlightedCardId ?? resolvingCardId;
   const isResolvingMotion = resolvingCardId !== null;
 
@@ -230,13 +196,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
    * Change 4: Reconsider is disabled while isMotionLocked (Change 1) is
    * true -- a motion/debate/ballot in progress elsewhere on this
    * Commission's table means the ledger shouldn't also be changing
-   * underneath it from a reconsideration at the same moment. The
-   * alternative (allow it anytime) was considered and rejected: Change 1
-   * exists specifically to stop the ledger-adjacent state from moving
-   * mid-vote, and letting Reconsider bypass that same guard would defeat
-   * its own purpose for no real benefit -- a Commission that wants to
-   * reconsider something can always do it the instant the current motion
-   * resolves, which is rarely more than a few minutes away.
+   * underneath it from a reconsideration at the same moment.
    */
   const reconsiderLocked = isMotionLocked(commission);
 
@@ -253,8 +213,26 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       .map((c) => ({ type: "expenditure" as CardType, id: c.id, title: c.title })),
   ];
 
+  /** The Administrator's only per-card catalog action: Reconsider, shown only on an Applied card. No motion/second controls here -- those stay exclusive to Commissioners. */
+  function renderCardAction(item: CardDisplayItem): ReactNode {
+    if (item.status !== "applied") return null;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", alignItems: "flex-end" }}>
+        <button
+          type="button"
+          className="btn ghost sm"
+          onClick={() => void runAction(item.cardId, () => reconsiderCard(code, commissionId, loadedCatalog, item.cardId))}
+          disabled={reconsiderLocked || busyCardId === item.cardId}
+        >
+          Reconsider
+        </button>
+        {reconsiderLocked && <span style={{ fontSize: "11px", color: "var(--lb-muted)" }}>Finish the current motion first.</span>}
+      </div>
+    );
+  }
+
   return (
-    <div className="session-view manager-console">
+    <div className="lb-screen">
       <RoleHeaderBar
         viewLabel="Manager/Administrator View"
         shortRoleLabel="Administrator"
@@ -267,244 +245,138 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       {session.phase !== "debrief" && debateCardId && highlightedCard && debateEffect && (
         <CardUnderDebateBar cardTitle={highlightedCard.title} budgetEffectLabel={debateEffect.label} debateTimerEndsAt={commission.debateTimerEndsAt} />
       )}
-      <h1>Manager/Administrator Console — {code}</h1>
-      <p>{commission.name ?? `Table ${commissionId} (unnamed)`}</p>
+      <h1 className="lb-visually-hidden">
+        Manager/Administrator View — {tableName} — {code}
+      </h1>
 
-      <p>
-        Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
-      </p>
-      {session.phase === "rankPriorities" && phaseTimerMs !== null && (
-        <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>
-      )}
-      {session.phase === "mainGame" && mainGameMs !== null && (
-        <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
-      )}
-      <p>Chair: {chairName ?? "not yet elected"}</p>
+      <div className="lb-pad">
+        {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
 
-      {session.phase === "debrief" ? (
-        <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
-      ) : (
-        <>
-          <LedgerStatusBar ledger={commission.ledger} />
-          <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
-          {session.phase === "mainGame" && (
-            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
-          )}
-        </>
-      )}
-
-      {error && <p className="error">{error}</p>}
-
-      {/* Change 1: same duplicate-panel fix as every other role -- Pending Motion only shows while unseconded; once seconded, Card Under Debate folds the mover/seconder in as one line instead. */}
-      {session.phase === "mainGame" && motion && !motion.secondedBy && (
-        <div className="lobby-commission">
-          <h3>Pending Motion</h3>
-          <p>
-            {motionCard?.title ?? motion.cardId} — moved by {moverName}
-            {motionCard && (
-              <>
-                {" — "}
-                <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
-              </>
-            )}
-          </p>
-          <p>— awaiting second —</p>
-        </div>
-      )}
-
-      {/*
-        Keyed/gated on debateCardId, not commission.chairHighlightedCardId
-        directly -- see the resolvingCardId comment above. While a
-        resolution is in flight, this keeps showing the SAME card (and
-        disabled, "Working…" buttons) instead of vanishing the instant the
-        first of several writes lands, which is what made Motion
-        Passes/Fails feel like they shook or needed a second press.
-      */}
-      {debateCardId && (
-        <div className="lobby-commission chair-highlight">
-          <h3>Card Under Debate</h3>
-          <p>
-            {highlightedCard?.title ?? debateCardId}
-            {highlightedCard && debateCardType && (
-              <>
-                {" — "}
-                <BudgetEffectLabel label={getCardLedgerLabel(debateCardType, highlightedCard.amount, highlightedCard.direction).label} />
-              </>
-            )}
-          </p>
-          {showMotionProvenance && (
-            <p>
-              Moved by {moverName}, seconded by {seconderName}
-            </p>
-          )}
-          {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over -- Motion Passes/Fails no longer apply until the ballot resolves. Phase 7 B2: also frozen once Debrief starts. */}
-          {session.phase === "mainGame" && !commission.activeBallotId && (
-            <div className="chair-timer-controls">
-              {/* Fixed min-width (CSS) so "Working…" doesn't reflow the row. */}
-              <button className="motion-resolve-button" onClick={() => void handleMotionPasses()} disabled={isResolvingMotion}>
-                {isResolvingMotion ? "Working…" : "Motion Passes"}
-              </button>
-              <button className="motion-resolve-button" onClick={() => void handleMotionFails()} disabled={isResolvingMotion}>
-                {isResolvingMotion ? "Working…" : "Motion Fails"}
-              </button>
+        {session.phase === "debrief" ? (
+          <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              {session.phase === "rankPriorities" && phaseTimerMs !== null && (
+                <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+                  <span className="eyebrow">Rank Priorities time remaining</span>
+                  <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(phaseTimerMs)}</b>
+                </div>
+              )}
+              {session.phase === "mainGame" && mainGameMs !== null && (
+                <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+                  <span className="eyebrow">Main Game time remaining</span>
+                  <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
+                </div>
+              )}
+              <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+                <span className="eyebrow">Chair</span>
+                <b style={{ font: "800 22px/1 var(--lb-f-head)" }}>{chairName ?? "Not yet elected"}</b>
+              </div>
             </div>
-          )}
-        </div>
-      )}
 
-      {visibleBallot && (
-        <BallotMeasureModal
-          code={code}
-          commissionId={commissionId}
-          catalog={catalog}
-          card={visibleBallotCard}
-          ballot={visibleBallot}
-          onDismiss={() => setBallotDismissed(true)}
-        />
-      )}
+            <LedgerStatusBar ledger={commission.ledger} />
+            <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+            {session.phase === "mainGame" && (
+              <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+            )}
 
-      <AppliedChallengesPanel commission={commission} catalog={catalog} />
+            <AppliedChallengesPanel commission={commission} catalog={catalog} />
 
-      {canUseFreeCard && (
-        <div className="lobby-commission">
-          <h3>Chair's Free Card (one-time, $1 only)</h3>
-          <select
-            value={freeCardChoice ? `${freeCardChoice.type}:${freeCardChoice.id}` : ""}
-            onChange={(e) => {
-              const [type, id] = e.target.value.split(":");
-              setFreeCardChoice(type && id ? { type: type as CardType, id } : null);
-            }}
-          >
-            <option value="">Select a $1 card…</option>
-            {dollarCards.map((c) => (
-              <option key={`${c.type}:${c.id}`} value={`${c.type}:${c.id}`}>
-                {c.id} — {c.title} ({c.type})
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() =>
-              freeCardChoice &&
-              runAction(freeCardChoice.id, () =>
-                applyChairFreeCard(code, commissionId, catalog, session.phase, freeCardChoice.type, freeCardChoice.id),
-              )
-            }
-            disabled={!freeCardChoice || busyCardId === freeCardChoice.id}
-          >
-            Apply Free Card
-          </button>
-        </div>
-      )}
-
-      {session.phase !== "debrief" && <BallotMeasuresList commission={commission} catalog={catalog} />}
-
-      {/*
-        Change 3: Decisions So Far is gone -- status now lives directly on
-        each row below (Applied/Did not pass/Locked out, Priority still
-        green). No per-card Apply button here either (earlier change): the
-        only way to apply a normal card is Motion Passes on Card Under
-        Debate, once a motion has been moved and seconded.
-      */}
-      <CardStatusLegend />
-      <p className="budget-effect-legend">
-        Gain revenue and Save help the budget (deficit goes down). Spend and Lose revenue make it harder (deficit goes up).
-      </p>
-
-      <h2>Revenue Cards</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Impact</th>
-            <th>Budget effect</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {catalog.revenueCards.map((card) => {
-            const { status, label } = getCardStatus(commission, card.id, "revenue");
-            const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
-            const underDebate = debateCardId === card.id;
-            const effect = getCardLedgerLabel("revenue", card.amount, card.direction);
-            return (
-              <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
-                <td data-label="ID">{card.id}</td>
-                <td data-label="Title">
-                  {card.title}
-                  {isPriority && <span className="priority-badge">Priority</span>}
-                </td>
-                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
-                <td data-label="Budget effect">
-                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
-                </td>
-                <td data-label="Status">
-                  <span className={`card-status-badge status-${status}`}>{label}</span>
-                  {status === "applied" && (
+            {/* Change 1: Pending Motion only shows while unseconded; once seconded, Card Under Debate folds the mover/seconder in as one line instead. */}
+            {session.phase === "mainGame" && motion && !motion.secondedBy && (
+              <div className="panel">
+                <h3>Pending Motion</h3>
+                <p>
+                  {motionCard?.title ?? motion.cardId} — moved by {moverName}
+                  {motionCard && (
                     <>
-                      <button
-                        onClick={() => void runAction(card.id, () => reconsiderCard(code, commissionId, catalog, card.id))}
-                        disabled={reconsiderLocked || busyCardId === card.id}
-                      >
-                        Reconsider
-                      </button>
-                      {reconsiderLocked && <p className="reconsider-hint">Finish the current motion first.</p>}
+                      {" — "}
+                      <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
                     </>
                   )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </p>
+                <p style={{ color: "var(--lb-muted)" }}>— awaiting second —</p>
+              </div>
+            )}
 
-      <h2>Expenditure Cards</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Impact</th>
-            <th>Budget effect</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {catalog.expenditureCards.map((card) => {
-            const { status, label } = getCardStatus(commission, card.id, "expenditure");
-            const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
-            const underDebate = debateCardId === card.id;
-            const effect = getCardLedgerLabel("expenditure", card.amount, card.direction);
-            return (
-              <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
-                <td data-label="ID">{card.id}</td>
-                <td data-label="Title">
-                  {card.title}
-                  {isPriority && <span className="priority-badge">Priority</span>}
-                </td>
-                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
-                <td data-label="Budget effect">
-                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
-                </td>
-                <td data-label="Status">
-                  <span className={`card-status-badge status-${status}`}>{label}</span>
-                  {status === "applied" && (
-                    <>
-                      <button
-                        onClick={() => void runAction(card.id, () => reconsiderCard(code, commissionId, catalog, card.id))}
-                        disabled={reconsiderLocked || busyCardId === card.id}
-                      >
-                        Reconsider
-                      </button>
-                      {reconsiderLocked && <p className="reconsider-hint">Finish the current motion first.</p>}
-                    </>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            {debateCardId && (
+              <div className="lb-debate-panel">
+                <span className="eyebrow">Card Under Debate</span>
+                <h3 style={{ fontSize: "17px" }}>{highlightedCard?.title ?? debateCardId}</h3>
+                {highlightedCard && debateCardType && <BudgetEffectLabel label={getCardLedgerLabel(debateCardType, highlightedCard.amount, highlightedCard.direction).label} />}
+                {showMotionProvenance && (
+                  <p style={{ fontSize: "13px" }}>
+                    Moved by {moverName}, seconded by {seconderName}
+                  </p>
+                )}
+                {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over. Also frozen once Debrief starts. */}
+                {session.phase === "mainGame" && !commission.activeBallotId && (
+                  <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                    <button type="button" className="btn primary sm" style={{ minWidth: "9rem" }} onClick={() => void handleMotionPasses()} disabled={isResolvingMotion}>
+                      {isResolvingMotion ? "Working…" : "Motion Passes"}
+                    </button>
+                    <button type="button" className="btn ghost sm" style={{ minWidth: "9rem" }} onClick={() => void handleMotionFails()} disabled={isResolvingMotion}>
+                      {isResolvingMotion ? "Working…" : "Motion Fails"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {visibleBallot && (
+              <BallotMeasureModal
+                code={code}
+                commissionId={commissionId}
+                catalog={catalog}
+                card={visibleBallotCard}
+                ballot={visibleBallot}
+                onDismiss={() => setBallotDismissed(true)}
+              />
+            )}
+
+            {canUseFreeCard && (
+              <div className="panel">
+                <h3>Chair's Free Card (one-time, $1 only)</h3>
+                <select
+                  className="field inp"
+                  value={freeCardChoice ? `${freeCardChoice.type}:${freeCardChoice.id}` : ""}
+                  onChange={(e) => {
+                    const [type, id] = e.target.value.split(":");
+                    setFreeCardChoice(type && id ? { type: type as CardType, id } : null);
+                  }}
+                >
+                  <option value="">Select a $1 card…</option>
+                  {dollarCards.map((c) => (
+                    <option key={`${c.type}:${c.id}`} value={`${c.type}:${c.id}`}>
+                      {c.id} — {c.title} ({c.type})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn primary sm"
+                  onClick={() =>
+                    freeCardChoice &&
+                    runAction(freeCardChoice.id, () =>
+                      applyChairFreeCard(code, commissionId, catalog, session.phase, freeCardChoice.type, freeCardChoice.id),
+                    )
+                  }
+                  disabled={!freeCardChoice || busyCardId === freeCardChoice.id}
+                >
+                  Apply Free Card
+                </button>
+              </div>
+            )}
+
+            <BallotMeasuresList commission={commission} catalog={catalog} />
+
+            <CardStatusLegend />
+
+            <CardsSection catalog={catalog} commission={commission} defaultView="list" renderAction={renderCardAction} />
+          </>
+        )}
+      </div>
     </div>
   );
 }

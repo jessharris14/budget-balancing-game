@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { buildCommissionActivity } from "../services/activityFeed";
 import { getCatalog } from "../services/catalogService";
 import {
@@ -8,14 +8,15 @@ import {
   stopDebateTimer,
 } from "../services/chairService";
 import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
-import { getCardStatus, isCardAvailable, isSelectedPriorityCard, type CardType } from "../services/ledgerService";
+import type { CardDisplayItem } from "../services/cardDisplay";
+import { isCardAvailable, type CardType } from "../services/ledgerService";
 import { clearMotion, isMotionLocked, signalMotion, signalSecond } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardsSection from "./CardsSection";
 import CardUnderDebateBar from "./CardUnderDebateBar";
-import { cardStatusRowClass } from "./cardStatusDisplay";
 import CardStatusLegend from "./CardStatusLegend";
 import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
@@ -24,8 +25,7 @@ import PublicTrustGauge from "./PublicTrustGauge";
 import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
-import "./session.css";
-import "./ManagerConsole.css";
+import "./lb-components.css";
 
 interface Props {
   code: string;
@@ -47,6 +47,11 @@ interface Props {
  * apply/reconsider actions. During Main Game, any Commissioner can also
  * signal a motion/second (Phase 6 #1) -- a lightweight, non-gating signal,
  * same trust model as everything else here.
+ *
+ * Design step 1: visually restyled to the approved look (RoleHeaderBar/
+ * CardUnderDebateBar, BudgetTiles/BalanceTrack, the new PublicTrustGauge/
+ * PriorityPanel, StatusChip/BudgetEffectChip, and CardsSection's Swipe/
+ * List catalog) -- every field, control, and rule above is unchanged.
  */
 function CommissionerView({ code, session, commissionId, commission, isMyChair, myUid }: Props) {
   const [catalog, setCatalog] = useState<CardCatalog | null>(null);
@@ -122,8 +127,8 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     void setChairHighlightedCard(code, commissionId, null);
   }, [isMyChair, commission.chairHighlightedCardId, commission.cardsInPlay, code, commissionId]);
 
-  if (error && !catalog) return <p className="session-view error">{error}</p>;
-  if (!catalog) return <p className="session-view">Loading catalog…</p>;
+  if (error && !catalog) return <p className="lb-screen lb-pad error">{error}</p>;
+  if (!catalog) return <p className="lb-screen lb-pad">Loading catalog…</p>;
 
   const highlightedCard = commission.chairHighlightedCardId
     ? (catalog.revenueCards.find((c) => c.id === commission.chairHighlightedCardId) ??
@@ -253,38 +258,51 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
   }
 
   /**
-   * Shared Motion/Second cell for both catalog tables -- Main Game only,
-   * and only for cards not already played or locked out. Change 1: "I
-   * move to adopt" disappears from every OTHER card for every
-   * Commissioner and the Chair for as long as isMotionLocked is true --
-   * not just while a motion is pending unseconded (the original, too-
-   * narrow A2 scope), but for the whole debate through Card Under Debate
-   * and any Ballot Measure, until Motion Passes/Fails or the ballot
-   * resolves. A table can only ever be debating one card at a time.
+   * Shared Motion/Second action for the Cards section -- Main Game only,
+   * and only for cards not already played or locked out (status chip
+   * already says why otherwise, so no action renders). Change 1: "I move
+   * to adopt" disappears from every OTHER card for every Commissioner and
+   * the Chair for as long as isMotionLocked is true -- not just while a
+   * motion is pending unseconded, but for the whole debate through Card
+   * Under Debate and any Ballot Measure. Design step 1: that locked state
+   * now shows a disabled "Motion in progress" button instead of nothing,
+   * per the brief -- the RULE for when a real "I move to adopt" shows is
+   * unchanged.
    */
-  function renderMotionCell(cardId: string, cardType: CardType) {
+  function renderCardAction(item: CardDisplayItem): ReactNode {
     if (session.phase !== "mainGame") return null;
-    if (!isCardAvailable(commission, cardId)) return <span>—</span>;
-    if (motion?.cardId === cardId) {
+    if (!isCardAvailable(commission, item.cardId)) return null;
+    if (motion?.cardId === item.cardId) {
       if (!motion.secondedBy && motion.movedBy !== myUid) {
         return (
-          <button onClick={handleSecond} disabled={busy}>
+          <button type="button" className="btn primary sm" onClick={handleSecond} disabled={busy}>
             Second
           </button>
         );
       }
-      return <span>Motioned</span>;
+      return <span className="st">Motioned</span>;
     }
-    if (locked) return null;
+    if (locked) {
+      return (
+        <button type="button" className="btn off sm" disabled>
+          Motion in progress
+        </button>
+      );
+    }
     return (
-      <button onClick={() => handleMotion(cardId, cardType)} disabled={motionBusyCardId === cardId}>
-        {motionBusyCardId === cardId ? "Motioning…" : "I move to adopt"}
+      <button
+        type="button"
+        className="btn primary sm"
+        onClick={() => handleMotion(item.cardId, item.cardType)}
+        disabled={motionBusyCardId === item.cardId}
+      >
+        {motionBusyCardId === item.cardId ? "Motioning…" : "I move to adopt"}
       </button>
     );
   }
 
   return (
-    <div className="session-view manager-console">
+    <div className="lb-screen">
       <RoleHeaderBar
         viewLabel={isMyChair ? "Chair View" : "Commissioner View"}
         shortRoleLabel={isMyChair ? "Chair" : "Commissioner"}
@@ -301,267 +319,186 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           debateTimerEndsAt={commission.debateTimerEndsAt}
         />
       )}
-      <h1>{isMyChair ? "Board Chair" : "Commissioner"} View — {code}</h1>
-      <p>{commission.name ?? `Table ${commissionId} (unnamed)`}</p>
+      <h1 className="lb-visually-hidden">
+        {isMyChair ? "Chair" : "Commissioner"} View — {tableName} — {code}
+      </h1>
 
-      <p>
-        Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
-      </p>
-      {session.phase === "rankPriorities" && phaseTimerMs !== null && (
-        <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>
-      )}
-      {session.phase === "mainGame" && mainGameMs !== null && (
-        <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>
-      )}
-      <p>
-        Chair: {chairName ?? "not yet elected"}
-        {isMyChair && " (you)"}
-      </p>
+      <div className="lb-pad">
+        {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
 
-      {session.phase === "rankPriorities" && (
-        <div className="lobby-commission">
-          <h3>Rank Priorities</h3>
-          {isMyChair ? (
-            <div className="role-options">
-              {catalog.priorityCards.map((card) => {
-                const selected = commission.priority?.selectedCardId === card.id;
-                return (
-                  <label key={card.id} className={selected ? "priority-option-selected" : undefined}>
-                    <input
-                      type="radio"
-                      name="priority"
-                      checked={selected}
-                      disabled={busy}
-                      onChange={() => handleSelectPriority(card.id)}
-                    />
-                    {card.title} — {card.description}
-                    {selected && <span className="priority-selected-check"> ✓ Selected</span>}
-                  </label>
-                );
-              })}
-            </div>
-          ) : (
-            <ul>
-              {catalog.priorityCards.map((card) => {
-                const selected = commission.priority?.selectedCardId === card.id;
-                return (
-                  <li key={card.id} className={selected ? "priority-option-selected" : undefined}>
-                    {card.title} — {card.description}
-                    {selected && <span className="priority-selected-check"> ✓ Selected</span>}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <p className="priority-selected-line">
-            Selected:{" "}
-            {commission.priority?.selectedCardId
-              ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
-                commission.priority.selectedCardId)
-              : "not yet recorded by the Chair"}
-          </p>
-        </div>
-      )}
-
-      {session.phase === "debrief" ? (
-        <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
-      ) : (
-        <>
-          {session.phase === "mainGame" && (
-            <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
-          )}
-          <LedgerStatusBar ledger={commission.ledger} />
-          <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
-        </>
-      )}
-
-      {error && <p className="error">{error}</p>}
-
-      <AppliedChallengesPanel commission={commission} catalog={catalog} />
-
-      {/*
-        Change 1: Pending Motion only shows while this motion hasn't been
-        seconded yet -- once it has, Card Under Debate takes over as the
-        single place showing this card, folding in who moved/seconded as
-        one line, so the two panels never show the same thing twice.
-      */}
-      {session.phase === "mainGame" && motion && !motion.secondedBy && (
-        <div className="lobby-commission">
-          <h3>Pending Motion</h3>
-          <p>
-            {motionCard?.title ?? motion.cardId} — moved by {moverName}
-            {motionCard && (
-              <>
-                {" — "}
-                <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
-              </>
-            )}
-          </p>
-          <p>— awaiting second —</p>
-          {motion.movedBy !== myUid && (
-            <button onClick={handleSecond} disabled={busy}>
-              Second
-            </button>
-          )}
-          {isMyChair && (
-            <>
-              <p>No second? As Chair, you decide when to move on.</p>
-              <button onClick={() => void handleResetUnsecondedMotion()} disabled={busy}>
-                No Second — Reset Motion
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {session.phase !== "debrief" && (
-        <div className="lobby-commission chair-highlight">
-          <h3>Card Under Debate</h3>
-          {isMyChair ? (
-            <>
-              <select
-                value={selectedCardId}
-                onChange={(e) => handleHighlight(e.target.value)}
-                disabled={busy || locked}
-              >
-                <option value="">— none highlighted —</option>
-                <optgroup label="Revenue">
-                  {catalog.revenueCards.map((card) => (
-                    <option key={card.id} value={card.id}>
-                      {card.title} — {getCardLedgerLabel("revenue", card.amount, card.direction).label}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Expenditure">
-                  {catalog.expenditureCards.map((card) => (
-                    <option key={card.id} value={card.id}>
-                      {card.title} — {getCardLedgerLabel("expenditure", card.amount, card.direction).label}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-              {highlightedEffect && (
-                <p>
-                  <BudgetEffectLabel label={highlightedEffect.label} subtext={highlightedEffect.subtext} />
-                </p>
-              )}
-              {locked && <p>Debate in progress — resolve it (Motion Passes/Fails, or the Ballot Measure) before picking a different card.</p>}
-              {showMotionProvenance && (
-                <p>
-                  Moved by {moverName}, seconded by {seconderName}
-                </p>
-              )}
-              <div className="chair-timer-controls">
-                <button onClick={handleStartTimer} disabled={busy}>
-                  {commission.debateTimerEndsAt !== null ? "Restart Timer" : "Start Timer"}
-                </button>
-                <button onClick={handleStopTimer} disabled={busy || commission.debateTimerEndsAt === null}>
-                  Stop Timer
-                </button>
+        {session.phase === "rankPriorities" && (
+          <div className="panel">
+            <h3>Rank Priorities</h3>
+            {phaseTimerMs !== null && <p>Time remaining: {formatDuration(phaseTimerMs)}</p>}
+            {isMyChair ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {catalog.priorityCards.map((card) => {
+                  const selected = commission.priority?.selectedCardId === card.id;
+                  return (
+                    <label key={card.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "normal" }}>
+                      <input type="radio" name="priority" checked={selected} disabled={busy} onChange={() => handleSelectPriority(card.id)} />
+                      {card.title} — {card.description}
+                      {selected && <span style={{ color: "var(--lb-forest)", fontWeight: 700 }}> ✓ Selected</span>}
+                    </label>
+                  );
+                })}
               </div>
-            </>
-          ) : (
-            <>
-              <p>
-                {highlightedCard ? highlightedCard.title : "No card currently highlighted by the Chair."}
-                {highlightedEffect && (
+            ) : (
+              <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                {catalog.priorityCards.map((card) => {
+                  const selected = commission.priority?.selectedCardId === card.id;
+                  return (
+                    <li key={card.id} style={selected ? { color: "var(--lb-forest)", fontWeight: 700 } : undefined}>
+                      {card.title} — {card.description}
+                      {selected && " ✓ Selected"}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p style={{ fontWeight: 700 }}>
+              Selected:{" "}
+              {commission.priority?.selectedCardId
+                ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
+                  commission.priority.selectedCardId)
+                : "not yet recorded by the Chair"}
+            </p>
+          </div>
+        )}
+
+        {session.phase === "debrief" ? (
+          <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              {session.phase === "mainGame" && mainGameMs !== null && (
+                <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+                  <span className="eyebrow">Main Game time remaining</span>
+                  <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
+                </div>
+              )}
+              <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+                <span className="eyebrow">Chair</span>
+                <b style={{ font: "800 22px/1 var(--lb-f-head)" }}>
+                  {chairName ?? "Not yet elected"}
+                  {isMyChair && " (you)"}
+                </b>
+              </div>
+            </div>
+
+            <LedgerStatusBar ledger={commission.ledger} />
+            <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+            {session.phase === "mainGame" && (
+              <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+            )}
+
+            <AppliedChallengesPanel commission={commission} catalog={catalog} />
+
+            {/*
+              Change 1: Pending Motion only shows while this motion hasn't
+              been seconded yet -- once it has, Card Under Debate takes
+              over as the single place showing this card.
+            */}
+            {session.phase === "mainGame" && motion && !motion.secondedBy && (
+              <div className="panel">
+                <h3>Pending Motion</h3>
+                <p>
+                  {motionCard?.title ?? motion.cardId} — moved by {moverName}
+                  {motionCard && (
+                    <>
+                      {" — "}
+                      <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
+                    </>
+                  )}
+                </p>
+                <p style={{ color: "var(--lb-muted)" }}>— awaiting second —</p>
+                {motion.movedBy !== myUid && (
+                  <button type="button" className="btn primary sm" onClick={handleSecond} disabled={busy}>
+                    Second
+                  </button>
+                )}
+                {isMyChair && (
                   <>
-                    {" — "}
-                    <BudgetEffectLabel label={highlightedEffect.label} />
+                    <p style={{ color: "var(--lb-muted)", fontSize: "13px" }}>No second? As Chair, you decide when to move on.</p>
+                    <button type="button" className="btn ghost sm" onClick={() => void handleResetUnsecondedMotion()} disabled={busy}>
+                      No Second — Reset Motion
+                    </button>
                   </>
                 )}
-              </p>
-              {showMotionProvenance && (
-                <p>
-                  Moved by {moverName}, seconded by {seconderName}
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      )}
+              </div>
+            )}
 
-      {session.phase !== "debrief" && <BallotMeasuresList commission={commission} catalog={catalog} />}
+            <div className="lb-debate-panel">
+                <span className="eyebrow">Card Under Debate</span>
+                {isMyChair ? (
+                  <>
+                    <select
+                      className="field inp"
+                      value={selectedCardId}
+                      onChange={(e) => handleHighlight(e.target.value)}
+                      disabled={busy || locked}
+                    >
+                      <option value="">— none highlighted —</option>
+                      <optgroup label="Revenue">
+                        {catalog.revenueCards.map((card) => (
+                          <option key={card.id} value={card.id}>
+                            {card.title} — {getCardLedgerLabel("revenue", card.amount, card.direction).label}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Expenditure">
+                        {catalog.expenditureCards.map((card) => (
+                          <option key={card.id} value={card.id}>
+                            {card.title} — {getCardLedgerLabel("expenditure", card.amount, card.direction).label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                    {highlightedEffect && <BudgetEffectLabel label={highlightedEffect.label} />}
+                    {locked && (
+                      <p style={{ color: "var(--lb-muted)", fontSize: "13px" }}>
+                        Debate in progress — resolve it (Motion Passes/Fails, or the Ballot Measure) before picking a different card.
+                      </p>
+                    )}
+                    {showMotionProvenance && (
+                      <p style={{ fontSize: "13px" }}>
+                        Moved by {moverName}, seconded by {seconderName}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                      <button type="button" className="btn ghost sm" onClick={handleStartTimer} disabled={busy}>
+                        {commission.debateTimerEndsAt !== null ? "Restart Timer" : "Start Timer"}
+                      </button>
+                      <button type="button" className="btn ghost sm" onClick={handleStopTimer} disabled={busy || commission.debateTimerEndsAt === null}>
+                        Stop Timer
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {highlightedCard ? (
+                      <h3 style={{ fontSize: "17px" }}>{highlightedCard.title}</h3>
+                    ) : (
+                      <p style={{ color: "var(--lb-muted)" }}>No card currently highlighted by the Chair.</p>
+                    )}
+                    {highlightedEffect && <BudgetEffectLabel label={highlightedEffect.label} />}
+                    {showMotionProvenance && (
+                      <p style={{ fontSize: "13px" }}>
+                        Moved by {moverName}, seconded by {seconderName}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
 
-      {/* Change 3: Decisions So Far is gone -- status now lives directly on each row below. */}
-      <CardStatusLegend />
-      <p className="budget-effect-legend">
-        Gain revenue and Save help the budget (deficit goes down). Spend and Lose revenue make it harder (deficit goes up).
-      </p>
+            <BallotMeasuresList commission={commission} catalog={catalog} />
 
-      <h2>Revenue Cards</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Impact</th>
-            <th>Budget effect</th>
-            <th>Status</th>
-            {session.phase === "mainGame" && <th></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {catalog.revenueCards.map((card) => {
-            const { status, label } = getCardStatus(commission, card.id, "revenue");
-            const isPriority = isSelectedPriorityCard(catalog, commission, "revenue", card.id);
-            const underDebate = commission.chairHighlightedCardId === card.id;
-            const effect = getCardLedgerLabel("revenue", card.amount, card.direction);
-            return (
-              <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
-                <td data-label="Title">
-                  {card.title}
-                  {isPriority && <span className="priority-badge">Priority</span>}
-                </td>
-                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
-                <td data-label="Budget effect">
-                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
-                </td>
-                <td data-label="Status">
-                  <span className={`card-status-badge status-${status}`}>{label}</span>
-                </td>
-                {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "revenue")}</td>}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            <CardStatusLegend />
 
-      <h2>Expenditure Cards</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Impact</th>
-            <th>Budget effect</th>
-            <th>Status</th>
-            {session.phase === "mainGame" && <th></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {catalog.expenditureCards.map((card) => {
-            const { status, label } = getCardStatus(commission, card.id, "expenditure");
-            const isPriority = isSelectedPriorityCard(catalog, commission, "expenditure", card.id);
-            const underDebate = commission.chairHighlightedCardId === card.id;
-            const effect = getCardLedgerLabel("expenditure", card.amount, card.direction);
-            return (
-              <tr key={card.id} className={cardStatusRowClass(status, isPriority, underDebate)}>
-                <td data-label="Title">
-                  {card.title}
-                  {isPriority && <span className="priority-badge">Priority</span>}
-                </td>
-                <td data-label="Impact">{card.impactBullets.join("; ")}</td>
-                <td data-label="Budget effect">
-                  <BudgetEffectLabel label={effect.label} subtext={effect.subtext} />
-                </td>
-                <td data-label="Status">
-                  <span className={`card-status-badge status-${status}`}>{label}</span>
-                </td>
-                {session.phase === "mainGame" && <td>{renderMotionCell(card.id, "expenditure")}</td>}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            <CardsSection catalog={catalog} commission={commission} defaultView={isMyChair ? "list" : "swipe"} renderAction={renderCardAction} />
+          </>
+        )}
+      </div>
     </div>
   );
 }

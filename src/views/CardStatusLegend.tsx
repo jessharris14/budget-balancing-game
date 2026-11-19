@@ -1,26 +1,19 @@
-import "./ManagerConsole.css";
+import "./lb-components.css";
 
 /**
- * Change 3: shared color + text legend for the Revenue/Expenditure card
- * tables' row highlighting. Text labels are shown here (and on each
- * affected row) alongside color, not instead of it -- color alone isn't
- * enough on a phone in sunlight or for color blindness.
+ * Design step 1: shared status-chip legend for the card catalog, matching
+ * the StatusChip look exactly (same classes, same icons) so the legend
+ * and the cards it explains never drift apart. Text labels sit beside
+ * color here too -- never color alone.
  */
 function CardStatusLegend() {
   return (
-    <div className="card-status-legend">
-      <span>
-        <span className="legend-swatch legend-applied" /> Applied
-      </span>
-      <span>
-        <span className="legend-swatch legend-did-not-pass" /> Did not pass / Failed ballot
-      </span>
-      <span>
-        <span className="legend-swatch legend-priority" /> Priority
-      </span>
-      <span>
-        <span className="legend-swatch legend-locked-out" /> Locked out
-      </span>
+    <div className="lb-legend" aria-label="Card status key">
+      <span className="st applied">✓ Applied</span>
+      <span className="st fail">✕ Did not pass</span>
+      <span className="st prio">★ Priority</span>
+      <span className="st lock">Locked out</span>
+      <span className="st">Available</span>
     </div>
   );
 }

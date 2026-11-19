@@ -1,10 +1,15 @@
 /*
- * Pop-ups, sticky bars, Activity dropdown: shared variables so the two
- * stacked sticky bars line up exactly (bar 2's `top` must match bar 1's
- * height) and a future branding pass has one place to retune both.
+ * Design step 1: bar 1 (role header) and bar 2 (Card Under Debate),
+ * restyled to the approved look (River Blue bar 1, opaque white bar 2
+ * with a Sky Blue bottom border) while keeping the exact structure/
+ * breakpoints from the earlier accessibility fixes: bar 1 never
+ * truncates the role name or the session code on a phone (its own short
+ * role word + code chip on one line, table/phase demoted to a smaller
+ * second line), and both bars stay fully opaque with z-index above
+ * ordinary page content.
  */
 :root {
-  --role-header-bar-height: 3.25rem;
+  --role-header-bar-height: 3.5rem;
   --debate-bar-height: 2.75rem;
 }
 
@@ -19,26 +24,22 @@
   min-height: var(--role-header-bar-height);
   box-sizing: border-box;
   /*
-   * Full-bleed: .session-view (the parent every role page is built on)
-   * has its own 1.5rem horizontal padding, which would otherwise eat
-   * into the tight budget the phone layout needs (Fix 2) and leave an
-   * odd gutter around what's supposed to be an edge-to-edge sticky bar.
-   * Pulling out by that same 1.5rem and re-adding it as this bar's own
-   * padding keeps the bar's CONTENT aligned with the page below it while
-   * its background spans the full width.
+   * This bar is a direct child of .lb-screen, which itself has NO
+   * horizontal padding (only .lb-pad, further down the page, does) -- so
+   * it already spans .lb-screen's full width with zero margin needed.
+   * The 16px here is purely this bar's own content gutter, matching
+   * .lb-pad's 16px so its content lines up with the page below it.
    */
-  margin: 0 -1.5rem;
-  padding: 0.4rem 1.5rem;
-  /* Fully opaque -- see Fix 1: a translucent bar let scrolled table rows
-     show through it, which made it look broken rather than "on top." */
-  background: #ffffff;
-  color: #1a1530;
-  border-bottom: 1px solid #ccc;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  padding: 0.4rem 16px;
+  background: var(--lb-river);
+  color: #fff;
+  font-family: var(--lb-f-body);
+  box-shadow: 0 2px 8px rgba(29, 66, 137, 0.25);
   font-size: 0.95rem;
 }
 
 .role-header-bar__title-full {
+  font-family: var(--lb-f-head);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -53,8 +54,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.75rem;
-  color: #555;
+  font: 500 0.75rem var(--lb-f-body);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .role-header-bar__spacer {
@@ -62,8 +63,8 @@
   min-width: 0.5rem;
 }
 
-/* Phone-only pieces (Fix 2): hidden on laptop widths, where the title and
-   meta above already show everything in full without being cut off. */
+/* Phone-only pieces: hidden on laptop widths, where the title and meta
+   above already show everything in full without being cut off. */
 .role-header-bar__role-short,
 .role-header-bar__code-chip,
 .role-header-bar__secondary {
@@ -80,28 +81,28 @@
   gap: 0.5rem;
   min-height: var(--debate-bar-height);
   box-sizing: border-box;
-  /* Full-bleed, same reasoning as .role-header-bar above. */
-  margin: 0 -1.5rem;
-  padding: 0.4rem 1.5rem;
-  /* Fully opaque, solid lavender tint -- same purple identity as before
-     (rgba(74, 42, 138, 0.06)) but with zero transparency, so nothing
-     scrolled underneath it is ever visible through it. Every text color
-     below is checked against this exact background for >= 4.5:1 contrast. */
-  background: #efe9fa;
-  color: #2a2250;
-  border-bottom: 1px solid #c9b8ea;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  /* Same reasoning as .role-header-bar above: no margin needed, .lb-screen has no padding to counteract. */
+  padding: 0.4rem 16px;
+  /* Fully opaque -- a scrolled card list must never show through this. */
+  background: #fff;
+  color: var(--lb-ink);
+  font-family: var(--lb-f-body);
+  border-bottom: 4px solid var(--lb-sky);
+  box-shadow: 0 5px 12px rgba(37, 42, 54, 0.14);
   font-size: 0.85rem;
   overflow: hidden;
 }
 
 .debate-bar__label {
   flex-shrink: 0;
-  color: #5c5370; /* 6.05:1 on #efe9fa */
+  font: 700 10px/1 var(--lb-f-head);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lb-muted);
 }
 
 .debate-bar__title {
-  font-weight: 700;
+  font: 700 14px/1.2 var(--lb-f-head);
   flex: 1 1 auto;
   min-width: 3rem;
   overflow: hidden;
@@ -112,18 +113,26 @@
 .debate-bar__effect {
   flex-shrink: 0;
   font-weight: 600;
-  color: #4a2a8a; /* 8.90:1 on #efe9fa */
 }
 
 .debate-bar__timer {
   flex-shrink: 0;
   margin-left: auto;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--lb-river);
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font: 700 0.9rem/1 var(--lb-f-head);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .debate-bar__timer--urgent {
-  color: #b00020; /* 6.18:1 on #efe9fa */
+  background: var(--lb-red);
+  color: var(--lb-ink);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -142,7 +151,10 @@
   }
 }
 
-/* Activity button + dropdown/sheet */
+/* Activity button + dropdown/sheet -- shared with the Facilitator
+   Console's own (unrestyled) top bar, so the BASE look here stays
+   neutral/legible on any background; the River Blue "ghost button" look
+   is scoped to .role-header-bar specifically, just below. */
 
 .activity-feed {
   position: relative;
@@ -155,12 +167,23 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  border: 1px solid #ccc;
-  border-radius: 0.4rem;
+  font: 600 0.85rem var(--lb-f-body);
+  border: 1.5px solid #b9c2cc;
+  border-radius: 999px;
   background: #fff;
-  color: #1a1530;
+  color: var(--lb-ink);
   cursor: pointer;
+}
+
+.role-header-bar .activity-feed-button {
+  border-color: rgba(255, 255, 255, 0.75);
+  background: transparent;
+  color: #fff;
+}
+
+.role-header-bar .activity-feed-button[aria-expanded="true"] {
+  background: #fff;
+  color: var(--lb-river);
 }
 
 .activity-feed-button__icon {
@@ -172,14 +195,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.1rem;
-  height: 1.1rem;
-  padding: 0 0.25rem;
-  border-radius: 999px;
-  background: #b00020;
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--lb-sun);
+  color: var(--lb-ink);
+  font: 700 11px/20px var(--lb-f-body);
   vertical-align: middle;
 }
 
@@ -191,26 +213,28 @@
   max-width: 90vw;
   max-height: 60vh;
   background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  border-radius: 14px;
+  border-bottom: 4px solid var(--lb-river);
+  box-shadow: 0 12px 24px rgba(37, 42, 54, 0.25);
   display: flex;
   flex-direction: column;
   z-index: 90;
+  font-family: var(--lb-f-body);
+  color: var(--lb-ink);
 }
 
 .activity-feed-panel__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid #eee;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--lb-line);
   flex-shrink: 0;
 }
 
 .activity-feed-panel__header h3 {
   margin: 0;
-  font-size: 1rem;
+  font: 700 15px var(--lb-f-head);
 }
 
 .activity-feed-panel__close {
@@ -225,39 +249,44 @@
 
 .activity-feed-panel__list {
   overflow-y: auto;
-  padding: 0.2rem 0.8rem 0.6rem;
+  padding: 0 0 4px;
 }
 
 .activity-feed-entry {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.45rem 0;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 0.85rem;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--lb-line);
+  font-size: 13.5px;
 }
 
 .activity-feed-entry:last-child {
   border-bottom: none;
 }
 
+/* New-since-last-opened entries are lightly highlighted while the panel stays open. */
+.activity-feed-entry--new {
+  background: #f2f7fe;
+}
+
 .activity-feed-entry__time {
-  flex-shrink: 0;
-  width: 4.4rem;
-  color: #888;
+  font: 600 12px/1.3 var(--lb-f-body);
+  color: var(--lb-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .activity-feed-empty {
-  color: #888;
-  padding: 0.5rem 0;
+  color: var(--lb-muted);
+  padding: 12px 16px;
 }
 
 @media (max-width: 480px) {
   :root {
-    /* Two lines on phone now (Fix 2): a short role + code chip + compact
-       Activity row, then a smaller table/phase row underneath. Tuned so
-       bar 1 stays under ~72px and bar 1 + bar 2 together stay under
-       ~120px -- both checked by screenshot at 320px and 375px. */
+    /* Two lines on phone: a short role + code chip + compact Activity
+       row, then a smaller table/phase row underneath. Tuned so bar 1
+       stays under ~72px and bar 1 + bar 2 together stay under ~120px --
+       both checked by screenshot at 320px and 375px. */
     --role-header-bar-height: 4.3rem;
     --debate-bar-height: 2.75rem;
   }
@@ -285,8 +314,7 @@
   .role-header-bar__role-short {
     display: inline-block;
     flex-shrink: 0;
-    font-weight: 700;
-    font-size: 0.86rem;
+    font: 700 0.95rem var(--lb-f-head);
     white-space: nowrap;
   }
 
@@ -294,14 +322,13 @@
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
-    padding: 0.1rem 0.35rem;
-    background: #efe9fa;
-    border: 1px solid #c9b8ea;
-    border-radius: 0.3rem;
-    color: #2a2250;
-    font-weight: 700;
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
+    padding: 0.1rem 0.4rem;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.75);
+    border-radius: 8px;
+    color: #fff;
+    font: 700 0.72rem var(--lb-f-head);
+    letter-spacing: 0.1em;
     white-space: nowrap;
   }
 
@@ -314,8 +341,8 @@
     flex-basis: 100%; /* forces this onto its own line, regardless of how much room row 1 used */
     gap: 0.5rem;
     min-width: 0;
-    font-size: 0.72rem;
-    color: #555;
+    font: 500 0.72rem var(--lb-f-body);
+    color: rgba(255, 255, 255, 0.85);
   }
 
   .role-header-bar__table-secondary {
@@ -341,9 +368,9 @@
     display: none;
   }
 
-  /* Fix 2: icon + badge only -- the word "Activity" would be the first
-     thing squeezed out on a 320px screen, so it's hidden here rather than
-     the role name or code, which must never truncate. */
+  /* icon + badge only -- the word "Activity" would be the first thing
+     squeezed out on a 320px screen, so it's hidden here rather than the
+     role name or code, which must never truncate. */
   .activity-feed-button {
     padding: 0.22rem 0.4rem;
     gap: 0.25rem;
