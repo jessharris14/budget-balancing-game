@@ -257,6 +257,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     <div className="session-view manager-console">
       <RoleHeaderBar
         viewLabel="Manager/Administrator View"
+        shortRoleLabel="Administrator"
         tableName={tableName}
         code={code}
         phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}

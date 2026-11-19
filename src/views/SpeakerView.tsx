@@ -138,6 +138,7 @@ function SpeakerView({ code, session, speaker }: Props) {
     <div className="session-view manager-console">
       <RoleHeaderBar
         viewLabel="Public Hearing Speaker View"
+        shortRoleLabel="Speaker"
         tableName={tableName}
         code={code}
         phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}

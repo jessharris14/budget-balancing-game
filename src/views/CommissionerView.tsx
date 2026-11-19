@@ -287,6 +287,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
     <div className="session-view manager-console">
       <RoleHeaderBar
         viewLabel={isMyChair ? "Chair View" : "Commissioner View"}
+        shortRoleLabel={isMyChair ? "Chair" : "Commissioner"}
         tableName={tableName}
         code={code}
         phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}

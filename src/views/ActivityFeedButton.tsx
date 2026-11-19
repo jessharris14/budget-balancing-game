@@ -77,8 +77,18 @@ function ActivityFeedButton({ entries, storageKey, showTableName }: Props) {
 
   return (
     <div className="activity-feed">
-      <button ref={buttonRef} type="button" className="activity-feed-button" onClick={handleToggle} aria-expanded={open}>
-        Activity
+      <button
+        ref={buttonRef}
+        type="button"
+        className="activity-feed-button"
+        onClick={handleToggle}
+        aria-expanded={open}
+        aria-label="Activity"
+      >
+        <span className="activity-feed-button__icon" aria-hidden="true">
+          🔔
+        </span>
+        <span className="activity-feed-button__label">Activity</span>
         {newCount > 0 && (
           <span className="activity-feed-dot" aria-label={`${newCount} new`}>
             {newCount > 9 ? "9+" : newCount}
