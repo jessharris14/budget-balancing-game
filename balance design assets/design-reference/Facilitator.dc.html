@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Facilitator Console</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5d63f1ee5fdf67233d27dde62a18ba2">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.tbtn{cursor:pointer}
+</style>
+</helmet>
+<div class="lp">
+
+  <!-- top bar -->
+  <div class="topbar">
+    <img src="/_blob/20bebcb301e3e494d675c4db884e4189" alt="Let's Balance!" style="height: 52px; width: auto;">
+    <span class="title">Facilitator Console</span>
+    <span class="code" aria-label="Session code YMKL">YMKL</span>
+    <div class="grow">
+      <div class="stat"><span>Phase</span><b>Main Game</b></div>
+      <div class="stat"><span>Main Game clock</span><b>42:49</b></div>
+      <div class="stat"><span>Next challenge in</span><b>06:12</b></div>
+      <button type="button" class="tbtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Activity <span class="badge">2</span></button>
+      <button type="button" class="tbtn"><img src="/_blob/1aa262a416d8a739cf29f6f0638dbca2" alt="" style="width:22px;height:22px">Open Public View</button>
+      <button type="button" class="tbtn solid">Next Phase →</button>
+    </div>
+  </div>
+
+  <div class="cols">
+
+    <!-- left: tables -->
+    <div>
+      <div class="tcard">
+        <div class="thead">
+          <h2>Kent</h2>
+          <div class="status def" role="status">▼ Deficit $6</div>
+        </div>
+        <div class="mini">
+          <div class="m" style="background: var(--rev);"><span>Revenue</span><b>$101</b></div>
+          <div class="m" style="background: var(--exp);"><span>Expenditures</span><b>$107</b></div>
+          <div class="m"><span>Reserves</span><b style="color: var(--forest);">$20</b></div>
+          <div class="m"><span>Points if ended now</span><b>2</b></div>
+        </div>
+        <div style="font-size: 13px; color: var(--muted);"><b style="color: var(--ink);">Manager/Administrator:</b> Admin &nbsp;·&nbsp; <b style="color: var(--ink);">Chair:</b> Comm1 &nbsp;·&nbsp; <b style="color: var(--ink);">Commissioners</b> (2) &nbsp;·&nbsp; <b style="color: var(--ink);">Speakers</b> (1)</div>
+        <div>
+          <span class="eyebrow">Challenges applied</span>
+          <ul class="chal" style="margin-top: 8px;">
+            <li><img src="/_blob/0084c13b845bba00d8c782d8658a0dd2" alt=""><b>Eliminate Waste, Fraud and Abuse</b><span class="fx help" style="margin-left:auto"><i>▲</i>Save $1</span></li>
+          </ul>
+        </div>
+        <button type="button" class="btn ghost sm" style="align-self:flex-start;">Push selected challenge to Kent</button>
+        <div class="det"><span>Details: Public Trust, Priority, Decisions So Far, Speakers</span><span aria-hidden="true">▾</span></div>
+      </div>
+
+      <div class="tcard">
+        <div class="thead">
+          <h2>Ottawa</h2>
+          <div class="status sur" role="status">▲ Surplus $1</div>
+        </div>
+        <div class="mini">
+          <div class="m" style="background: var(--rev);"><span>Revenue</span><b>$102</b></div>
+          <div class="m" style="background: var(--exp);"><span>Expenditures</span><b>$101</b></div>
+          <div class="m"><span>Reserves</span><b style="color: var(--forest);">$16</b></div>
+          <div class="m"><span>Points if ended now</span><b>3</b></div>
+        </div>
+        <div style="font-size: 13px; color: var(--muted);"><b style="color: var(--ink);">Manager/Administrator:</b> Admin2 &nbsp;·&nbsp; <b style="color: var(--ink);">Chair:</b> Comm5 &nbsp;·&nbsp; <b style="color: var(--ink);">Commissioners</b> (3) &nbsp;·&nbsp; <b style="color: var(--ink);">Speakers</b> (1)</div>
+        <div>
+          <span class="eyebrow">Challenges applied</span>
+          <ul class="chal" style="margin-top: 8px;">
+            <li><img src="/_blob/d010037fd869dcdac7847ea1fe51437c" alt=""><b>Natural Disaster</b><span class="fx hard" style="margin-left:auto"><i>▼</i>Spend $4 from reserves</span></li>
+            <li><img src="/_blob/73fe181b48200a8b67baffdc8d032953" alt=""><b>Major Fire</b><span class="fx hard" style="margin-left:auto"><i>▼</i>Spend $1</span></li>
+          </ul>
+        </div>
+        <button type="button" class="btn ghost sm" style="align-self:flex-start;">Push selected challenge to Ottawa</button>
+        <div class="det"><span>Details: Public Trust, Priority, Decisions So Far, Speakers</span><span aria-hidden="true">▾</span></div>
+      </div>
+    </div>
+
+    <!-- right: challenge cards (stays in view) -->
+    <div class="sticky">
+      <div class="ctable">
+        <div class="ch"><h2>Challenge Cards</h2><span style="font-size:12px; color: var(--muted); max-width: 230px; text-align:right;">Pushing a Challenge applies its budget effect immediately. Challenges can't be declined.</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/d010037fd869dcdac7847ea1fe51437c" alt=""><div class="tt"><b>Natural Disaster</b><span>Tornado damage; FEMA covers part, $4 in reserves needed for recovery</span></div><span class="fx hard"><i>▼</i>Spend $4 from reserves</span></div>
+        <div class="crow sel"><span class="radio on" role="img" aria-label="Selected"></span><img src="/_blob/87904b6361b5957da813f164ed56c22c" alt=""><div class="tt"><b>Increase in Mandated State Payments</b><span>Medicaid state payments mandated up 10%</span></div><span class="fx hard"><i>▼</i>Spend $1</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/0084c13b845bba00d8c782d8658a0dd2" alt=""><div class="tt"><b>Eliminate Waste, Fraud and Abuse</b><span>Efficiency study found savings</span></div><span class="fx help"><i>▲</i>Save $1</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/4e83cc62717e3b6246e2a7ed319b1d79" alt=""><div class="tt"><b>Reduction in Final Property Values</b><span>Final values 3% below projection</span></div><span class="fx hard"><i>▼</i>Lose $2 revenue</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/73fe181b48200a8b67baffdc8d032953" alt=""><div class="tt"><b>Major Fire</b><span>Neighborhood fire; shelter operating costs</span></div><span class="fx hard"><i>▼</i>Spend $1</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/591267d619de26b6fcdc99f3df02b171" alt=""><div class="tt"><b>Increased Healthcare Costs</b><span>Employee claims drove premium increase</span></div><span class="fx hard"><i>▼</i>Spend $2</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/002ccdc1a109f194e949521bb9185d06" alt=""><div class="tt"><b>Emergency Road Repair</b><span>Sinkhole on a major roadway</span></div><span class="fx hard"><i>▼</i>Spend $1</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/23f63b99b1ab1cd389a955bc384885ea" alt=""><div class="tt"><b>Decrease in State Shared Revenue</b><span>Sales tax forecast down 10%</span></div><span class="fx hard"><i>▼</i>Lose $1 revenue</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/f104d05470e4a5b7005f998442bd4476" alt=""><div class="tt"><b>Fuel/Utility Increase</b><span>Rising fuel/oil/utility costs</span></div><span class="fx hard"><i>▼</i>Spend $1</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/09096dbe3aca253ae6c4a58f2f1f1cb8" alt=""><div class="tt"><b>Economic Opportunity</b><span>Incentive package to land 1,000 new jobs</span></div><span class="fx hard"><i>▼</i>Spend $1</span></div>
+        <div class="crow"><span class="radio" role="img" aria-label="Not selected"></span><img src="/_blob/15492217574a3d5128a71a671f4ac629" alt=""><div class="tt"><b>Replace Supervisor of Election Equipment</b><span>State-mandated voting equipment replacement</span></div><span class="fx hard"><i>▼</i>Spend $1</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1010}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
