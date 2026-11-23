@@ -393,3 +393,119 @@
     max-height: 70vh;
   }
 }
+
+/* ---------- Desktop (>=1024px), screens 11/12/13 ---------- */
+/*
+ * Specificity note: lb-components.css's `.lb-screen img { display: block }`
+ * is class+type (0,1,1), which beats a lone `.role-header-bar__logo`
+ * class (0,1,0) regardless of source order -- so hiding this on phone
+ * needs the same shape of selector to actually win.
+ */
+.role-header-bar img.role-header-bar__logo {
+  display: none;
+}
+
+.role-header-bar__desktop-stats {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --role-header-bar-height: 64px;
+  }
+
+  .role-header-bar {
+    gap: 20px;
+    padding: 0 32px;
+  }
+
+  .role-header-bar img.role-header-bar__logo {
+    display: block;
+    height: 44px;
+    width: auto;
+    flex: none;
+  }
+
+  /* The laptop-width one-liner (title-full/meta) is replaced by the same
+     role-short/code-chip/secondary elements phone uses, restyled here --
+     reusing them (instead of new desktop-only text) keeps exactly one
+     "Administrator"/one "YMKL" text node in the DOM at any width. */
+  .role-header-bar__title-full,
+  .role-header-bar__meta,
+  .role-header-bar__spacer {
+    display: none;
+  }
+
+  .role-header-bar__role-short {
+    display: inline-block;
+    font: 700 18px/1 var(--lb-f-head);
+  }
+
+  .role-header-bar__code-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.75);
+    border-radius: 8px;
+    color: #fff;
+    font: 700 0.8rem var(--lb-f-head);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .role-header-bar__secondary {
+    display: flex;
+    flex-basis: auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font: 500 12px/1 var(--lb-f-body);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .role-header-bar__table-secondary,
+  .role-header-bar__phase-secondary {
+    white-space: nowrap;
+  }
+
+  .role-header-bar__desktop-stats {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-left: auto;
+  }
+
+  .role-header-bar__desktop-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .role-header-bar__desktop-stat span {
+    font: 600 10px/1 var(--lb-f-head);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .role-header-bar__desktop-stat b {
+    font: 700 18px/1 var(--lb-f-head);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .debate-bar {
+    padding: 10px 32px;
+    min-height: 60px;
+    font-size: 0.95rem;
+  }
+
+  .debate-bar__title {
+    font-size: 16px;
+  }
+
+  .activity-feed-panel {
+    width: 420px;
+    max-height: 70vh;
+  }
+}

@@ -4,6 +4,7 @@ import BudgetEffectLabel from "./BudgetEffectLabel";
 import CardIcon from "./CardIcon";
 import StatusChip, { PriorityChip } from "./StatusChip";
 import { uiIconUrl } from "../services/icons";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import "./lb-components.css";
 
 interface Props {
@@ -29,10 +30,39 @@ function isTypingTarget(el: Element | null): boolean {
  * changes card STATUSES (not which cards exist) never resets the index,
  * since it's plain React state untouched by a re-render with new props.
  */
+/** One card's full content -- shared between the phone swipe track and the desktop grid, which differ only in how the slides are laid out around this. */
+function Slide({ item, renderAction }: { item: CardDisplayItem; renderAction?: (item: CardDisplayItem) => ReactNode }) {
+  return (
+    <div className={`slide${item.status === "lockedOut" ? " is-lock" : ""}`}>
+      <div className="top">
+        <CardIcon cardId={item.cardId} cardType={item.cardType} />
+        <div className="tt">
+          <div className="chips">
+            <StatusChip status={item.status} label={item.statusLabel} />
+            {item.isPriority && <PriorityChip />}
+          </div>
+          <h3>{item.title}</h3>
+        </div>
+      </div>
+      <span className="imp-h">Impact</span>
+      <ul className="imp">
+        {item.impactBullets.map((bullet, i) => (
+          <li key={i}>{bullet}</li>
+        ))}
+      </ul>
+      <div className="foot">
+        <BudgetEffectLabel label={item.effectLabel} />
+        {renderAction?.(item)}
+      </div>
+    </div>
+  );
+}
+
 function CardCarousel({ items, renderAction }: Props) {
   const cardType = items[0]?.cardType ?? "revenue";
   const [idxByType, setIdxByType] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useIsDesktop();
 
   const idx = Math.min(idxByType[cardType] ?? 0, Math.max(0, items.length - 1));
 
@@ -41,6 +71,7 @@ function CardCarousel({ items, renderAction }: Props) {
   }
 
   useEffect(() => {
+    if (isDesktop) return; // the desktop grid shows every card at once -- no "current slide" to step through.
     function onKeyDown(e: KeyboardEvent) {
       if (isTypingTarget(document.activeElement)) return;
       if (e.key === "ArrowLeft") setIdx(idx - 1);
@@ -49,37 +80,30 @@ function CardCarousel({ items, renderAction }: Props) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, cardType, items.length]);
+  }, [idx, cardType, items.length, isDesktop]);
 
   if (items.length === 0) return null;
+
+  // Desktop (screen 11): all cards at once in a 3-column grid, equal row
+  // height, no arrows/dots/counter -- scrolling the page replaces paging
+  // through slides. Same Slide markup and the same renderAction callback,
+  // just without the carousel chrome around it.
+  if (isDesktop) {
+    return (
+      <div className="gridc">
+        {items.map((item) => (
+          <Slide key={item.cardId} item={item} renderAction={renderAction} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <div className="vp">
         <div className="trk" style={{ transform: `translateX(${-(idx * SLIDE_WIDTH)}px)` }}>
           {items.map((item) => (
-            <div key={item.cardId} className={`slide${item.status === "lockedOut" ? " is-lock" : ""}`}>
-              <div className="top">
-                <CardIcon cardId={item.cardId} cardType={item.cardType} />
-                <div className="tt">
-                  <div className="chips">
-                    <StatusChip status={item.status} label={item.statusLabel} />
-                    {item.isPriority && <PriorityChip />}
-                  </div>
-                  <h3>{item.title}</h3>
-                </div>
-              </div>
-              <span className="imp-h">Impact</span>
-              <ul className="imp">
-                {item.impactBullets.map((bullet, i) => (
-                  <li key={i}>{bullet}</li>
-                ))}
-              </ul>
-              <div className="foot">
-                <BudgetEffectLabel label={item.effectLabel} />
-                {renderAction?.(item)}
-              </div>
-            </div>
+            <Slide key={item.cardId} item={item} renderAction={renderAction} />
           ))}
         </div>
       </div>

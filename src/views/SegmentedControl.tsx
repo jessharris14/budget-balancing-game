@@ -12,12 +12,14 @@ interface Props<T extends string> {
   onChange: (value: T) => void;
   label: string;
   small?: boolean;
+  /** Extra class(es) appended to the root, e.g. for a desktop-only width override. */
+  className?: string;
 }
 
 /** Shared 2+ way toggle (Swipe/List, Revenue/Expenditure) -- design step 1's .seg. */
-function SegmentedControl<T extends string>({ options, value, onChange, label, small }: Props<T>) {
+function SegmentedControl<T extends string>({ options, value, onChange, label, small, className }: Props<T>) {
   return (
-    <div className={small ? "seg sm" : "seg"} role="group" aria-label={label}>
+    <div className={[small ? "seg sm" : "seg", className].filter(Boolean).join(" ")} role="group" aria-label={label}>
       {options.map((opt) => (
         <button
           key={opt.value}

@@ -5,6 +5,7 @@ import { getCatalog } from "../services/catalogService";
 import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
 import { castEndorsement } from "../services/speakerService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import CardUnderDebateBar from "./CardUnderDebateBar";
@@ -49,6 +50,7 @@ function SpeakerView({ code, session, speaker }: Props) {
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [myVote, setMyVote] = useState<"yes" | "no" | null>(null);
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -148,6 +150,80 @@ function SpeakerView({ code, session, speaker }: Props) {
     }
   }
 
+  const headerMainGameLabel = session.phase === "mainGame" && mainGameMs !== null ? formatDuration(mainGameMs) : undefined;
+
+  const tilesPanel = !isDesktop && (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+      {session.phase === "mainGame" && mainGameMs !== null && (
+        <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+          <span className="eyebrow">Main Game time remaining</span>
+          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
+        </div>
+      )}
+      <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+        <span className="eyebrow">Chair</span>
+        <b style={{ font: "800 22px/1 var(--lb-f-head)" }}>{chairName ?? "Not yet elected"}</b>
+      </div>
+    </div>
+  );
+
+  const endorseBlock = (
+    <div className="panel">
+      <h3>Endorse / Oppose</h3>
+      <p>
+        You have <strong>{remaining}</strong> of {MAX_ENDORSEMENTS} lifetime actions remaining. Each is permanent once cast --
+        there's no undo, and it doesn't need to target a specific card.
+      </p>
+      {session.phase !== "mainGame" && <p style={{ color: "var(--lb-muted)" }}>Available once Main Game begins.</p>}
+      <div style={{ display: "flex", gap: "0.75rem" }}>
+        <button type="button" className="btn primary sm" onClick={() => handleCast("endorse")} disabled={!canCast}>
+          👍 Endorse
+        </button>
+        <button type="button" className="btn ghost sm" onClick={() => handleCast("oppose")} disabled={!canCast}>
+          👎 Oppose
+        </button>
+      </div>
+      {castError && <p style={{ color: "var(--lb-red)" }}>{castError}</p>}
+    </div>
+  );
+
+  const ballotVoteBlock = ballotOpen && ballotCard && (
+    <div className="panel">
+      <h3>Ballot Measure: {ballotCard.title}</h3>
+      <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+        {ballotCard.impactBullets.map((bullet, idx) => (
+          <li key={idx}>{bullet}</li>
+        ))}
+      </ul>
+      {myVote ? (
+        <p>You voted. Thanks for participating — results will be announced once voting closes.</p>
+      ) : (
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button type="button" className="btn primary sm" onClick={() => handleVote("yes")} disabled={voting}>
+            Yes
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => handleVote("no")} disabled={voting}>
+            No
+          </button>
+        </div>
+      )}
+      {voteError && <p style={{ color: "var(--lb-red)" }}>{voteError}</p>}
+    </div>
+  );
+
+  const ledgerBlock = commission && <LedgerStatusBar ledger={commission.ledger} />;
+  const trustBlock = commission && <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />;
+  const priorityBlock = commission && session.phase === "mainGame" && (
+    <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+  );
+  const challengesBlock = commission && <AppliedChallengesPanel commission={commission} catalog={catalog} />;
+  // Deliberately kept narrow at every width -- see the module comment: the
+  // full Revenue/Expenditure catalog isn't shown to Speakers, on phone or
+  // desktop, since that's new information (Available/Locked out cards)
+  // they don't currently see at all, not just a layout change.
+  const cardStatusBlock = commission && <CompactCardStatusList commission={commission} catalog={catalog} />;
+  const ballotListBlock = commission && <BallotMeasuresList commission={commission} catalog={catalog} />;
+
   return (
     <div className="lb-screen">
       <RoleHeaderBar
@@ -158,6 +234,8 @@ function SpeakerView({ code, session, speaker }: Props) {
         phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}
         activityEntries={activityEntries}
         activityStorageKey={`activity-feed-last-seen:${code}:${speaker.commissionId}:${speaker.id}`}
+        mainGameLabel={headerMainGameLabel}
+        chairName={session.phase === "debrief" ? undefined : (chairName ?? "Not yet elected")}
       />
       {session.phase !== "debrief" && debateCardId && debateCard && debateEffect && (
         <CardUnderDebateBar cardTitle={debateCard.title} budgetEffectLabel={debateEffect.label} debateTimerEndsAt={commission?.debateTimerEndsAt ?? null} />
@@ -181,75 +259,32 @@ function SpeakerView({ code, session, speaker }: Props) {
 
         {session.phase === "debrief" ? (
           commission && <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
+        ) : isDesktop ? (
+          <div className="dbody">
+            <div className="dcol sticky">
+              {ledgerBlock}
+              {trustBlock}
+              {priorityBlock}
+              {challengesBlock}
+            </div>
+            <div className="dcol">
+              {endorseBlock}
+              {ballotVoteBlock}
+              {cardStatusBlock}
+              {ballotListBlock}
+            </div>
+          </div>
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              {session.phase === "mainGame" && mainGameMs !== null && (
-                <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
-                  <span className="eyebrow">Main Game time remaining</span>
-                  <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
-                </div>
-              )}
-              <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
-                <span className="eyebrow">Chair</span>
-                <b style={{ font: "800 22px/1 var(--lb-f-head)" }}>{chairName ?? "Not yet elected"}</b>
-              </div>
-            </div>
-
-            <div className="panel">
-              <h3>Endorse / Oppose</h3>
-              <p>
-                You have <strong>{remaining}</strong> of {MAX_ENDORSEMENTS} lifetime actions remaining. Each is permanent
-                once cast -- there's no undo, and it doesn't need to target a specific card.
-              </p>
-              {session.phase !== "mainGame" && <p style={{ color: "var(--lb-muted)" }}>Available once Main Game begins.</p>}
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <button type="button" className="btn primary sm" onClick={() => handleCast("endorse")} disabled={!canCast}>
-                  👍 Endorse
-                </button>
-                <button type="button" className="btn ghost sm" onClick={() => handleCast("oppose")} disabled={!canCast}>
-                  👎 Oppose
-                </button>
-              </div>
-              {castError && <p style={{ color: "var(--lb-red)" }}>{castError}</p>}
-            </div>
-
-            {ballotOpen && ballotCard && (
-              <div className="panel">
-                <h3>Ballot Measure: {ballotCard.title}</h3>
-                <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                  {ballotCard.impactBullets.map((bullet, idx) => (
-                    <li key={idx}>{bullet}</li>
-                  ))}
-                </ul>
-                {myVote ? (
-                  <p>You voted. Thanks for participating — results will be announced once voting closes.</p>
-                ) : (
-                  <div style={{ display: "flex", gap: "0.75rem" }}>
-                    <button type="button" className="btn primary sm" onClick={() => handleVote("yes")} disabled={voting}>
-                      Yes
-                    </button>
-                    <button type="button" className="btn ghost sm" onClick={() => handleVote("no")} disabled={voting}>
-                      No
-                    </button>
-                  </div>
-                )}
-                {voteError && <p style={{ color: "var(--lb-red)" }}>{voteError}</p>}
-              </div>
-            )}
-
-            {commission && (
-              <>
-                <LedgerStatusBar ledger={commission.ledger} />
-                <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
-                {session.phase === "mainGame" && (
-                  <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
-                )}
-                <AppliedChallengesPanel commission={commission} catalog={catalog} />
-                <CompactCardStatusList commission={commission} catalog={catalog} />
-                <BallotMeasuresList commission={commission} catalog={catalog} />
-              </>
-            )}
+            {tilesPanel}
+            {endorseBlock}
+            {ballotVoteBlock}
+            {ledgerBlock}
+            {trustBlock}
+            {priorityBlock}
+            {challengesBlock}
+            {cardStatusBlock}
+            {ballotListBlock}
           </>
         )}
       </div>

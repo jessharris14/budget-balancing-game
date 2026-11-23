@@ -196,6 +196,19 @@
   cursor: default;
 }
 
+/* Desktop Administrator table (screen 12): Motion Passes/Fails as a clear pass/fail pair, distinct from .primary/.ghost. */
+.btn.good {
+  background: var(--lb-forest);
+  border-color: var(--lb-forest);
+  color: #fff;
+}
+
+.btn.bad {
+  background: #fff;
+  border-color: var(--lb-red);
+  color: #b3261e;
+}
+
 .btn.sm {
   min-height: 40px;
   font-size: 13px;
@@ -769,4 +782,252 @@ ul.imp li::before {
 
 .role .tag {
   margin-left: auto;
+}
+
+/* ============================================================
+ * Desktop layout (>=1024px). Below this, every rule above is the
+ * whole story -- phones and tablets keep exactly today's phone-first
+ * layout. Ported from the approved desktop mockups (screens 9-13),
+ * renaming their --river/--sky/--forest/--red/--line/--muted/--ink/--bg/
+ * --f-head/--f-body tokens to this file's own --lb-* equivalents.
+ * Content stays centered up to 1440px; backgrounds stay full-bleed.
+ * ============================================================ */
+@media (min-width: 1024px) {
+  /* .lb-screen's own 720px cap (set to fix a phone-width flex-stretch
+     bug against #root -- see its own comment) only applies below this
+     breakpoint; desktop sections set their own max-width and centering
+     (.dbody, .sessionwrap, .formcard's wrapper), so the screen itself
+     just needs to stop capping them. */
+  .lb-screen {
+    max-width: none;
+  }
+
+  .seg-cardtype {
+    width: 420px;
+  }
+
+  /* ---------- Commissioner/Speaker/Administrator two-column body ---------- */
+  .dbody {
+    display: grid;
+    grid-template-columns: 380px minmax(0, 1fr);
+    gap: 24px;
+    padding: 24px 32px 32px;
+    align-items: start;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+
+  .dcol {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .dcol.sticky {
+    position: sticky;
+    top: 12px;
+  }
+
+  /* The desktop "Cards" grid (screen 11) -- same .slide markup as the phone carousel, laid out as a 3-column grid instead of a swipeable track. */
+  .gridc {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .gridc .slide {
+    flex: none;
+    width: auto;
+  }
+
+  /* The desktop wide table (screen 12, also Commissioner/Speaker's "List" view per spec §3) */
+  .dtable {
+    background: #fff;
+    border: 1px solid var(--lb-line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .dtable .dtr {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1.1fr) 150px minmax(0, 2fr) 150px 230px;
+    gap: 14px;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--lb-line);
+  }
+
+  /* No role actions at all (e.g. Public Hearing Speaker) -- one fewer column rather than an empty one on every row. */
+  .dtable.noact .dtr {
+    grid-template-columns: 52px minmax(0, 1.1fr) 150px minmax(0, 2fr) 150px;
+  }
+
+  .dtable .dtr:last-child {
+    border-bottom: 0;
+  }
+
+  .dtable .dtr.h {
+    background: #f6f8fa;
+    font: 700 10px/1 var(--lb-f-head);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--lb-muted);
+  }
+
+  .dtable .dtr img.ic {
+    width: 44px;
+    height: 44px;
+  }
+
+  .dtable .dtr b {
+    font: 700 14px/1.25 var(--lb-f-head);
+  }
+
+  .dtable .dtr .im {
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--lb-ink);
+  }
+
+  .dtable .dtr .acts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .dtable .dtr .acts .btn {
+    width: auto;
+  }
+
+  /* Card under debate row (screen 12): a left River Blue bar, same idea as a selected list item. */
+  .dtable .dtr.sel {
+    background: #f2f7fe;
+    box-shadow: inset 4px 0 0 var(--lb-river);
+  }
+
+  /* Administrator's "Motion in progress" panel, right column top (screen 12). */
+  .dpanel {
+    background: #fff;
+    border: 1px solid var(--lb-sky);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ---------- Home / Join (screen 9) ---------- */
+  .hero {
+    min-height: 100vh;
+  }
+
+  .formcard .codebox input {
+    width: 70px;
+    height: 76px;
+    border-radius: 12px;
+    border: 2px solid var(--lb-river);
+    text-align: center;
+    font: 800 36px var(--lb-f-head);
+    color: var(--lb-river);
+    background: #fff;
+    padding: 0;
+  }
+
+  /* ---------- Session Created, facilitator (screen 10) ---------- */
+  .sessionwrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding: 48px 32px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .bigcode {
+    display: flex;
+    gap: 16px;
+  }
+
+  .bigcode span {
+    width: 110px;
+    height: 124px;
+    border-radius: 18px;
+    background: #fff;
+    border: 3px solid var(--lb-river);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 900 72px var(--lb-f-head);
+    color: var(--lb-river);
+  }
+
+  .qrbig {
+    width: 260px;
+    height: 260px;
+    border-radius: 18px;
+    background: #fff;
+    border: 1px solid var(--lb-line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- Home / Join's cohesive full-bleed hero (HeroScreen.tsx) ---------- */
+  .dsk-hero {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    background: var(--lb-river);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 64px 32px;
+    box-sizing: border-box;
+  }
+
+  .dsk-hero__hills {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 260px;
+  }
+
+  .dsk-hero__logo {
+    width: 330px;
+    height: auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  .dsk-hero__card {
+    position: relative;
+    z-index: 2;
+    margin-top: 24px;
+    max-width: 460px;
+    width: 100%;
+  }
+
+  .dsk-hero__linkbelow {
+    position: relative;
+    z-index: 2;
+    margin-top: 12px;
+    color: #fff;
+    text-align: center;
+  }
+
+  .dsk-hero__linkbelow .lb-link {
+    color: #fff;
+  }
+
+  /* The phone/tablet copy of this link lives inside the card; desktop shows it instead via HeroScreen's linkBelow (outside the card, white text on blue). */
+  .home-newgame-link {
+    display: none;
+  }
 }

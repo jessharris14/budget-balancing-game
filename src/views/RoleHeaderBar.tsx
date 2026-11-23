@@ -12,6 +12,9 @@ interface Props {
   phaseLabel: string;
   activityEntries: ActivityEntry[];
   activityStorageKey: string;
+  /** Desktop only (screens 11/12/13): folds the "Main Game time remaining"/"Chair" stats into the header's one row instead of the two small panels below it. Omitted (e.g. outside Main Game, or Chair not yet elected) just leaves that stat out -- the panels below still render their own copy on phone, where these props are ignored. */
+  mainGameLabel?: string;
+  chairName?: string;
 }
 
 /**
@@ -26,9 +29,22 @@ interface Props {
  * single instance either way; its own CSS hides the "Activity" word (never
  * the badge) once the phone layout kicks in.
  */
-function RoleHeaderBar({ viewLabel, shortRoleLabel, tableName, code, phaseLabel, activityEntries, activityStorageKey }: Props) {
+function RoleHeaderBar({
+  viewLabel,
+  shortRoleLabel,
+  tableName,
+  code,
+  phaseLabel,
+  activityEntries,
+  activityStorageKey,
+  mainGameLabel,
+  chairName,
+}: Props) {
   return (
     <header className="role-header-bar">
+      {/* Desktop only (screens 11/12/13, hidden below 1024px by CSS): the logo. No text here -- the role/table/phase/code pieces below are the SAME elements phone uses (just restyled at this breakpoint), not duplicates, so a query like getByText(shortRoleLabel) still finds exactly one match at any width. */}
+      <img className="role-header-bar__logo" src="/assets/logo.png" alt="Let's Balance!" />
+
       <span className="role-header-bar__title-full">
         {viewLabel} — {tableName}
       </span>
@@ -40,6 +56,23 @@ function RoleHeaderBar({ viewLabel, shortRoleLabel, tableName, code, phaseLabel,
       <span className="role-header-bar__code-chip">{code}</span>
 
       <span className="role-header-bar__spacer" />
+
+      {/* Desktop only: folds the Main Game time/Chair stats (otherwise their own small panels below, on phone) into this one row. New content -- no phone-side duplicate exists for these two. */}
+      <div className="role-header-bar__desktop-stats">
+        {mainGameLabel && (
+          <div className="role-header-bar__desktop-stat">
+            <span>Main Game time remaining</span>
+            <b>{mainGameLabel}</b>
+          </div>
+        )}
+        {chairName && (
+          <div className="role-header-bar__desktop-stat">
+            <span>Chair</span>
+            <b>{chairName}</b>
+          </div>
+        )}
+      </div>
+
       <ActivityFeedButton entries={activityEntries} storageKey={activityStorageKey} />
 
       <div className="role-header-bar__secondary">

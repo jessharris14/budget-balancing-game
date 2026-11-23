@@ -10,7 +10,7 @@ import {
   setCommissionJurisdictionName,
 } from "../services/sessionService";
 import { ROLE_ICON } from "../services/icons";
-import HeroBanner from "./HeroBanner";
+import HeroScreen from "./HeroScreen";
 import type { ParticipantRole, Session } from "../types/session";
 import "./lb-components.css";
 
@@ -148,8 +148,7 @@ function JoinSession() {
   if (step === "code") {
     return (
       <div className="lb-screen">
-        <HeroBanner compact />
-        <div className="lb-pad">
+        <HeroScreen compactOnPhone>
           <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 12px 30px rgba(29,66,137,.18)", padding: "22px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
             <h1 style={{ fontSize: 24, textAlign: "center" }}>Join a Game</h1>
             <div className="field">
@@ -169,7 +168,7 @@ function JoinSession() {
               {lookingUp ? "Looking up…" : "Next"}
             </button>
           </div>
-        </div>
+        </HeroScreen>
       </div>
     );
   }
@@ -181,8 +180,7 @@ function JoinSession() {
 
   return (
     <div className="lb-screen">
-      <HeroBanner compact />
-      <div className="lb-pad">
+      <HeroScreen compactOnPhone>
         <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 12px 30px rgba(29,66,137,.18)", padding: "22px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
           <h1 style={{ fontSize: 22, textAlign: "center" }}>Join Session {code}</h1>
 
@@ -236,7 +234,7 @@ function JoinSession() {
             {joining ? "Joining…" : "Join"}
           </button>
         </div>
-      </div>
+      </HeroScreen>
     </div>
   );
 }

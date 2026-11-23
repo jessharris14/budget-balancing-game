@@ -1,6 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import "./lb-components.css";
 import "./EventPopup.css";
+
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export interface EventPopupAction {
   label: string;
@@ -42,6 +44,8 @@ interface Props {
  * needed for this.
  */
 function EventPopup({ tone, iconSrc, eyebrow, heading, headingId, onRequestClose, actions, vibrate, children }: Props) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!vibrate) return;
     if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
@@ -53,9 +57,40 @@ function EventPopup({ tone, iconSrc, eyebrow, heading, headingId, onRequestClose
     }
   }, [vibrate]);
 
+  // Keeps keyboard focus inside the modal (Tab/Shift+Tab wrap around), and
+  // Escape closes it -- but only where dismissal is already allowed, i.e.
+  // onRequestClose was given (the Motion pop-up's X/"Not now"). A pop-up
+  // with no onRequestClose (Challenge: "Challenges can't be debated or
+  // declined", only "Got it") stays exactly as undismissable via Escape as
+  // it is via a click outside -- this adds no new way to skip it.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (onRequestClose) onRequestClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusable = Array.from(modal.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onRequestClose]);
+
   return (
     <div className="scrim">
-      <div className={`modal ${tone}`} role="alertdialog" aria-modal="true" aria-labelledby={headingId}>
+      <div ref={modalRef} className={`modal ${tone}`} role="alertdialog" aria-modal="true" aria-labelledby={headingId}>
         <div className="band">
           <div className="ico">
             <img src={iconSrc} alt="" />

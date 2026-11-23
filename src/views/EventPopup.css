@@ -182,3 +182,10 @@
     max-width: 100%;
   }
 }
+
+/* Screen 13: still a centered modal over a dimmed scrim at every width above phone -- just a bit wider on desktop. */
+@media (min-width: 1024px) {
+  .modal {
+    max-width: 520px;
+  }
+}

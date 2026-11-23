@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { createSession } from "../services/sessionService";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import "./lb-components.css";
 
 const CATALOG_VERSION = "countyBudgetSim_v1";
@@ -10,6 +11,7 @@ const CATALOG_VERSION = "countyBudgetSim_v1";
 function FacilitatorSetup() {
   const { status: authStatus } = useAnonymousAuth();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
 
   const [facilitatorName, setFacilitatorName] = useState("Facilitator");
   const [debateTimerMinutes, setDebateTimerMinutes] = useState(2);
@@ -42,6 +44,47 @@ function FacilitatorSetup() {
 
   if (createdCode) {
     const joinUrl = `${window.location.origin}/join?code=${createdCode}`;
+
+    if (isDesktop) {
+      // Screen 10: a standard desktop header, then the code/QR/explanation
+      // centered in the page -- same createdCode, same real QR value as
+      // phone, just laid out wider.
+      return (
+        <div className="lb-screen">
+          <header style={{ height: 64, background: "var(--lb-river)", color: "#fff", display: "flex", alignItems: "center", gap: 20, padding: "0 32px" }}>
+            <img src="/assets/logo.png" alt="Let's Balance!" style={{ height: 44, width: "auto" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ font: "700 18px/1 var(--lb-f-head)" }}>Facilitator</span>
+              <span style={{ font: "500 12px/1 var(--lb-f-body)", color: "rgba(255,255,255,.85)" }}>New session</span>
+            </div>
+          </header>
+          <div className="sessionwrap">
+            <h1 style={{ fontSize: 32, textAlign: "center" }}>Session Created</h1>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <span className="eyebrow">Game code</span>
+              <div className="bigcode">
+                {createdCode.split("").map((letter, i) => (
+                  <span key={i}>{letter}</span>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+              <div className="qrbig">
+                <QRCodeSVG value={joinUrl} size={220} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 340 }}>
+                <h2 style={{ fontSize: 22 }}>Scan to join</h2>
+                <p style={{ fontSize: 16, color: "var(--lb-muted)" }}>Players can scan the code or enter the four letters on the Join screen.</p>
+              </div>
+            </div>
+            <button type="button" className="btn primary" style={{ width: 340, minHeight: 56, fontSize: 17 }} onClick={() => navigate(`/session/${createdCode}`)}>
+              Go to Lobby
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="lb-screen lb-pad" style={{ textAlign: "center" }}>
         <h1>Session Created</h1>

@@ -15,6 +15,7 @@ import {
 } from "../services/ledgerService";
 import { isMotionLocked } from "../services/motionService";
 import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
 import BallotMeasuresList from "./BallotMeasuresList";
@@ -59,6 +60,7 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   // one to keep looking up until the Administrator dismisses it.
   const [lastBallotId, setLastBallotId] = useState<string | null>(null);
   const [ballotDismissed, setBallotDismissed] = useState(false);
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     getCatalog(session.catalogVersion)
@@ -213,8 +215,28 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       .map((c) => ({ type: "expenditure" as CardType, id: c.id, title: c.title })),
   ];
 
-  /** The Administrator's only per-card catalog action: Reconsider, shown only on an Applied card. No motion/second controls here -- those stay exclusive to Commissioners. */
+  /**
+   * The Administrator's per-card catalog actions. On phone/tablet this is
+   * only ever Reconsider (shown on an Applied card) -- Motion Passes/Fails
+   * stay exclusively in the Card Under Debate panel there, unchanged.
+   * Desktop (screen 12) moves those same two buttons into this card's row
+   * in the table instead (the left-column debate panel is hidden there),
+   * same handlers, same isResolvingMotion/activeBallotId gating as the
+   * panel used.
+   */
   function renderCardAction(item: CardDisplayItem): ReactNode {
+    if (isDesktop && debateCardId && item.cardId === debateCardId && session.phase === "mainGame" && !commission.activeBallotId) {
+      return (
+        <>
+          <button type="button" className="btn good sm" onClick={() => void handleMotionPasses()} disabled={isResolvingMotion}>
+            {isResolvingMotion ? "Working…" : "Motion Passes"}
+          </button>
+          <button type="button" className="btn bad sm" onClick={() => void handleMotionFails()} disabled={isResolvingMotion}>
+            {isResolvingMotion ? "Working…" : "Motion Fails"}
+          </button>
+        </>
+      );
+    }
     if (item.status !== "applied") return null;
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", alignItems: "flex-end" }}>
@@ -231,6 +253,152 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
     );
   }
 
+  // Desktop (screen 12): Main Game/Rank Priorities time + Chair fold into
+  // the header's one row instead of this small-panels grid.
+  const headerMainGameLabel =
+    (session.phase === "rankPriorities" && phaseTimerMs !== null && formatDuration(phaseTimerMs)) ||
+    (session.phase === "mainGame" && mainGameMs !== null && formatDuration(mainGameMs)) ||
+    undefined;
+
+  const tilesPanel = !isDesktop && (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+      {session.phase === "rankPriorities" && phaseTimerMs !== null && (
+        <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+          <span className="eyebrow">Rank Priorities time remaining</span>
+          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(phaseTimerMs)}</b>
+        </div>
+      )}
+      {session.phase === "mainGame" && mainGameMs !== null && (
+        <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+          <span className="eyebrow">Main Game time remaining</span>
+          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
+        </div>
+      )}
+      <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
+        <span className="eyebrow">Chair</span>
+        <b style={{ font: "800 22px/1 var(--lb-f-head)" }}>{chairName ?? "Not yet elected"}</b>
+      </div>
+    </div>
+  );
+
+  const ledgerBlock = <LedgerStatusBar ledger={commission.ledger} />;
+  const trustBlock = <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />;
+  const priorityBlock = session.phase === "mainGame" && (
+    <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
+  );
+  const challengesBlock = <AppliedChallengesPanel commission={commission} catalog={catalog} />;
+
+  // Change 1: Pending Motion only shows while unseconded; once seconded, Card Under Debate folds the mover/seconder in as one line instead.
+  const pendingMotionBlock = session.phase === "mainGame" && motion && !motion.secondedBy && (
+    <div className="panel">
+      <h3>Pending Motion</h3>
+      <p>
+        {motionCard?.title ?? motion.cardId} — moved by {moverName}
+        {motionCard && (
+          <>
+            {" — "}
+            <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
+          </>
+        )}
+      </p>
+      <p style={{ color: "var(--lb-muted)" }}>— awaiting second —</p>
+    </div>
+  );
+
+  // Phone/tablet: full Card Under Debate panel with its own Motion
+  // Passes/Fails buttons. Desktop hides this (spec §4: "hide the
+  // left-column Card Under Debate panel") in favor of the compact
+  // motionInProgressBlock below plus those same two buttons moved into
+  // the under-debate row's Actions in the table (renderCardAction above).
+  const debateBlock = !isDesktop && debateCardId && (
+    <div className="lb-debate-panel">
+      <span className="eyebrow">Card Under Debate</span>
+      <h3 style={{ fontSize: "17px" }}>{highlightedCard?.title ?? debateCardId}</h3>
+      {highlightedCard && debateCardType && (
+        <BudgetEffectLabel label={getCardLedgerLabel(debateCardType, highlightedCard.amount, highlightedCard.direction).label} />
+      )}
+      {showMotionProvenance && (
+        <p style={{ fontSize: "13px" }}>
+          Moved by {moverName}, seconded by {seconderName}
+        </p>
+      )}
+      {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over. Also frozen once Debrief starts. */}
+      {session.phase === "mainGame" && !commission.activeBallotId && (
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <button type="button" className="btn primary sm" style={{ minWidth: "9rem" }} onClick={() => void handleMotionPasses()} disabled={isResolvingMotion}>
+            {isResolvingMotion ? "Working…" : "Motion Passes"}
+          </button>
+          <button type="button" className="btn ghost sm" style={{ minWidth: "9rem" }} onClick={() => void handleMotionFails()} disabled={isResolvingMotion}>
+            {isResolvingMotion ? "Working…" : "Motion Fails"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  // Desktop only (screen 12): the right column's top panel while a motion
+  // is under debate -- same title/moved-by/seconded-by content as the
+  // phone panel above, but no buttons (those live in the table row now)
+  // and an explicit pointer to where they went.
+  const motionInProgressBlock = isDesktop && debateCardId && (
+    <div className="dpanel">
+      <span className="eyebrow">Motion in progress</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <b style={{ font: "700 16px var(--lb-f-head)" }}>{highlightedCard?.title ?? debateCardId}</b>
+        {showMotionProvenance && (
+          <span style={{ color: "var(--lb-muted)", fontSize: "13px" }}>
+            Moved by {moverName} · Seconded by {seconderName}
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: "13px", color: "var(--lb-muted)" }}>After the discussion, record the outcome below.</p>
+    </div>
+  );
+
+  const freeCardBlock = canUseFreeCard && (
+    <div className="panel">
+      <h3>Chair's Free Card (one-time, $1 only)</h3>
+      <select
+        className="field inp"
+        value={freeCardChoice ? `${freeCardChoice.type}:${freeCardChoice.id}` : ""}
+        onChange={(e) => {
+          const [type, id] = e.target.value.split(":");
+          setFreeCardChoice(type && id ? { type: type as CardType, id } : null);
+        }}
+      >
+        <option value="">Select a $1 card…</option>
+        {dollarCards.map((c) => (
+          <option key={`${c.type}:${c.id}`} value={`${c.type}:${c.id}`}>
+            {c.id} — {c.title} ({c.type})
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        className="btn primary sm"
+        onClick={() =>
+          freeCardChoice &&
+          runAction(freeCardChoice.id, () => applyChairFreeCard(code, commissionId, catalog, session.phase, freeCardChoice.type, freeCardChoice.id))
+        }
+        disabled={!freeCardChoice || busyCardId === freeCardChoice.id}
+      >
+        Apply Free Card
+      </button>
+    </div>
+  );
+
+  const ballotBlock = <BallotMeasuresList commission={commission} catalog={catalog} />;
+  const legendBlock = <CardStatusLegend />;
+  const cardsBlock = (
+    <CardsSection
+      catalog={catalog}
+      commission={commission}
+      defaultView="list"
+      renderAction={renderCardAction}
+      highlightCardId={isDesktop ? (debateCardId ?? undefined) : undefined}
+    />
+  );
+
   return (
     <div className="lb-screen">
       <RoleHeaderBar
@@ -241,6 +409,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
         phaseLabel={SESSION_PHASE_LABELS[session.phase] ?? session.phase}
         activityEntries={activityEntries}
         activityStorageKey={`activity-feed-last-seen:${code}:${commissionId}:${commission.members?.managerAdminId ?? "admin"}`}
+        mainGameLabel={headerMainGameLabel}
+        chairName={session.phase === "debrief" ? undefined : (chairName ?? "Not yet elected")}
       />
       {session.phase !== "debrief" && debateCardId && highlightedCard && debateEffect && (
         <CardUnderDebateBar cardTitle={highlightedCard.title} budgetEffectLabel={debateEffect.label} debateTimerEndsAt={commission.debateTimerEndsAt} />
@@ -256,74 +426,6 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
           <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              {session.phase === "rankPriorities" && phaseTimerMs !== null && (
-                <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
-                  <span className="eyebrow">Rank Priorities time remaining</span>
-                  <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(phaseTimerMs)}</b>
-                </div>
-              )}
-              {session.phase === "mainGame" && mainGameMs !== null && (
-                <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
-                  <span className="eyebrow">Main Game time remaining</span>
-                  <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
-                </div>
-              )}
-              <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
-                <span className="eyebrow">Chair</span>
-                <b style={{ font: "800 22px/1 var(--lb-f-head)" }}>{chairName ?? "Not yet elected"}</b>
-              </div>
-            </div>
-
-            <LedgerStatusBar ledger={commission.ledger} />
-            <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
-            {session.phase === "mainGame" && (
-              <PriorityTile priority={commission.priority} priorityCards={catalog.priorityCards} catalog={catalog} />
-            )}
-
-            <AppliedChallengesPanel commission={commission} catalog={catalog} />
-
-            {/* Change 1: Pending Motion only shows while unseconded; once seconded, Card Under Debate folds the mover/seconder in as one line instead. */}
-            {session.phase === "mainGame" && motion && !motion.secondedBy && (
-              <div className="panel">
-                <h3>Pending Motion</h3>
-                <p>
-                  {motionCard?.title ?? motion.cardId} — moved by {moverName}
-                  {motionCard && (
-                    <>
-                      {" — "}
-                      <BudgetEffectLabel label={getCardLedgerLabel(motion.cardType, motionCard.amount, motionCard.direction).label} />
-                    </>
-                  )}
-                </p>
-                <p style={{ color: "var(--lb-muted)" }}>— awaiting second —</p>
-              </div>
-            )}
-
-            {debateCardId && (
-              <div className="lb-debate-panel">
-                <span className="eyebrow">Card Under Debate</span>
-                <h3 style={{ fontSize: "17px" }}>{highlightedCard?.title ?? debateCardId}</h3>
-                {highlightedCard && debateCardType && <BudgetEffectLabel label={getCardLedgerLabel(debateCardType, highlightedCard.amount, highlightedCard.direction).label} />}
-                {showMotionProvenance && (
-                  <p style={{ fontSize: "13px" }}>
-                    Moved by {moverName}, seconded by {seconderName}
-                  </p>
-                )}
-                {/* Once a Ballot Measure has actually been opened for this card, its own modal takes over. Also frozen once Debrief starts. */}
-                {session.phase === "mainGame" && !commission.activeBallotId && (
-                  <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                    <button type="button" className="btn primary sm" style={{ minWidth: "9rem" }} onClick={() => void handleMotionPasses()} disabled={isResolvingMotion}>
-                      {isResolvingMotion ? "Working…" : "Motion Passes"}
-                    </button>
-                    <button type="button" className="btn ghost sm" style={{ minWidth: "9rem" }} onClick={() => void handleMotionFails()} disabled={isResolvingMotion}>
-                      {isResolvingMotion ? "Working…" : "Motion Fails"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
             {visibleBallot && (
               <BallotMeasureModal
                 code={code}
@@ -335,45 +437,38 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
               />
             )}
 
-            {canUseFreeCard && (
-              <div className="panel">
-                <h3>Chair's Free Card (one-time, $1 only)</h3>
-                <select
-                  className="field inp"
-                  value={freeCardChoice ? `${freeCardChoice.type}:${freeCardChoice.id}` : ""}
-                  onChange={(e) => {
-                    const [type, id] = e.target.value.split(":");
-                    setFreeCardChoice(type && id ? { type: type as CardType, id } : null);
-                  }}
-                >
-                  <option value="">Select a $1 card…</option>
-                  {dollarCards.map((c) => (
-                    <option key={`${c.type}:${c.id}`} value={`${c.type}:${c.id}`}>
-                      {c.id} — {c.title} ({c.type})
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="btn primary sm"
-                  onClick={() =>
-                    freeCardChoice &&
-                    runAction(freeCardChoice.id, () =>
-                      applyChairFreeCard(code, commissionId, catalog, session.phase, freeCardChoice.type, freeCardChoice.id),
-                    )
-                  }
-                  disabled={!freeCardChoice || busyCardId === freeCardChoice.id}
-                >
-                  Apply Free Card
-                </button>
+            {isDesktop ? (
+              <div className="dbody">
+                <div className="dcol sticky">
+                  {ledgerBlock}
+                  {trustBlock}
+                  {priorityBlock}
+                  {challengesBlock}
+                </div>
+                <div className="dcol">
+                  {motionInProgressBlock}
+                  {pendingMotionBlock}
+                  {freeCardBlock}
+                  {ballotBlock}
+                  {legendBlock}
+                  {cardsBlock}
+                </div>
               </div>
+            ) : (
+              <>
+                {tilesPanel}
+                {ledgerBlock}
+                {trustBlock}
+                {priorityBlock}
+                {challengesBlock}
+                {pendingMotionBlock}
+                {debateBlock}
+                {freeCardBlock}
+                {ballotBlock}
+                {legendBlock}
+                {cardsBlock}
+              </>
             )}
-
-            <BallotMeasuresList commission={commission} catalog={catalog} />
-
-            <CardStatusLegend />
-
-            <CardsSection catalog={catalog} commission={commission} defaultView="list" renderAction={renderCardAction} />
           </>
         )}
       </div>

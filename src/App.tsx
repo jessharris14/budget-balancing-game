@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAnonymousAuth } from "./hooks/useAnonymousAuth";
 import { getRememberedSession } from "./services/localSession";
-import HeroBanner from "./views/HeroBanner";
+import HeroScreen from "./views/HeroScreen";
 import "./views/lb-components.css";
 
 function App() {
@@ -10,8 +10,13 @@ function App() {
 
   return (
     <div className="lb-screen">
-      <HeroBanner />
-      <div className="lb-pad" style={{ marginTop: -36, position: "relative", zIndex: 2 }}>
+      <HeroScreen
+        linkBelow={
+          <Link to="/new" className="lb-link" style={{ textAlign: "center", display: "block" }}>
+            New Game (Facilitator)
+          </Link>
+        }
+      >
         <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 12px 30px rgba(29,66,137,.22)", padding: "22px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
           <h1 style={{ fontSize: 24, textAlign: "center" }}>Let's Balance!</h1>
           <p style={{ textAlign: "center", color: "var(--lb-muted)" }}>A live budget balancing simulation game.</p>
@@ -30,7 +35,8 @@ function App() {
           <Link to="/join" className="btn primary">
             Join a Game
           </Link>
-          <Link to="/new" className="lb-link" style={{ textAlign: "center", display: "block" }}>
+          {/* Phone/tablet only: desktop shows this same link via HeroScreen's linkBelow, outside the card on the blue background (screen 9). */}
+          <Link to="/new" className="lb-link home-newgame-link" style={{ textAlign: "center", display: "block" }}>
             New Game (Facilitator)
           </Link>
 
@@ -44,7 +50,7 @@ function App() {
             {status === "error" && <p style={{ color: "var(--lb-red)" }}>Auth error: {error}</p>}
           </div>
         </div>
-      </div>
+      </HeroScreen>
     </div>
   );
 }
