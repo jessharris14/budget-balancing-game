@@ -167,6 +167,18 @@ function SpeakerView({ code, session, speaker }: Props) {
     </div>
   );
 
+  const promptsBlock = (
+    <div className="panel">
+      <h3>Your Prompt{prompts.length > 1 ? "s" : ""}</h3>
+      {prompts.length === 0 && <p>No prompts assigned.</p>}
+      <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+        {prompts.map((p) => (
+          <li key={p.id}>{p.text}</li>
+        ))}
+      </ul>
+    </div>
+  );
+
   const endorseBlock = (
     <div className="panel">
       <h3>Endorse / Oppose</h3>
@@ -247,15 +259,15 @@ function SpeakerView({ code, session, speaker }: Props) {
       <div className="lb-pad">
         {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
 
-        <div className="panel">
-          <h3>Your Prompt{prompts.length > 1 ? "s" : ""}</h3>
-          {prompts.length === 0 && <p>No prompts assigned.</p>}
-          <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            {prompts.map((p) => (
-              <li key={p.id}>{p.text}</li>
-            ))}
-          </ul>
-        </div>
+        {/*
+          Full-width, at the top, exactly as before -- on phone/tablet
+          always, and on desktop too during Debrief (which replaces the
+          two-column body below with DebriefScorecard, so there's no
+          right column to move it into there). Only the desktop, non-
+          Debrief case moves it into the right column instead -- see
+          that branch below. Either way it renders exactly once.
+        */}
+        {(!isDesktop || session.phase === "debrief") && promptsBlock}
 
         {session.phase === "debrief" ? (
           commission && <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />
@@ -269,6 +281,7 @@ function SpeakerView({ code, session, speaker }: Props) {
             </div>
             <div className="dcol">
               {endorseBlock}
+              {promptsBlock}
               {ballotVoteBlock}
               {cardStatusBlock}
               {ballotListBlock}
