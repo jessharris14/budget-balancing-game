@@ -5,7 +5,8 @@ import LedgerStatusBar from "./LedgerStatusBar";
 import PublicTrustGauge from "./PublicTrustGauge";
 import type { CardCatalog } from "../types/catalog";
 import type { Commission } from "../types/session";
-import "./ManagerConsole.css";
+import "./lb-components.css";
+import "./DebriefScorecard.css";
 
 interface Props {
   commission: Commission;
@@ -35,9 +36,11 @@ function DebriefScorecard({ commission, catalog, speakerCount }: Props) {
   const score = commission.finalScore;
   if (!score) {
     return (
-      <div className="lobby-commission">
-        <h2>Final Scorecard{commission.name ? `: ${commission.name}` : ""}</h2>
-        <p>Scoring not yet computed.</p>
+      <div className="debrief-scorecard">
+        <div className="debrief-card">
+          <h2>Final Scorecard{commission.name ? `: ${commission.name}` : ""}</h2>
+          <p style={{ margin: 0 }}>Scoring not yet computed.</p>
+        </div>
       </div>
     );
   }
@@ -47,58 +50,66 @@ function DebriefScorecard({ commission, catalog, speakerCount }: Props) {
     : null;
 
   return (
-    <div className="lobby-commission debrief-scorecard">
-      <h2>Final Scorecard{commission.name ? `: ${commission.name}` : ""}</h2>
+    <div className="debrief-scorecard">
+      <div className="debrief-card">
+        <h2>Final Scorecard{commission.name ? `: ${commission.name}` : ""}</h2>
 
-      <table className="scorecard-table">
-        <thead>
-          <tr>
-            <th>Dimension</th>
-            <th>Points</th>
-            <th>Why</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td data-label="Dimension">Balanced Budget</td>
-            <td data-label="Points">{pointsLabel(score.balanced.points)}</td>
-            <td data-label="Why">{score.balanced.reason}</td>
-          </tr>
-          <tr>
-            <td data-label="Dimension">Priority Funded</td>
-            <td data-label="Points">{pointsLabel(score.priorityFunded.points)}</td>
-            <td data-label="Why">{score.priorityFunded.reason}</td>
-          </tr>
-          <tr>
-            <td data-label="Dimension">Reserves</td>
-            <td data-label="Points">{pointsLabel(score.reserves.points)}</td>
-            <td data-label="Why">{score.reserves.reason}</td>
-          </tr>
-          <tr>
-            <td data-label="Dimension">Public Trust</td>
-            <td data-label="Points">{pointsLabel(score.publicTrust.points)}</td>
-            <td data-label="Why">{score.publicTrust.reason}</td>
-          </tr>
-          <tr className="scorecard-total-row">
-            <td data-label="Dimension">Total</td>
-            <td data-label="Points" colSpan={2}>
-              {score.total} (max 4)
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <table className="scorecard-table">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Points</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Dimension">Balanced Budget</td>
+              <td data-label="Points">{pointsLabel(score.balanced.points)}</td>
+              <td data-label="Why">{score.balanced.reason}</td>
+            </tr>
+            <tr>
+              <td data-label="Dimension">Priority Funded</td>
+              <td data-label="Points">{pointsLabel(score.priorityFunded.points)}</td>
+              <td data-label="Why">{score.priorityFunded.reason}</td>
+            </tr>
+            <tr>
+              <td data-label="Dimension">Reserves</td>
+              <td data-label="Points">{pointsLabel(score.reserves.points)}</td>
+              <td data-label="Why">{score.reserves.reason}</td>
+            </tr>
+            <tr>
+              <td data-label="Dimension">Public Trust</td>
+              <td data-label="Points">{pointsLabel(score.publicTrust.points)}</td>
+              <td data-label="Why">{score.publicTrust.reason}</td>
+            </tr>
+            <tr className="scorecard-total-row">
+              <td data-label="Dimension">Total</td>
+              <td data-label="Points" colSpan={2}>
+                {score.total} (max 4)
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-      <LedgerStatusBar ledger={commission.ledger} />
-      <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+      <div className="debrief-card">
+        <LedgerStatusBar ledger={commission.ledger} />
+      </div>
 
-      <p>
-        Priority: <strong>{priorityCard?.title ?? commission.priority?.selectedCardId ?? "none selected"}</strong> —{" "}
-        {commission.priority?.funded ? "Funded" : "Not funded"}
-      </p>
+      <div className="debrief-card">
+        <PublicTrustGauge publicTrustTally={commission.publicTrustTally} speakerCount={speakerCount} />
+        <p style={{ margin: 0 }}>
+          Priority: <strong>{priorityCard?.title ?? commission.priority?.selectedCardId ?? "none selected"}</strong> —{" "}
+          {commission.priority?.funded ? "Funded" : "Not funded"}
+        </p>
+      </div>
 
       <AppliedChallengesPanel commission={commission} catalog={catalog} />
 
-      <DecisionsList commission={commission} catalog={catalog} />
+      <div className="debrief-card">
+        <DecisionsList commission={commission} catalog={catalog} />
+      </div>
       <BallotMeasuresList commission={commission} catalog={catalog} />
     </div>
   );

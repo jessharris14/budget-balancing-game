@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { buildFacilitatorActivity } from "../services/activityFeed";
 import { getCatalog } from "../services/catalogService";
 import { getChallengeLedgerEffect } from "../services/challengeLedgerEffect";
+import { buildPhaseIndicator } from "../services/facilitatorPhaseIndicator";
 import {
   advancePhase,
   computeAndStoreFinalScores,
@@ -10,20 +11,21 @@ import {
   rollForChair,
   triggerChallenge,
 } from "../services/facilitatorService";
+import { uiIconUrl } from "../services/icons";
 import { persistGameResults } from "../services/resultsService";
 import { clearSessionData } from "../services/sessionService";
 import { useCountdown, formatClock } from "../hooks/useCountdown";
 import ActivityFeedButton from "./ActivityFeedButton";
 import BudgetEffectLabel from "./BudgetEffectLabel";
+import CardIcon from "./CardIcon";
 import DebriefScorecard from "./DebriefScorecard";
 import FacilitatorTableCard from "./FacilitatorTableCard";
 import ScoreComparisonTable from "./ScoreComparisonTable";
 import SeatResetDialog from "./SeatResetDialog";
 import type { CardCatalog } from "../types/catalog";
-import { SESSION_PHASE_LABELS, SESSION_PHASE_ORDER, type Session } from "../types/session";
-import "./session.css";
+import { SESSION_PHASE_ORDER, type Session } from "../types/session";
+import "./lb-components.css";
 import "./FacilitatorConsole.css";
-import "./RoleHeaderBar.css";
 
 interface Props {
   code: string;
@@ -31,16 +33,15 @@ interface Props {
 }
 
 /**
- * Phase 9a: the Facilitator's action screen, restructured into a
- * two-column control layout (Tables dashboard + a sticky Challenge Cards
- * column) under a sticky top bar, so a typical 2-4 table game is fully
- * visible on one laptop screen without scrolling to find a challenge or
- * a table's numbers. The read-only "one glance, whole room" view for the
- * projector lives separately in PublicView.tsx, opened via the button in
- * the top bar -- this component stays the only one with any write
- * actions (triggerChallenge, advancePhase, rollForChair, seat reset,
- * etc.), none of which changed in this pass, only where their controls
- * live on screen.
+ * Design step 2: the Facilitator's action screen, restyled to the
+ * approved wide (1920px design, 1280px+ floor) mockup -- a River Blue top
+ * bar (logo, phase indicator, Main Game clock, Challenge-due badge,
+ * Activity, Open Public View, Seat reset, Next Phase) over a two-column
+ * body: a fluid Tables grid and a fixed 640px sticky Challenge Cards
+ * panel. Visual/layout change only -- every write action (triggerChallenge,
+ * advancePhase, rollForChair, seat reset, computeAndStoreFinalScores,
+ * persistGameResults, clearSessionData) is untouched, only where its
+ * control lives on screen.
  */
 function FacilitatorConsole({ code, session }: Props) {
   const navigate = useNavigate();
@@ -112,6 +113,7 @@ function FacilitatorConsole({ code, session }: Props) {
   const facilitatorActivity = catalog ? buildFacilitatorActivity(session.commissions ?? {}, catalog, session.participants) : [];
   const phaseIdx = SESSION_PHASE_ORDER.indexOf(session.phase);
   const isLastPhase = phaseIdx === SESSION_PHASE_ORDER.length - 1;
+  const phaseBuckets = buildPhaseIndicator(session.phase);
 
   // A Chair is required for the rest of the game (Rank Priorities recording,
   // debate highlighting, the free card) -- block leaving this phase until
@@ -228,115 +230,127 @@ function FacilitatorConsole({ code, session }: Props) {
     session.phase === "mainGame" && clock.nextChallengeDue != null && (nextChallengeMs ?? 0) <= 0;
 
   return (
-    <div className="session-view facilitator-console-page">
-      <h1>Facilitator Console</h1>
+    <div className="fc">
+      <h1 className="lb-visually-hidden">Facilitator Console — {code}</h1>
 
-      <div className="facilitator-top-bar">
-        <span className="facilitator-top-bar__identity">Let's Balance! — {code}</span>
-
-        <div className="facilitator-top-bar__phase">
-          <span>
-            Phase: <strong>{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</strong>
-          </span>
-          <button onClick={handleNextPhase} disabled={isLastPhase || blockedOnChair || advancingPhase}>
+      <div className="ftop">
+        <img className="lg" src="/assets/logo.png" alt="Let's Balance!" />
+        <div className="tl">
+          <span>Facilitator Console</span>
+          <b>Session {code}</b>
+        </div>
+        <div className="phases" aria-label={`Phase: ${phaseBuckets.find((b) => b.status === "now")?.label}`}>
+          {phaseBuckets.map((bucket) => (
+            <span key={bucket.label} className={bucket.status === "now" ? "now" : bucket.status === "done" ? "done" : undefined}>
+              {bucket.label}
+            </span>
+          ))}
+        </div>
+        <div className="rt">
+          {session.phase === "rankPriorities" && phaseTimerMs !== null && (
+            <div className="st2">
+              <span>Rank Priorities time remaining</span>
+              <b>{formatClock(phaseTimerMs)}</b>
+            </div>
+          )}
+          {session.phase === "mainGame" && mainGameMs !== null && (
+            <div className="st2">
+              <span>Main Game time remaining</span>
+              <b>{mainGameMs > 0 ? formatClock(mainGameMs) : "Time's up"}</b>
+            </div>
+          )}
+          {challengeReminderDue && (
+            <span className="due">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <circle cx="12" cy="13" r="8" />
+                <path d="M12 9v4l3 2M9 2h6" />
+              </svg>
+              Challenge due
+            </span>
+          )}
+          <ActivityFeedButton
+            entries={facilitatorActivity}
+            storageKey={`activity-feed-last-seen:${code}:facilitator:${session.facilitatorId}`}
+            showTableName
+          />
+          <button type="button" className="fb" onClick={handleOpenPublicView}>
+            <img src={uiIconUrl("public-sentiment")} alt="" style={{ width: 22, height: 22 }} />
+            Open Public View
+          </button>
+          <button type="button" className="fb quiet" onClick={() => setSeatResetOpen(true)} disabled={session.phase === "debrief"}>
+            Seat reset
+          </button>
+          <button type="button" className="fb solid" onClick={() => void handleNextPhase()} disabled={isLastPhase || blockedOnChair || advancingPhase}>
             {isLastPhase ? "Session Complete" : "Next Phase →"}
           </button>
         </div>
-
-        {session.phase === "rankPriorities" && phaseTimerMs !== null && (
-          <span>Rank Priorities: {formatClock(phaseTimerMs)}</span>
-        )}
-
-        {session.phase === "mainGame" && mainGameMs !== null && (
-          <span className="facilitator-top-bar__clock">
-            {mainGameMs > 0 ? `⏱ ${formatClock(mainGameMs)}` : "⏰ Time's up"}
-          </span>
-        )}
-
-        {session.phase === "mainGame" && (
-          <span className={challengeReminderDue ? "challenge-due" : undefined}>
-            {challengeReminderDue
-              ? "⏰ Challenge due"
-              : clock.nextChallengeDue !== null && nextChallengeMs !== null
-                ? `Next challenge in: ${formatClock(nextChallengeMs)}`
-                : "No more challenge reminders"}
-          </span>
-        )}
-
-        <span className="facilitator-top-bar__spacer" />
-
-        {reachedRollForChair && missingChairTables.length > 0 && (
-          <span className="facilitator-top-bar__roll-flag">⚠ Roll for Chair needed ({missingChairTables.length})</span>
-        )}
-
-        <ActivityFeedButton
-          entries={facilitatorActivity}
-          storageKey={`activity-feed-last-seen:${code}:facilitator:${session.facilitatorId}`}
-          showTableName
-        />
-
-        <button onClick={() => setSeatResetOpen(true)} disabled={session.phase === "debrief"}>
-          Seat reset
-        </button>
-
-        <button onClick={handleOpenPublicView}>Open Public View ↗</button>
       </div>
 
       {seatResetOpen && <SeatResetDialog code={code} session={session} onClose={() => setSeatResetOpen(false)} />}
 
-      {reachedRollForChair && missingChairTables.length > 0 && (
-        <div className="lobby-commission">
-          <h2>Roll for Chair</h2>
-          <p>
-            {blockedOnChair
-              ? "Every table needs a Chair before the game can move on to Rank Priorities."
-              : "The game has already moved past Roll for Chair, but the table(s) below still don't have one -- you can still roll now."}
-          </p>
-          {commissionEntries
-            .filter(([, c]) => !c.members?.chairId)
-            .map(([id, c]) => {
-              const commissionerUids = Object.keys(c.members?.commissionerIds ?? {});
-              return (
-                <div key={id}>
-                  <h3>{c.name ?? `Table ${id} (unnamed)`}</h3>
-                  <button onClick={() => handleRoll(id)} disabled={rolling === id || commissionerUids.length === 0}>
-                    {rolling === id ? "Rolling…" : "Roll for Chair"}
-                  </button>
-                  {commissionerUids.length === 0 && (
-                    <p className="error">No Commissioners have joined this table yet -- at least one is needed to roll.</p>
-                  )}
-                  {c.chairRoll && (
-                    <ul>
-                      {Object.entries(c.chairRoll).map(([uid, roll]) => (
-                        <li key={uid}>
-                          {session.participants[uid]?.name ?? uid}: {roll}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          {rollError && <p className="error">{rollError}</p>}
-        </div>
-      )}
+      <div className="fc-banner-stack">
+        {reachedRollForChair && missingChairTables.length > 0 && (
+          <div className="roll-panel">
+            <h2>Roll for Chair</h2>
+            <p>
+              {blockedOnChair
+                ? "Every table needs a Chair before the game can move on to Rank Priorities."
+                : "The game has already moved past Roll for Chair, but the table(s) below still don't have one -- you can still roll now."}
+            </p>
+            {commissionEntries
+              .filter(([, c]) => !c.members?.chairId)
+              .map(([id, c]) => {
+                const commissionerUids = Object.keys(c.members?.commissionerIds ?? {});
+                return (
+                  <div key={id} className="roll-panel__table">
+                    <h3 style={{ fontSize: 16 }}>{c.name ?? `Table ${id} (unnamed)`}</h3>
+                    <button type="button" className="btn primary sm" onClick={() => void handleRoll(id)} disabled={rolling === id || commissionerUids.length === 0}>
+                      {rolling === id ? "Rolling…" : "Roll for Chair"}
+                    </button>
+                    {commissionerUids.length === 0 && (
+                      <p style={{ color: "var(--lb-red)", margin: 0, fontSize: 13 }}>
+                        No Commissioners have joined this table yet -- at least one is needed to roll.
+                      </p>
+                    )}
+                    {c.chairRoll && (
+                      <div className="roll-panel__rolls">
+                        {Object.entries(c.chairRoll).map(([uid, roll]) => (
+                          <span key={uid}>
+                            {session.participants[uid]?.name ?? uid}: {roll}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            {rollError && <p style={{ color: "var(--lb-red)", margin: 0 }}>{rollError}</p>}
+          </div>
+        )}
 
-      {catalogError && <p className="error">{catalogError}</p>}
+        {catalogError && <p style={{ color: "var(--lb-red)" }}>{catalogError}</p>}
 
-      {session.phase === "debrief" && catalog && (
-        <>
-          {resultsPersisted && <p>✅ Final results saved.</p>}
-          {resultsError && <p className="error">Could not save final results: {resultsError}</p>}
-          {resultsPersisted && (
-            <div className="lobby-commission">
-              <button onClick={() => void handleClearSession()} disabled={clearing}>
-                {clearing ? "Clearing…" : "End & Clear Session"}
-              </button>
-              <p>Deletes the live session data once everyone's done. The saved final results stay in place.</p>
-              {clearError && <p className="error">{clearError}</p>}
-            </div>
-          )}
-          {commissionEntries.length > 1 ? (
+        {session.phase === "debrief" && catalog && (
+          <div className="panel" style={{ textAlign: "left" }}>
+            {resultsPersisted && <p style={{ margin: 0, fontWeight: 700 }}>✅ Final results saved.</p>}
+            {resultsError && <p style={{ color: "var(--lb-red)", margin: 0 }}>Could not save final results: {resultsError}</p>}
+            {resultsPersisted && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button type="button" className="btn primary sm" onClick={() => void handleClearSession()} disabled={clearing} style={{ alignSelf: "flex-start" }}>
+                  {clearing ? "Clearing…" : "End & Clear Session"}
+                </button>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--lb-muted)" }}>
+                  Deletes the live session data once everyone's done. The saved final results stay in place.
+                </p>
+                {clearError && <p style={{ color: "var(--lb-red)", margin: 0 }}>{clearError}</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {session.phase === "debrief" &&
+          catalog &&
+          (commissionEntries.length > 1 ? (
             <ScoreComparisonTable session={session} />
           ) : (
             // Phase 7 B4: a one-row comparison table is pointless with a
@@ -348,65 +362,66 @@ function FacilitatorConsole({ code, session }: Props) {
                 speakerCount={speakers.filter((s) => s.commissionId === commissionEntries[0][0]).length}
               />
             )
-          )}
-        </>
-      )}
-
-      <div className="facilitator-grid">
-        <div className="facilitator-tables-column">
-          <h2>Tables</h2>
-          {commissionEntries.map(([id, commission]) => (
-            <FacilitatorTableCard
-              key={id}
-              commissionId={id}
-              commission={commission}
-              session={session}
-              catalog={catalog}
-              speakers={speakers.filter((s) => s.commissionId === id)}
-              selectedChallengeId={selectedChallengeId}
-              pushing={triggeringCommissionId === id}
-              pushNotice={lastChallengeNotice?.commissionId === id ? lastChallengeNotice.text : null}
-              onPushChallenge={handleTriggerChallenge}
-              rerollingUid={rerollingUid}
-              onReroll={handleReroll}
-            />
           ))}
+      </div>
+
+      <div className="fbody">
+        <div>
+          <div className="fh">
+            <h2>Tables</h2>
+          </div>
+          <div className="tgrid">
+            {commissionEntries.map(([id, commission]) => (
+              <FacilitatorTableCard
+                key={id}
+                commissionId={id}
+                commission={commission}
+                session={session}
+                catalog={catalog}
+                speakers={speakers.filter((s) => s.commissionId === id)}
+                selectedChallengeId={selectedChallengeId}
+                pushing={triggeringCommissionId === id}
+                pushNotice={lastChallengeNotice?.commissionId === id ? lastChallengeNotice.text : null}
+                onPushChallenge={handleTriggerChallenge}
+                rerollingUid={rerollingUid}
+                onReroll={handleReroll}
+              />
+            ))}
+          </div>
         </div>
 
         {session.phase === "mainGame" && catalog && (
-          <div className="facilitator-challenges-column">
-            <div className="facilitator-challenges-panel">
+          <div className="cp">
+            <div className="ph3">
               <h2>Challenge Cards</h2>
-              <p>Pushing a Challenge applies its dollar impact immediately -- Challenges can't be debated or declined.</p>
-              <table>
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>Title</th>
-                    <th>Facilitator Narrative</th>
-                    <th>Budget effect</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {catalog.challengeCards.map((card) => (
-                    <tr key={card.id}>
-                      <td data-label="Select">
-                        <input
-                          type="radio"
-                          name="challenge"
-                          checked={selectedChallengeId === card.id}
-                          onChange={() => setSelectedChallengeId(card.id)}
-                        />
-                      </td>
-                      <td data-label="Title">{card.title}</td>
-                      <td data-label="Facilitator Narrative">{card.facilitatorNarrative}</td>
-                      <td data-label="Budget effect">
-                        <BudgetEffectLabel label={getChallengeLedgerEffect(card).label} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <p>Pushing a Challenge applies its dollar impact immediately. Challenges can't be debated or declined.</p>
+            </div>
+            <div className="cr-scroll">
+              <div className="cr h">
+                <span></span>
+                <span></span>
+                <span>Title</span>
+                <span>Facilitator narrative</span>
+                <span>Budget effect</span>
+              </div>
+              {catalog.challengeCards.map((card) => {
+                const selected = selectedChallengeId === card.id;
+                return (
+                  <label key={card.id} className={`cr${selected ? " sel" : ""}`}>
+                    <input
+                      type="radio"
+                      name="challenge"
+                      checked={selected}
+                      onChange={() => setSelectedChallengeId(card.id)}
+                      aria-label={card.title}
+                    />
+                    <CardIcon cardId={card.id} cardType="challenge" className="ic" />
+                    <b>{card.title}</b>
+                    <span className="nv">{card.facilitatorNarrative}</span>
+                    <BudgetEffectLabel label={getChallengeLedgerEffect(card).label} />
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}

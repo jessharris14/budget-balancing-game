@@ -1,5 +1,5 @@
 import type { Commission, Session } from "../types/session";
-import "./ManagerConsole.css";
+import "./DebriefScorecard.css";
 
 interface Props {
   session: Session;
@@ -35,9 +35,9 @@ function ScoreComparisonTable({ session }: Props) {
   });
 
   return (
-    <div className="lobby-commission">
+    <div className="debrief-card">
       <h2>Commission Comparison</h2>
-      <table className="comparison-table">
+      <table className="scorecard-table comparison-table">
         <thead>
           <tr>
             <th>Rank</th>

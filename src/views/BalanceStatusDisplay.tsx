@@ -3,8 +3,13 @@ import "./BalanceStatusDisplay.css";
 
 interface Props {
   deficitOrSurplus: number;
-  /** "large" for a table card's headline figure, "compact" for a dense list/summary line. Both always pair the word with an icon, never color alone. */
-  size?: "large" | "compact";
+  /**
+   * "large" for a table card's headline figure, "compact" for a dense
+   * list/summary line, "pill" for the Facilitator Console's tinted
+   * deficit/surplus badge, "xl" for the Public View's large projector
+   * banner. All four always pair the word with an icon, never color alone.
+   */
+  size?: "large" | "compact" | "pill" | "xl";
 }
 
 const ICONS: Record<string, string> = {

@@ -1,0 +1,53 @@
+/*
+ * Design step 2: the Debrief screen has no mockup of its own -- restyled
+ * to match the Facilitator Console/Public View look (white cards, a 6px
+ * colored top edge, Montserrat headings, Inter body, left-aligned text),
+ * reusing the shared .panel/.tiles/.gaugeBox/.rows components as-is
+ * rather than rebuilding any of them. This one component is the actual
+ * Debrief screen for every role (Commissioner/Chair, Administrator,
+ * Speaker, and the Facilitator Console all render it directly), so
+ * restyling it here restyles Debrief everywhere at once.
+ */
+.debrief-scorecard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+.debrief-scorecard h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.debrief-card {
+  background: #fff;
+  border: 1px solid var(--lb-line);
+  border-top: 6px solid var(--lb-sun);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.scorecard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.scorecard-table th,
+.scorecard-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--lb-line);
+}
+.scorecard-table th {
+  font: 700 11px/1 var(--lb-f-head);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lb-muted);
+}
+.scorecard-table tr:last-child td {
+  border-bottom: 0;
+}
+.scorecard-total-row td {
+  font: 800 16px/1 var(--lb-f-head);
+}

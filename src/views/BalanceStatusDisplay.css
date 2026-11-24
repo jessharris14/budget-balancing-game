@@ -26,6 +26,51 @@
   font-size: 1rem;
 }
 
+/* Facilitator Console's tinted "pill" badge (design step 2) -- same
+   sign-aware word+icon as every other size, just with the mockup's
+   tinted background/border treatment. */
+.balance-status--pill {
+  font: 800 20px/1 var(--lb-f-head, inherit);
+  gap: 8px;
+  border-radius: 12px;
+  padding: 10px 16px;
+  border: 1.5px solid;
+}
+.balance-status--pill.balance-status--deficit {
+  background: var(--lb-neg-tint, rgba(249, 66, 58, 0.1));
+  border-color: rgba(249, 66, 58, 0.55);
+  color: #9b1c16;
+}
+.balance-status--pill.balance-status--surplus,
+.balance-status--pill.balance-status--balanced {
+  background: var(--lb-rev-tint, rgba(0, 150, 108, 0.12));
+  border-color: rgba(0, 150, 108, 0.5);
+  color: #00613f;
+}
+
+/* Public View's large projector banner (design step 2). */
+.balance-status--xl {
+  font: 900 44px/1 var(--lb-f-head, inherit);
+  gap: 14px;
+  border-radius: 16px;
+  padding: 14px 24px;
+  border: 3px solid;
+}
+.balance-status--xl .balance-status__icon {
+  font-size: 34px;
+}
+.balance-status--xl.balance-status--deficit {
+  background: var(--lb-neg-tint, rgba(249, 66, 58, 0.1));
+  border-color: rgba(249, 66, 58, 0.65);
+  color: #9b1c16;
+}
+.balance-status--xl.balance-status--surplus,
+.balance-status--xl.balance-status--balanced {
+  background: var(--lb-rev-tint, rgba(0, 150, 108, 0.12));
+  border-color: rgba(0, 150, 108, 0.6);
+  color: #00613f;
+}
+
 .balance-status__icon {
   line-height: 1;
 }
