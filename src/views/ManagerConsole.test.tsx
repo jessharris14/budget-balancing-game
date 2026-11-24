@@ -38,7 +38,10 @@ const catalog: CardCatalog = {
   revenueCards: [],
   expenditureCards: [{ id: CARD_ID, title: "Test Expenditure", impactBullets: ["Does a thing"], amount: 1, direction: "increase" }],
   challengeCards: [],
-  priorityCards: [],
+  priorityCards: [
+    { id: "P1", title: "Economic Development", description: "Incentive for a new employer", amount: 1, linkedCardId: "R1", linkedCardType: "revenue" },
+    { id: "P2", title: "Human Services", description: "Outreach funding", amount: 1, linkedCardId: "E1", linkedCardType: "expenditure" },
+  ],
   budgetPicture: { currentBudget: 0, projectedRevenue: 0, projectedExpenditure: 0, shortfall: 0, narrative: "" },
   reservePolicy: { max: 20, minimum: 10 },
   promptBank: [],
@@ -204,5 +207,44 @@ describe("ManagerConsole: Motion Fails", () => {
       resolveWrite();
       await Promise.resolve();
     });
+  });
+});
+
+describe("ManagerConsole: Rank Priorities cards (read-only) and debate timer never shows NaN", () => {
+  beforeEach(() => {
+    vi.mocked(getCatalog).mockResolvedValue(catalog);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("the Administrator sees the same read-only cards as every other role, with the Chair's pick highlighted", async () => {
+    const commission = baseCommission({ priority: { selectedCardId: "P2", funded: false } });
+    const session: Session = { ...baseSession(), phase: "rankPriorities", commissions: { c1: commission } };
+    render(<ManagerConsole code="TEST" session={session} commissionId="c1" commission={commission} />);
+
+    await screen.findByText("Human Services");
+    expect(document.querySelectorAll(".prio-card")).toHaveLength(2);
+    expect(document.querySelector("input[type='radio']")).not.toBeInTheDocument();
+    const humanServicesCard = screen.getByText("Human Services").closest(".prio-card");
+    expect(humanServicesCard).toHaveClass("sel");
+  });
+
+  it("shows 'Selected: not yet recorded by the Chair' before the Chair has picked", async () => {
+    const commission = baseCommission({ priority: { selectedCardId: null, funded: false } });
+    const session: Session = { ...baseSession(), phase: "rankPriorities", commissions: { c1: commission } };
+    render(<ManagerConsole code="TEST" session={session} commissionId="c1" commission={commission} />);
+
+    expect(await screen.findByText("Selected: not yet recorded by the Chair")).toBeInTheDocument();
+  });
+
+  it("shows 'Waiting for Chair' (never NaN) once a motion is seconded but the debate timer hasn't started", async () => {
+    const commission = baseCommission();
+    render(<ManagerConsole code="TEST" session={baseSession()} commissionId="c1" commission={commission} />);
+
+    expect(await screen.findByText("Waiting for Chair")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/NaN/);
   });
 });

@@ -23,7 +23,7 @@ import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
-import RankPrioritiesGrid from "./RankPrioritiesGrid";
+import RankPrioritiesPanel from "./RankPrioritiesPanel";
 import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
@@ -462,23 +462,13 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
         {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
 
         {session.phase === "rankPriorities" && (
-          <div className="panel" style={{ textAlign: "left" }}>
-            <h3>Rank Priorities</h3>
-            {phaseTimerMs !== null && <p>Time remaining: {formatClock(phaseTimerMs)}</p>}
-            <RankPrioritiesGrid
-              priorityCards={catalog.priorityCards}
-              selectedCardId={commission.priority?.selectedCardId}
-              onSelect={isMyChair ? handleSelectPriority : undefined}
-              disabled={busy}
-            />
-            <p style={{ fontWeight: 700 }}>
-              Selected:{" "}
-              {commission.priority?.selectedCardId
-                ? (catalog.priorityCards.find((c) => c.id === commission.priority?.selectedCardId)?.title ??
-                  commission.priority.selectedCardId)
-                : "not yet recorded by the Chair"}
-            </p>
-          </div>
+          <RankPrioritiesPanel
+            priorityCards={catalog.priorityCards}
+            selectedCardId={commission.priority?.selectedCardId}
+            phaseTimerMs={phaseTimerMs}
+            onSelect={isMyChair ? handleSelectPriority : undefined}
+            disabled={busy}
+          />
         )}
 
         {session.phase === "debrief" ? (

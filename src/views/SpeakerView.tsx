@@ -14,6 +14,7 @@ import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
+import RankPrioritiesPanel from "./RankPrioritiesPanel";
 import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Session, type Speaker } from "../types/session";
@@ -76,6 +77,7 @@ function SpeakerView({ code, session, speaker }: Props) {
   }, [code, speaker.commissionId, speaker.id, activeBallotId]);
 
   const clock = session.clock ?? { phaseTimer: null, mainGameTimer: null, nextChallengeDue: null };
+  const phaseTimerMs = useCountdown(clock.phaseTimer);
   const mainGameMs = useCountdown(clock.mainGameTimer);
 
   if (error && !catalog) return <p className="lb-screen lb-pad error">{error}</p>;
@@ -258,6 +260,14 @@ function SpeakerView({ code, session, speaker }: Props) {
 
       <div className="lb-pad">
         {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
+
+        {commission && session.phase === "rankPriorities" && (
+          <RankPrioritiesPanel
+            priorityCards={catalog.priorityCards}
+            selectedCardId={commission.priority?.selectedCardId}
+            phaseTimerMs={phaseTimerMs}
+          />
+        )}
 
         {/*
           Full-width, at the top, exactly as before -- on phone/tablet

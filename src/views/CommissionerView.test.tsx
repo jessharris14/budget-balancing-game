@@ -20,7 +20,7 @@ import CommissionerView from "./CommissionerView";
 const catalog: CardCatalog = {
   catalogVersion: "test",
   revenueCards: [],
-  expenditureCards: [],
+  expenditureCards: [{ id: "E1", title: "Test Expenditure", impactBullets: ["Does a thing"], amount: 1, direction: "increase" }],
   challengeCards: [],
   priorityCards: [
     { id: "P1", title: "Economic Development", description: "Incentive for a new employer", amount: 1, linkedCardId: "R1", linkedCardType: "revenue" },
@@ -131,5 +131,51 @@ describe("CommissionerView: Rank Priorities card grid", () => {
     expect(document.querySelector("input[type='radio']")).not.toBeInTheDocument();
     const humanServicesCard = screen.getByText("Human Services").closest(".prio-card");
     expect(humanServicesCard).toHaveClass("sel");
+  });
+
+  it("renders no old-style list markup (<ul>/<li>) for the priorities screen, for either role", async () => {
+    const commission = baseCommission({ priority: { selectedCardId: "P2", funded: false } });
+    const session: Session = { ...baseSession(commission), phase: "rankPriorities" };
+    render(<CommissionerView code="TEST" session={session} commissionId="c1" commission={commission} isMyChair={false} myUid="comm-1" />);
+
+    await screen.findByText("Human Services");
+    expect(document.querySelectorAll(".prio-card")).toHaveLength(2);
+    expect(document.querySelector("ul")).not.toBeInTheDocument();
+    expect(document.querySelector("li")).not.toBeInTheDocument();
+  });
+});
+
+describe("CommissionerView: debate timer never shows NaN, for either role", () => {
+  beforeEach(() => {
+    vi.mocked(getCatalog).mockResolvedValue(catalog);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it.each([
+    ["Chair", true],
+    ["Commissioner", false],
+  ])("%s: shows 'Waiting for Chair' (never NaN) once a motion is seconded but the debate timer hasn't started", async (_label, isMyChair) => {
+    const commission = baseCommission({
+      chairHighlightedCardId: "E1",
+      activeMotion: { cardId: "E1", cardType: "expenditure", movedBy: "comm-1", movedAt: 1, secondedBy: "chair-1", secondedAt: 2 },
+      debateTimerEndsAt: null,
+    });
+    render(
+      <CommissionerView
+        code="TEST"
+        session={baseSession(commission)}
+        commissionId="c1"
+        commission={commission}
+        isMyChair={isMyChair}
+        myUid={isMyChair ? "chair-1" : "comm-1"}
+      />,
+    );
+
+    expect(await screen.findByText("Waiting for Chair")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/NaN/);
   });
 });

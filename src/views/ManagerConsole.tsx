@@ -27,6 +27,7 @@ import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
+import RankPrioritiesPanel from "./RankPrioritiesPanel";
 import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
@@ -421,6 +422,14 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
 
       <div className="lb-pad">
         {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
+
+        {session.phase === "rankPriorities" && (
+          <RankPrioritiesPanel
+            priorityCards={catalog.priorityCards}
+            selectedCardId={commission.priority?.selectedCardId}
+            phaseTimerMs={phaseTimerMs}
+          />
+        )}
 
         {session.phase === "debrief" ? (
           <DebriefScorecard commission={commission} catalog={catalog} speakerCount={speakerCount} />

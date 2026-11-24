@@ -15,15 +15,18 @@ import SpeakerView from "./SpeakerView";
 const catalog: CardCatalog = {
   catalogVersion: "test",
   revenueCards: [],
-  expenditureCards: [],
+  expenditureCards: [{ id: "E1", title: "Test Expenditure", impactBullets: ["Does a thing"], amount: 1, direction: "increase" }],
   challengeCards: [],
-  priorityCards: [],
+  priorityCards: [
+    { id: "P1", title: "Economic Development", description: "Incentive for a new employer", amount: 1, linkedCardId: "R1", linkedCardType: "revenue" },
+    { id: "P2", title: "Human Services", description: "Outreach funding", amount: 1, linkedCardId: "E1", linkedCardType: "expenditure" },
+  ],
   budgetPicture: { currentBudget: 0, projectedRevenue: 0, projectedExpenditure: 0, shortfall: 0, narrative: "" },
   reservePolicy: { max: 20, minimum: 10 },
   promptBank: [{ id: "p1", theme: "general-devils-advocate", text: "Why should we trust this number?" }],
 };
 
-function baseCommission(): Commission {
+function baseCommission(overrides: Partial<Commission> = {}): Commission {
   return {
     id: "c1",
     name: "Table 1",
@@ -46,6 +49,7 @@ function baseCommission(): Commission {
     finalScore: null,
     activeBallotId: null,
     ballotMeasures: {},
+    ...overrides,
   };
 }
 
@@ -123,5 +127,41 @@ describe("SpeakerView: Your Prompts renders exactly once", () => {
     await screen.findByText("Why should we trust this number?");
     expect(screen.getAllByText("Why should we trust this number?")).toHaveLength(1);
     expect(document.querySelector(".dbody")).not.toBeInTheDocument();
+  });
+});
+
+describe("SpeakerView: Rank Priorities cards (read-only) and debate timer never shows NaN", () => {
+  beforeEach(() => {
+    vi.mocked(getCatalog).mockResolvedValue(catalog);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("the Speaker sees the same read-only cards as every other role, with the Chair's pick highlighted", async () => {
+    const commission = baseCommission({ priority: { selectedCardId: "P2", funded: false } });
+    const session: Session = { ...baseSession(commission), phase: "rankPriorities" };
+    render(<SpeakerView code="TEST" session={session} speaker={speaker} />);
+
+    await screen.findByText("Human Services");
+    expect(document.querySelectorAll(".prio-card")).toHaveLength(2);
+    expect(document.querySelector("input[type='radio']")).not.toBeInTheDocument();
+    const humanServicesCard = screen.getByText("Human Services").closest(".prio-card");
+    expect(humanServicesCard).toHaveClass("sel");
+  });
+
+  it("shows 'Waiting for Chair' (never NaN) once a motion is seconded but the debate timer hasn't started", async () => {
+    const commission = baseCommission({
+      chairHighlightedCardId: "E1",
+      activeMotion: { cardId: "E1", cardType: "expenditure", movedBy: "comm-1", movedAt: 1, secondedBy: "chair-1", secondedAt: 2 },
+      debateTimerEndsAt: null,
+    });
+    render(<SpeakerView code="TEST" session={baseSession(commission)} speaker={speaker} />);
+
+    expect(await screen.findByText("Waiting for Chair")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/NaN/);
   });
 });
