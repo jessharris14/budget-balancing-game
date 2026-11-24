@@ -139,6 +139,24 @@ describe("buildCommissionActivity", () => {
     expect(buildCommissionActivity(commission, catalog, participants)).toEqual([]);
   });
 
+  it("builds an entry for the Chair's free card from chairFreeCardApplication alone, with the card's Budget effect label -- no decisionsLog entry needed, so it still appears for a late joiner", () => {
+    const commission = baseCommission({
+      decisionsLog: {},
+      chairFreeCardApplication: { cardId: "E1", cardType: "expenditure", appliedAt: 7000 },
+    });
+    const entries = buildCommissionActivity(commission, catalog, participants);
+    expect(entries).toEqual([
+      { id: "chair-free-card:E1:7000", timestamp: 7000, text: "Administrator applied the Chair's free card: Cut a Program (Save $1)" },
+    ]);
+  });
+
+  it("omits the Chair's free card entry entirely when chairFreeCardApplication is absent (old sessions load without errors)", () => {
+    const commission = baseCommission();
+    expect(commission.chairFreeCardApplication).toBeUndefined();
+    const entries = buildCommissionActivity(commission, catalog, participants);
+    expect(entries.some((e) => e.id.startsWith("chair-free-card:"))).toBe(false);
+  });
+
   it("sorts every entry newest first", () => {
     const commission = baseCommission({
       challengesApplied: { C5: 1000 },
@@ -150,6 +168,22 @@ describe("buildCommissionActivity", () => {
 });
 
 describe("buildFacilitatorActivity", () => {
+  it("scopes the Chair's free card entry to the table it happened at, not every table", () => {
+    const commissions: Record<string, Commission> = {
+      c1: baseCommission({ name: "Kent County", chairFreeCardApplication: { cardId: "E1", cardType: "expenditure", appliedAt: 7000 } }),
+      c2: baseCommission({ name: "Ottawa County" }),
+    };
+    const entries = buildFacilitatorActivity(commissions, catalog, participants);
+    expect(entries).toEqual([
+      {
+        id: "c1:chair-free-card:E1:7000",
+        timestamp: 7000,
+        tableName: "Kent County",
+        text: "Administrator applied the Chair's free card: Cut a Program (Save $1)",
+      },
+    ]);
+  });
+
   it("merges every table's entries, newest first, each tagged with its table name", () => {
     const commissions: Record<string, Commission> = {
       c1: baseCommission({ name: "Kent County", challengesApplied: { C5: 1000 } }),

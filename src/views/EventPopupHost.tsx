@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { getCatalog } from "../services/catalogService";
 import { selectChallengesToQueue, type ChallengeQueueItem } from "../services/challengePopupLogic";
+import { shouldQueueFreeCardPopup } from "../services/freeCardPopupLogic";
 import { getMotionPopupView, motionId, selectPopupToShow } from "../services/motionPopupLogic";
 import { signalSecond } from "../services/motionService";
 import type { CardCatalog } from "../types/catalog";
 import type { Commission, Participant, SessionPhase } from "../types/session";
 import ChallengePopup from "./ChallengePopup";
+import FreeCardAppliedPopup from "./FreeCardAppliedPopup";
 import MotionPopup from "./MotionPopup";
 import "./EventPopup.css";
 
@@ -26,11 +28,13 @@ interface Props {
  * non-Facilitator role at a table (same mounting pattern ChallengePopup
  * used alone before this file existed -- see Lobby.tsx). Owns the catalog
  * fetch, the Challenge queue (unchanged logic from challengePopupLogic.ts),
- * the Motion pop-up's per-motion dismissal, and the one decision that
- * makes rule 3b possible: which of the two pop-up "types" gets to be on
- * screen at any instant (selectPopupToShow -- a Challenge always wins).
- * ChallengePopup.tsx and MotionPopup.tsx are both now purely presentational
- * children of this.
+ * the Chair's free card pop-up (same first-run/replay-window reasoning,
+ * single value instead of a queue -- see freeCardPopupLogic.ts), the
+ * Motion pop-up's per-motion dismissal, and the one decision that makes
+ * rule 3b possible: which of the three pop-up "types" gets to be on
+ * screen at any instant (selectPopupToShow -- Challenge, then Motion,
+ * then the Chair's free card). ChallengePopup.tsx, MotionPopup.tsx, and
+ * FreeCardAppliedPopup.tsx are all purely presentational children of this.
  */
 const REPLAY_WINDOW_MS = 2 * 60 * 1000;
 
@@ -63,6 +67,33 @@ function markChallengeDismissed(code: string, commissionId: string, item: Challe
  * session) should show again rather than staying silently dismissed
  * forever.
  */
+/**
+ * Same localStorage + replay-window semantics as the Challenge pop-up
+ * (not Motion's sessionStorage-only approach): chairFreeCardUsed is
+ * one-shot per Commission, so this persists across refreshes and a late
+ * joiner outside the replay window simply never sees it, exactly like a
+ * Challenge that happened a while ago.
+ */
+function freeCardDismissKey(code: string, commissionId: string, appliedAt: number): string {
+  return `free-card-popup-seen:${code}:${commissionId}:${appliedAt}`;
+}
+
+function isFreeCardDismissed(code: string, commissionId: string, appliedAt: number): boolean {
+  try {
+    return localStorage.getItem(freeCardDismissKey(code, commissionId, appliedAt)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markFreeCardDismissed(code: string, commissionId: string, appliedAt: number): void {
+  try {
+    localStorage.setItem(freeCardDismissKey(code, commissionId, appliedAt), "1");
+  } catch {
+    // Same best-effort reasoning as the Challenge dismissal above.
+  }
+}
+
 function motionDismissKey(code: string, commissionId: string, id: string): string {
   return `motion-popup-seen:${code}:${commissionId}:${id}`;
 }
@@ -91,6 +122,9 @@ function EventPopupHost({ code, commissionId, commission, catalogVersion, phase,
   const [dismissedMotionIds, setDismissedMotionIds] = useState<Set<string>>(() => new Set());
   const [seconding, setSeconding] = useState(false);
   const [secondError, setSecondError] = useState<string | null>(null);
+
+  const [freeCardPending, setFreeCardPending] = useState(false);
+  const prevFreeCardAppliedAtRef = useRef<number | null | undefined>(undefined);
 
   const [toast, setToast] = useState<string | null>(null);
   const prevSecondedAtRef = useRef<number | null | undefined>(undefined);
@@ -127,6 +161,27 @@ function EventPopupHost({ code, commissionId, commission, catalogVersion, phase,
       setChallengeQueue((q) => [...q, ...newItems]);
     }
   }, [commission.challengesApplied, code, commissionId, phase]);
+
+  // The Chair's free card pop-up -- same first-run/replay-window reasoning
+  // as the Challenge queue above, just for a single value instead of a map.
+  useEffect(() => {
+    const application = commission.chairFreeCardApplication ?? null;
+    if (phase === "debrief") {
+      prevFreeCardAppliedAtRef.current = application?.appliedAt ?? null;
+      return;
+    }
+
+    const shouldQueue = shouldQueueFreeCardPopup(
+      application,
+      prevFreeCardAppliedAtRef.current,
+      (appliedAt) => isFreeCardDismissed(code, commissionId, appliedAt),
+      Date.now(),
+      REPLAY_WINDOW_MS,
+    );
+
+    prevFreeCardAppliedAtRef.current = application?.appliedAt ?? null;
+    if (shouldQueue) setFreeCardPending(true);
+  }, [commission.chairFreeCardApplication, code, commissionId, phase]);
 
   // Reset per-motion UI state (seconding/secondError) whenever the pending
   // motion itself changes, so a stale "Already seconded" message from a
@@ -174,7 +229,7 @@ function EventPopupHost({ code, commissionId, commission, catalogVersion, phase,
       ? motionView
       : "none";
 
-  const toShow = selectPopupToShow(challengeQueue, effectiveMotionView);
+  const toShow = selectPopupToShow(challengeQueue, effectiveMotionView, freeCardPending);
   const motionPopupView: "second" | "infoOnly" | null =
     effectiveMotionView === "second" || effectiveMotionView === "infoOnly" ? effectiveMotionView : null;
 
@@ -189,6 +244,13 @@ function EventPopupHost({ code, commissionId, commission, catalogVersion, phase,
     if (!currentMotionId) return;
     markMotionDismissed(code, commissionId, currentMotionId);
     setDismissedMotionIds((prev) => new Set(prev).add(currentMotionId));
+  }
+
+  function handleDismissFreeCard() {
+    const appliedAt = commission.chairFreeCardApplication?.appliedAt;
+    if (appliedAt === undefined) return;
+    markFreeCardDismissed(code, commissionId, appliedAt);
+    setFreeCardPending(false);
   }
 
   async function handleSecond() {
@@ -229,6 +291,14 @@ function EventPopupHost({ code, commissionId, commission, catalogVersion, phase,
           onDismiss={handleDismissMotion}
           seconding={seconding}
           secondError={secondError}
+        />
+      )}
+      {toShow?.type === "freeCard" && commission.chairFreeCardApplication && (
+        <FreeCardAppliedPopup
+          key={commission.chairFreeCardApplication.appliedAt}
+          application={commission.chairFreeCardApplication}
+          catalog={catalog}
+          onDismiss={handleDismissFreeCard}
         />
       )}
       {toast && (

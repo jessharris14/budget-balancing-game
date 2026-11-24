@@ -2,7 +2,7 @@ import { get, push, ref, runTransaction, update } from "firebase/database";
 import { rtdb } from "../firebase/config";
 import { challengeLedgerDelta, getChallengeLedgerEffect } from "./challengeLedgerEffect";
 import type { CardCatalog, ChallengeCard, EffectDirection, ExpenditureCard, RevenueCard } from "../types/catalog";
-import type { CardInPlay, Commission, CommissionLedger, DecisionLogEntry, SessionPhase } from "../types/session";
+import type { CardInPlay, ChairFreeCardApplication, Commission, CommissionLedger, DecisionLogEntry, SessionPhase } from "../types/session";
 
 export type CardType = "revenue" | "expenditure";
 
@@ -539,13 +539,19 @@ export async function applyChairFreeCard(
   const { revenueDelta, expenditureDelta } = resolved;
   const appliedAmount = cardType === "revenue" ? revenueDelta : expenditureDelta;
   const fundedUpdate = await priorityFundedUpdateFragment(base, catalog, cardType, cardId, true);
+  // Written once, in the SAME update() as the decisionsLog entry below
+  // (claimAndApplyLedgerDelta folds extraUpdates into that one call) --
+  // never overwritten afterward, so this is the permanent record of which
+  // card the Chair's free card privilege went to and when, for the
+  // "Chair's free card applied" pop-up and its Activity entry.
+  const freeCardApplication: ChairFreeCardApplication = { cardId, cardType, appliedAt: Date.now() };
   const result = await claimAndApplyLedgerDelta(
     base,
     cardId,
     cardType,
     appliedAmount,
     { revenueDelta, expenditureDelta },
-    fundedUpdate,
+    { ...fundedUpdate, [`${base}/chairFreeCardApplication`]: freeCardApplication },
   );
   if (!result.ok) return result;
 

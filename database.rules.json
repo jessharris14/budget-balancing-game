@@ -86,6 +86,10 @@
             "chairFreeCardUsed": {
               ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && data.val() === false && newData.val() === true && root.child('sessions').child($code).child('phase').val() !== 'debrief'"
             },
+            "chairFreeCardApplication": {
+              ".write": "auth != null && auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val() && !data.exists() && root.child('sessions').child($code).child('phase').val() !== 'debrief'",
+              ".validate": "newData.hasChildren(['cardId', 'cardType', 'appliedAt']) && newData.child('cardId').isString() && (newData.child('cardType').val() === 'revenue' || newData.child('cardType').val() === 'expenditure') && newData.child('appliedAt').isNumber()"
+            },
 
             "chairHighlightedCardId": {
               ".write": "auth != null && root.child('sessions').child($code).child('phase').val() !== 'debrief' && (auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('chairId').val() || auth.uid === root.child('sessions').child($code).child('commissions').child($commissionId).child('members').child('managerAdminId').val()) && (newData.val() === null || newData.val() === root.child('sessions').child($code).child('commissions').child($commissionId).child('activeMotion').child('cardId').val() || (root.child('sessions').child($code).child('commissions').child($commissionId).child('activeMotion').val() === null && root.child('sessions').child($code).child('commissions').child($commissionId).child('activeBallotId').val() === null))"

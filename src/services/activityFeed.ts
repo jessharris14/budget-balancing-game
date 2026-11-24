@@ -138,6 +138,25 @@ export function buildCommissionActivity(
   // isn't a past event yet. Totals only, never an individual vote: this
   // reads commission.ballotMeasures (yesCount/noCount), never the
   // voter-only-readable ballotVotes tree.
+  // Built from chairFreeCardApplication (not decisionsLog) so it reads for
+  // everyone at the table, including a late joiner -- the generic
+  // "Applied: ..." entry from the decisionsLog loop above already covers
+  // this same card's ledger effect; this is the separate, explicit record
+  // of WHO got the privilege and WHICH card they spent it on.
+  const freeCardApplication = commission.chairFreeCardApplication;
+  if (freeCardApplication) {
+    const card = findCard(catalog, freeCardApplication.cardType, freeCardApplication.cardId);
+    const title = card?.title ?? freeCardApplication.cardId;
+    const effectLabel = card ? getCardLedgerLabel(freeCardApplication.cardType, card.amount, card.direction).label : null;
+    entries.push({
+      id: `chair-free-card:${freeCardApplication.cardId}:${freeCardApplication.appliedAt}`,
+      timestamp: freeCardApplication.appliedAt,
+      text: effectLabel
+        ? `Administrator applied the Chair's free card: ${title} (${effectLabel})`
+        : `Administrator applied the Chair's free card: ${title}`,
+    });
+  }
+
   for (const ballot of Object.values(commission.ballotMeasures ?? {})) {
     if (ballot.outcome == null || ballot.closedAt == null) continue;
     const card = findCard(catalog, ballot.cardType, ballot.cardId);

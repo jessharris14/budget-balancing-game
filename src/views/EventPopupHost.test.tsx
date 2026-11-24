@@ -257,3 +257,131 @@ describe("EventPopupHost", () => {
     expect(await screen.findByText("Motion on the floor")).toBeInTheDocument();
   });
 });
+
+describe("EventPopupHost: Chair's free card pop-up", () => {
+  beforeEach(() => {
+    vi.mocked(getCatalog).mockResolvedValue(catalog);
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("shows the pop-up with the card name, Budget effect chip, and Impact bullets, with a single Got it button", async () => {
+    const commission = baseCommission({
+      chairFreeCardUsed: true,
+      chairFreeCardApplication: { cardId: "E1", cardType: "expenditure", appliedAt: Date.now() },
+    });
+    render(
+      <EventPopupHost
+        code="TEST"
+        commissionId="c1"
+        commission={commission}
+        catalogVersion="test"
+        phase="mainGame"
+        myUid="other"
+        participants={participants}
+        canSecond={true}
+      />,
+    );
+
+    expect(await screen.findByText("Chair's free card applied")).toBeInTheDocument();
+    expect(screen.getByText("Cut a Program")).toBeInTheDocument();
+    expect(screen.getByText("bullet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Got it" })).toBeInTheDocument();
+  });
+
+  it("queue order: Challenge, then Motion, then the Chair's free card, in that order", async () => {
+    const commission = baseCommission({
+      activeMotion: { cardId: "E1", cardType: "expenditure", movedBy: "mover", movedAt: 1000, secondedBy: null, secondedAt: null },
+      challengesApplied: { C5: Date.now() },
+      chairFreeCardUsed: true,
+      chairFreeCardApplication: { cardId: "E1", cardType: "expenditure", appliedAt: Date.now() },
+    });
+    render(
+      <EventPopupHost
+        code="TEST"
+        commissionId="c1"
+        commission={commission}
+        catalogVersion="test"
+        phase="mainGame"
+        myUid="other"
+        participants={participants}
+        canSecond={true}
+      />,
+    );
+
+    expect(await screen.findByText("Challenge")).toBeInTheDocument();
+    expect(screen.queryByText("Motion on the floor")).not.toBeInTheDocument();
+    expect(screen.queryByText("Chair's free card applied")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+
+    expect(await screen.findByText("Motion on the floor")).toBeInTheDocument();
+    expect(screen.queryByText("Chair's free card applied")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+
+    expect(await screen.findByText("Chair's free card applied")).toBeInTheDocument();
+  });
+
+  it("dismissing with Got it does not reappear on a refresh (a fresh mount with the same appliedAt)", async () => {
+    const commission = baseCommission({
+      chairFreeCardUsed: true,
+      chairFreeCardApplication: { cardId: "E1", cardType: "expenditure", appliedAt: Date.now() },
+    });
+    const { unmount } = render(
+      <EventPopupHost
+        code="TEST"
+        commissionId="c1"
+        commission={commission}
+        catalogVersion="test"
+        phase="mainGame"
+        myUid="other"
+        participants={participants}
+        canSecond={true}
+      />,
+    );
+    expect(await screen.findByText("Chair's free card applied")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+    expect(screen.queryByText("Chair's free card applied")).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <EventPopupHost
+        code="TEST"
+        commissionId="c1"
+        commission={commission}
+        catalogVersion="test"
+        phase="mainGame"
+        myUid="other"
+        participants={participants}
+        canSecond={true}
+      />,
+    );
+    await vi.waitFor(() => expect(getCatalog).toHaveBeenCalled());
+    expect(screen.queryByText("Chair's free card applied")).not.toBeInTheDocument();
+  });
+
+  it("a late joiner does not get a stale pop-up for an application that happened long ago", async () => {
+    const commission = baseCommission({
+      chairFreeCardUsed: true,
+      chairFreeCardApplication: { cardId: "E1", cardType: "expenditure", appliedAt: Date.now() - 10 * 60 * 1000 },
+    });
+    render(
+      <EventPopupHost
+        code="TEST"
+        commissionId="c1"
+        commission={commission}
+        catalogVersion="test"
+        phase="mainGame"
+        myUid="other"
+        participants={participants}
+        canSecond={true}
+      />,
+    );
+    await vi.waitFor(() => expect(getCatalog).toHaveBeenCalled());
+    expect(screen.queryByText("Chair's free card applied")).not.toBeInTheDocument();
+  });
+});

@@ -27,11 +27,17 @@ export function motionId(motion: Pick<ActiveMotion, "cardId" | "movedAt">): stri
   return `${motion.cardId}:${motion.movedAt}`;
 }
 
-export type PopupToShow = { type: "challenge"; item: ChallengeQueueItem } | { type: "motion" } | null;
+export type PopupToShow = { type: "challenge"; item: ChallengeQueueItem } | { type: "motion" } | { type: "freeCard" } | null;
 
-/** Rule 3b's queue order: a Challenge pop-up always takes priority; the motion pop-up (if still waiting) shows once the Challenge queue is empty. */
-export function selectPopupToShow(challengeQueue: ChallengeQueueItem[], motionView: MotionPopupView): PopupToShow {
+/**
+ * Rule 3b's queue order, extended for the Chair's free card pop-up: a
+ * Challenge always takes priority, then the Motion pop-up (if still
+ * waiting), then the Chair's free card pop-up (if pending) once both of
+ * those are clear.
+ */
+export function selectPopupToShow(challengeQueue: ChallengeQueueItem[], motionView: MotionPopupView, freeCardPending: boolean): PopupToShow {
   if (challengeQueue.length > 0) return { type: "challenge", item: challengeQueue[0] };
   if (motionView !== "none") return { type: "motion" };
+  if (freeCardPending) return { type: "freeCard" };
   return null;
 }

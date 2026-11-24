@@ -144,6 +144,20 @@ export interface DecisionLogEntry {
 }
 
 /**
+ * Written once, by the Administrator, in the same update() as
+ * chairFreeCardUsed and the DecisionLogEntry, the moment the Chair's free
+ * card is applied -- never overwritten or cleared afterward. Absent
+ * (not null) until then, and permanently absent on sessions created
+ * before this field existed, so every reader must treat "missing" the
+ * same as "not applied yet" rather than assuming the key exists.
+ */
+export interface ChairFreeCardApplication {
+  cardId: string;
+  cardType: "revenue" | "expenditure";
+  appliedAt: number;
+}
+
+/**
  * Change 3: a permanent record of every card whose motion reached Motion
  * Fails -- NOT one reset by the Chair for lack of a second, which never
  * reached a vote and leaves no record at all, by design. A failed Ballot
@@ -259,6 +273,8 @@ export interface Commission {
   priority: CommissionPriority;
   /** One-time privilege: the Chair may apply one $1 card directly at the start of Main Game. */
   chairFreeCardUsed: boolean;
+  /** See ChairFreeCardApplication's own comment -- optional because older sessions never wrote it. */
+  chairFreeCardApplication?: ChairFreeCardApplication | null;
   /** The card currently under debate, per the Chair -- visible to every other role in this Commission except the Facilitator. */
   chairHighlightedCardId: string | null;
   /** When the Chair's current debate timer ends; null if not running. */

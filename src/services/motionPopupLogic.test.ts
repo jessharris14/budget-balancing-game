@@ -47,20 +47,26 @@ describe("motionId", () => {
 describe("selectPopupToShow", () => {
   const queueItem = { cardId: "C5", triggeredAt: 500 };
 
-  it("shows nothing when there's no Challenge queued and no Motion waiting", () => {
-    expect(selectPopupToShow([], "none")).toBeNull();
+  it("shows nothing when there's no Challenge queued, no Motion waiting, and no Chair's free card pending", () => {
+    expect(selectPopupToShow([], "none", false)).toBeNull();
   });
 
   it("shows the Motion pop-up when a Motion is waiting and no Challenge is queued", () => {
-    expect(selectPopupToShow([], "second")).toEqual({ type: "motion" });
-    expect(selectPopupToShow([], "infoOnly")).toEqual({ type: "motion" });
+    expect(selectPopupToShow([], "second", false)).toEqual({ type: "motion" });
+    expect(selectPopupToShow([], "infoOnly", false)).toEqual({ type: "motion" });
   });
 
   it("shows the Challenge pop-up when one is queued, even if a Motion is also waiting", () => {
-    expect(selectPopupToShow([queueItem], "second")).toEqual({ type: "challenge", item: queueItem });
+    expect(selectPopupToShow([queueItem], "second", false)).toEqual({ type: "challenge", item: queueItem });
   });
 
   it("falls through to the Motion pop-up once the Challenge queue empties", () => {
-    expect(selectPopupToShow([], "second")).toEqual({ type: "motion" });
+    expect(selectPopupToShow([], "second", false)).toEqual({ type: "motion" });
+  });
+
+  it("shows the Chair's free card pop-up only once both the Challenge queue and the Motion pop-up are clear", () => {
+    expect(selectPopupToShow([], "none", true)).toEqual({ type: "freeCard" });
+    expect(selectPopupToShow([], "second", true)).toEqual({ type: "motion" });
+    expect(selectPopupToShow([queueItem], "none", true)).toEqual({ type: "challenge", item: queueItem });
   });
 });
