@@ -1,0 +1,47 @@
+/* Let's Balance! desktop layout (>=1024px). Builds on lb.css */
+.dsk{width:100%;min-height:100%;background:var(--bg);display:flex;flex-direction:column;position:relative}
+.dhdr{height:64px;flex:none;background:var(--river);color:#fff;display:flex;align-items:center;gap:20px;padding:0 32px}
+.dhdr .lg{height:44px;width:auto}
+.dhdr .who{display:flex;flex-direction:column;gap:4px}
+.dhdr .role{font:700 18px/1 var(--f-head)}
+.dhdr .meta{font:500 12px/1 var(--f-body);color:rgba(255,255,255,.85)}
+.dhdr .sp{margin-left:auto;display:flex;align-items:center;gap:22px}
+.dhdr .stat{display:flex;flex-direction:column;gap:4px}
+.dhdr .stat span{font:600 10px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+.dhdr .stat b{font:700 18px/1 var(--f-head);font-variant-numeric:tabular-nums}
+.dbar2{background:#fff;border-bottom:4px solid var(--sky);box-shadow:0 5px 12px rgba(37,42,54,.14);padding:10px 32px;display:flex;align-items:center;gap:18px;min-height:60px}
+.dbar2 .t{font:700 16px/1.2 var(--f-head)}
+.dbar2 .m{display:flex;flex-direction:column;gap:4px}
+.dbar2 .timer{margin-left:auto}
+.dbody{display:grid;grid-template-columns:380px minmax(0,1fr);gap:24px;padding:24px 32px 32px;align-items:start;width:100%;max-width:1440px;margin:0 auto}
+.dcol{display:flex;flex-direction:column;gap:14px}
+.dcol.sticky{position:sticky;top:12px}
+.gridc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.gridc .slide{flex:none;width:auto}
+.dtable{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.dtr{display:grid;grid-template-columns:52px minmax(0,1.1fr) 150px minmax(0,2fr) 150px 230px;gap:14px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}
+.dtr:last-child{border-bottom:0}
+.dtr.h{background:#f6f8fa;font:700 10px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.dtr img.ic{width:44px;height:44px}
+.dtr b{font:700 14px/1.25 var(--f-head)}
+.dtr .im{font-size:12.5px;line-height:1.4;color:var(--ink)}
+.dtr .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.dtr.sel{background:#f2f7fe;box-shadow:inset 4px 0 0 var(--river)}
+.btn.good{background:var(--forest);border-color:var(--forest);color:#fff}
+.btn.bad{background:#fff;border-color:var(--red);color:#b3261e}
+.dpanel{background:#fff;border:1px solid var(--sky);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+
+/* desktop home */
+.split{display:grid;grid-template-columns:1.1fr 1fr;min-height:100%;width:100%}
+.splash{background:var(--river);color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:48px}
+.splash .tag{font:600 18px/1.4 var(--f-body);color:rgba(255,255,255,.9);text-align:center;max-width:420px}
+.formside{display:flex;align-items:center;justify-content:center;padding:48px}
+.formcard{width:100%;max-width:440px;background:#fff;border-radius:20px;box-shadow:0 12px 30px rgba(29,66,137,.18);padding:32px;display:flex;flex-direction:column;gap:20px}
+.formcard h1{font-size:28px;text-align:center}
+.formcard .codebox input{width:70px;height:76px;border-radius:12px;border:2px solid var(--river);text-align:center;font:800 36px var(--f-head);color:var(--river);background:#fff;padding:0}
+.sessionwrap{display:flex;flex-direction:column;align-items:center;gap:28px;padding:48px 32px;max-width:900px;margin:0 auto;width:100%}
+.bigcode{display:flex;gap:16px}
+.bigcode span{width:110px;height:124px;border-radius:18px;background:#fff;border:3px solid var(--river);display:flex;align-items:center;justify-content:center;font:900 72px var(--f-head);color:var(--river)}
+.qrbig{width:260px;height:260px;border-radius:18px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.dmodal{position:absolute;inset:0;background:rgba(21,38,82,.66);display:flex;align-items:center;justify-content:center;z-index:30}
+.dmodal .modal{width:520px}
