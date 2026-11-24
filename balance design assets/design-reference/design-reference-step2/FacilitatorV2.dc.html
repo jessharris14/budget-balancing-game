@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Facilitator Console v2</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5d63f1ee5fdf67233d27dde62a18ba2">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+.fc{width:100%;min-height:100%;background:var(--bg);display:flex;flex-direction:column}
+.ftop{background:var(--river);color:#fff;display:flex;align-items:center;gap:24px;padding:0 40px;height:84px}
+.ftop img.lg{height:60px;width:auto}
+.ftop .tl{display:flex;flex-direction:column;gap:5px}
+.ftop .tl b{font:800 22px/1 var(--f-head)}
+.ftop .tl span{font:600 11px/1 var(--f-head);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+.ftop .cd{border:2px solid rgba(255,255,255,.8);border-radius:10px;padding:7px 12px;font:800 18px/1 var(--f-head);letter-spacing:.16em}
+.phases{display:flex;align-items:center;gap:6px;margin-left:12px}
+.phases span{font:700 12px/1 var(--f-head);padding:8px 12px;border-radius:999px;border:1.5px solid rgba(255,255,255,.45);color:rgba(255,255,255,.8)}
+.phases span.done{background:rgba(255,255,255,.18);border-color:transparent}
+.phases span.now{background:#fff;color:var(--river);border-color:#fff}
+.ftop .rt{margin-left:auto;display:flex;align-items:center;gap:22px}
+.ftop .st2{display:flex;flex-direction:column;gap:5px}
+.ftop .st2 span{font:600 10px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+.ftop .st2 b{font:800 24px/1 var(--f-head);font-variant-numeric:tabular-nums}
+.due{display:flex;align-items:center;gap:8px;background:var(--sun);color:var(--ink);border-radius:999px;padding:9px 14px;font:800 13px/1 var(--f-head)}
+.fb{height:46px;border-radius:10px;border:2px solid #fff;background:transparent;color:#fff;font:700 14px var(--f-head);padding:0 16px;display:flex;align-items:center;gap:8px}
+.fb.solid{background:#fff;color:var(--river)}
+.fb.quiet{border-color:rgba(255,255,255,.5)}
+.fbody{display:grid;grid-template-columns:minmax(0,1fr) 640px;gap:28px;padding:28px 40px 40px;align-items:start;width:100%;max-width:1920px;margin:0 auto}
+.fh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.fh h2{font-size:24px}
+.tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.tc{background:#fff;border:1px solid var(--line);border-top:6px solid var(--field);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 6px 16px rgba(29,66,137,.08)}
+.tc.def{border-top-color:var(--red)}
+.tc .hd{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tc .hd h3{font-size:26px}
+.pill{display:flex;align-items:center;gap:8px;border-radius:12px;padding:10px 16px;font:800 20px/1 var(--f-head);border:1.5px solid}
+.pill.def{background:var(--neg);border-color:rgba(249,66,58,.55);color:#9b1c16}
+.pill.sur{background:var(--rev);border-color:rgba(0,150,108,.5);color:#00613f}
+.tiles4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.t4{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.t4 .l{display:flex;align-items:center;gap:7px;font:600 10px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.t4 .l img{width:22px;height:22px}
+.t4 b{font:800 30px/1 var(--f-head);font-variant-numeric:tabular-nums}
+.warn{display:flex;align-items:center;gap:10px;background:#fff1ef;border:1.5px solid #f3a7a2;color:#8f1b15;border-radius:10px;padding:10px 12px;font:600 14px var(--f-body)}
+.seats{display:flex;flex-wrap:wrap;gap:8px}
+.seat{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:999px;padding:6px 12px 6px 8px;font:600 13px var(--f-body)}
+.seat img{width:24px;height:24px}
+.seat .ok{width:18px;height:18px;border-radius:50%;background:var(--forest);display:flex;align-items:center;justify-content:center}
+.seat .no{width:18px;height:18px;border-radius:50%;background:#fff;border:2px dashed #b9c2cc}
+.cl{display:flex;flex-direction:column;gap:8px}
+.cl li{display:flex;align-items:center;gap:10px;font:600 14px var(--f-body);background:var(--bg);border-radius:10px;padding:8px 10px}
+.cl li img{width:30px;height:30px}
+.cl li .fx{margin-left:auto}
+.tc .acts{display:flex;gap:10px;align-items:center}
+.dt{border-top:1px solid var(--line);padding-top:12px;font:700 14px var(--f-head);color:var(--river);display:flex;justify-content:space-between}
+.cp{background:#fff;border:1px solid var(--line);border-top:6px solid var(--orange);border-radius:18px;overflow:hidden;position:sticky;top:16px;box-shadow:0 6px 16px rgba(29,66,137,.08)}
+.cp .ph3{padding:18px 20px 12px;display:flex;flex-direction:column;gap:6px}
+.cp .ph3 h2{font-size:24px}
+.cp .ph3 p{font-size:13px;color:var(--muted)}
+.cr{display:grid;grid-template-columns:26px 44px minmax(0,1.1fr) minmax(0,1.3fr) 190px;gap:14px;align-items:center;padding:11px 20px;border-top:1px solid var(--line)}
+.cr.h{background:#f6f8fa;font:700 10px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:10px;padding-bottom:10px}
+.cr.sel{background:#fff7ec;box-shadow:inset 5px 0 0 var(--orange)}
+.cr img.ic{width:44px;height:44px}
+.cr b{font:700 14px/1.25 var(--f-head)}
+.cr .nv{font-size:13px;color:var(--muted);line-height:1.35}
+
+</style>
+</helmet>
+<div class="fc">
+<div class="ftop">
+  <img class="lg" src="/_blob/20bebcb301e3e494d675c4db884e4189" alt="Let's Balance!">
+  <div class="tl"><span>Facilitator Console</span><b>Session BIHK</b></div>
+  <div class="phases" aria-label="Phase: Main Game"><span class="done">Lobby</span><span class="done">Rank Priorities</span><span class="now">Main Game</span><span>Debrief</span></div>
+  <div class="rt">
+    <div class="st2"><span>Main Game time remaining</span><b>39:48</b></div>
+    <span class="due"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Challenge due</span>
+    <button type="button" class="fb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Activity <span class="badge">1</span></button>
+    <button type="button" class="fb"><img src="/_blob/1aa262a416d8a739cf29f6f0638dbca2" alt="" style="width:22px;height:22px">Open Public View</button>
+    <button type="button" class="fb quiet">Seat reset</button>
+    <button type="button" class="fb solid">Next Phase →</button>
+  </div>
+</div>
+<div class="fbody">
+  <div>
+    <div class="fh"><h2>Tables</h2></div>
+    <div class="tgrid">
+      <div class="tc def">
+  <div class="hd"><h3>Kent</h3><div class="pill def" role="status"><span>▼</span>Deficit $6</div></div>
+  <div class="tiles4">
+    <div class="t4" style="background:var(--rev)"><div class="l"><img src="/_blob/d9d6158e490b0488768b3d19dbcc7c00" alt="">Revenue</div><b>$101</b></div>
+    <div class="t4" style="background:var(--exp)"><div class="l"><img src="/_blob/5daad98f8840fb689376e6fc2a1de15b" alt="">Expenditures</div><b>$107</b></div>
+    <div class="t4"><div class="l"><img src="/_blob/ef938f62b32be7f564aa8b4ed7d06a26" alt="">Reserves</div><b style="color:var(--forest)">$20</b></div>
+    <div class="t4"><div class="l">Points if ended now</div><b>1</b></div>
+  </div>
+  <div class="warn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2L12 3zM12 10v5M12 18h.01"/></svg>Currently disconnected: Jess</div>
+  <div class="seats">
+    <span class="seat"><img src="/_blob/c16cfa6ad48cef3786c949dbebfe68a0" alt="">Admin<span class="ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span></span>
+    <span class="seat"><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">Chair: Bob<span class="ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span></span>
+    <span class="seat"><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">3 Commissioners</span>
+    <span class="seat"><img src="/_blob/2da48e900e4b09c0aec048904deba2b1" alt="">0 Speakers</span>
+  </div>
+  <div><span class="eyebrow">Challenges applied</span><ul class="cl" style="margin-top:8px"><li style="color:var(--muted)">None yet.</li></ul></div>
+  <div class="acts"><button type="button" class="btn primary sm" >Push selected challenge to Kent</button></div>
+  <div class="dt"><span>Details: Public Trust, Priority, Decisions So Far, Speakers</span><span aria-hidden="true">▾</span></div>
+</div>
+      <div class="tc">
+  <div class="hd"><h3>Ottawa</h3><div class="pill sur" role="status"><span>▲</span>Surplus $1</div></div>
+  <div class="tiles4">
+    <div class="t4" style="background:var(--rev)"><div class="l"><img src="/_blob/d9d6158e490b0488768b3d19dbcc7c00" alt="">Revenue</div><b>$102</b></div>
+    <div class="t4" style="background:var(--exp)"><div class="l"><img src="/_blob/5daad98f8840fb689376e6fc2a1de15b" alt="">Expenditures</div><b>$101</b></div>
+    <div class="t4"><div class="l"><img src="/_blob/ef938f62b32be7f564aa8b4ed7d06a26" alt="">Reserves</div><b style="color:var(--forest)">$16</b></div>
+    <div class="t4"><div class="l">Points if ended now</div><b>3</b></div>
+  </div>
+  
+  <div class="seats">
+    <span class="seat"><img src="/_blob/c16cfa6ad48cef3786c949dbebfe68a0" alt="">Admin2<span class="ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span></span>
+    <span class="seat"><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">Chair: Comm5<span class="ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span></span>
+    <span class="seat"><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">3 Commissioners</span>
+    <span class="seat"><img src="/_blob/2da48e900e4b09c0aec048904deba2b1" alt="">1 Speakers</span>
+  </div>
+  <div><span class="eyebrow">Challenges applied</span><ul class="cl" style="margin-top:8px"><li><img src="/_blob/d010037fd869dcdac7847ea1fe51437c" alt=""><span>Natural Disaster</span><span class="fx hard"><i>▼</i>Spend $4 from reserves</span></li><li><img src="/_blob/73fe181b48200a8b67baffdc8d032953" alt=""><span>Major Fire</span><span class="fx hard"><i>▼</i>Spend $1</span></li></ul></div>
+  <div class="acts"><button type="button" class="btn ghost sm" disabled style="opacity:.55">Push selected challenge to Ottawa</button></div>
+  <div class="dt"><span>Details: Public Trust, Priority, Decisions So Far, Speakers</span><span aria-hidden="true">▾</span></div>
+</div>
+    </div>
+  </div>
+  <div class="cp">
+    <div class="ph3"><h2>Challenge Cards</h2><p>Pushing a Challenge applies its dollar impact immediately. Challenges can't be debated or declined.</p></div>
+    <div class="cr h"><span></span><span></span><span>Title</span><span>Facilitator narrative</span><span>Budget effect</span></div>
+    <div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/d010037fd869dcdac7847ea1fe51437c" alt=""><b>Natural Disaster</b><span class="nv">Tornado damage; FEMA covers part, $4 in reserves needed for recovery</span><span class="fx hard"><i>▼</i>Spend $4 from reserves</span></div><div class="cr sel"><span class="radio on" role="img" aria-label="Selected"></span><img class="ic" src="/_blob/87904b6361b5957da813f164ed56c22c" alt=""><b>Increase in Mandated State Payments</b><span class="nv">Medicaid state payments mandated up 10%</span><span class="fx hard"><i>▼</i>Spend $1</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/0084c13b845bba00d8c782d8658a0dd2" alt=""><b>Eliminate Waste, Fraud and Abuse</b><span class="nv">Efficiency study found savings</span><span class="fx help"><i>▲</i>Save $1</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/4e83cc62717e3b6246e2a7ed319b1d79" alt=""><b>Reduction in Final Property Values</b><span class="nv">Final values 3% below projection</span><span class="fx hard"><i>▼</i>Lose $2 revenue</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/73fe181b48200a8b67baffdc8d032953" alt=""><b>Major Fire</b><span class="nv">Neighborhood fire; shelter operating costs</span><span class="fx hard"><i>▼</i>Spend $1</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/591267d619de26b6fcdc99f3df02b171" alt=""><b>Increased Healthcare Costs</b><span class="nv">Employee claims drove premium increase</span><span class="fx hard"><i>▼</i>Spend $2</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/002ccdc1a109f194e949521bb9185d06" alt=""><b>Emergency Road Repair</b><span class="nv">Sinkhole on a major roadway</span><span class="fx hard"><i>▼</i>Spend $1</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/23f63b99b1ab1cd389a955bc384885ea" alt=""><b>Decrease in State Shared Revenue</b><span class="nv">Sales tax forecast down 10%</span><span class="fx hard"><i>▼</i>Lose $1 revenue</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/f104d05470e4a5b7005f998442bd4476" alt=""><b>Fuel/Utility Increase</b><span class="nv">Rising fuel/oil/utility costs</span><span class="fx hard"><i>▼</i>Spend $1</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/09096dbe3aca253ae6c4a58f2f1f1cb8" alt=""><b>Economic Opportunity</b><span class="nv">Incentive package to land 1,000 new jobs</span><span class="fx hard"><i>▼</i>Spend $1</span></div><div class="cr"><span class="radio" role="img" aria-label="Not selected"></span><img class="ic" src="/_blob/15492217574a3d5128a71a671f4ac629" alt=""><b>Replace Supervisor of Election Equipment</b><span class="nv">State-mandated voting equipment replacement</span><span class="fx hard"><i>▼</i>Spend $1</span></div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

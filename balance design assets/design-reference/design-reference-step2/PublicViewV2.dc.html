@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Public View v2</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/a5d63f1ee5fdf67233d27dde62a18ba2">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+.pw{width:1920px;height:1080px;background:var(--river);color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;padding:36px 56px 44px;gap:30px}
+.pw .hills{position:absolute;left:0;right:0;bottom:0;height:300px;z-index:0}
+.pw > *:not(.hills){position:relative;z-index:1}
+.ph1{display:flex;align-items:center;gap:40px}
+.ph1 img.lg{height:170px;width:auto}
+.join{display:flex;align-items:center;gap:22px;background:rgba(255,255,255,.12);border-radius:20px;padding:14px 26px 14px 14px}
+.join .qr{width:132px;height:132px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center}
+.join .t{display:flex;flex-direction:column;gap:8px}
+.join .t span:first-child{font:700 18px var(--f-head);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.85)}
+.join .c{font:900 64px/1 var(--f-head);letter-spacing:.18em}
+.clk{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.clk .p{font:800 22px var(--f-head);letter-spacing:.16em;text-transform:uppercase;color:var(--sun)}
+.clk .n{font:900 128px/.9 var(--f-head);font-variant-numeric:tabular-nums}
+.fs{position:absolute;right:56px;top:14px;z-index:3;font:600 14px var(--f-body);color:rgba(255,255,255,.8);border:1.5px solid rgba(255,255,255,.5);border-radius:8px;padding:6px 12px;background:transparent}
+.pg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px;flex:1;min-height:0}
+.pc{background:#fff;color:var(--ink);border-radius:26px;border-top:12px solid var(--field);padding:26px 32px;display:flex;flex-direction:column;gap:20px;box-shadow:0 18px 40px rgba(0,0,0,.28)}
+.pc.def{border-top-color:var(--red)}
+.pc .top{display:flex;align-items:center;justify-content:space-between}
+.pc .top h2{font-size:48px}
+.pc .big{display:flex;align-items:center;gap:14px;border-radius:16px;padding:14px 24px;font:900 44px/1 var(--f-head);border:3px solid}
+.pc .big small{display:block;font:600 16px var(--f-body);margin-top:6px}
+.pc .big.def{background:var(--neg);border-color:rgba(249,66,58,.65);color:#9b1c16}
+.pc .big.sur{background:var(--rev);border-color:rgba(0,150,108,.6);color:#00613f}
+.ppl{display:flex;flex-wrap:wrap;gap:10px}
+.ppl span{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:999px;padding:8px 18px 8px 10px;font:600 21px var(--f-body)}
+.ppl span img{width:34px;height:34px}
+.ppl span em{font-style:normal;font:800 13px var(--f-head);letter-spacing:.1em;text-transform:uppercase;color:var(--river);background:#dce8fa;border-radius:999px;padding:5px 9px}
+.mid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.mid .m{border-radius:18px;padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.mid .m .l{display:flex;align-items:center;gap:10px;font:700 16px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mid .m .l img{width:34px;height:34px}
+.mid .m b{font:900 64px/1 var(--f-head);font-variant-numeric:tabular-nums}
+.gz{display:flex;align-items:center;justify-content:center;gap:28px;background:var(--bg);border-radius:18px;padding:12px 24px;flex:1}
+.gz .tx{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.gz h3{font-size:26px}
+.gz .gv{font:900 60px/1 var(--f-head)}
+.gz .cp2{font:600 17px var(--f-body);color:var(--muted)}
+
+</style>
+</helmet>
+<div class="pw">
+  <svg class="hills" viewBox="0 0 1920 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C320 40 640 70 960 120 C1280 170 1600 90 1920 70 L1920 300 L0 300 Z" fill="#34b78f" opacity=".55"/><path d="M0 190 C340 140 700 170 1000 200 C1300 230 1620 180 1920 160 L1920 300 L0 300 Z" fill="#00966c" opacity=".6"/></svg>
+  <button type="button" class="fs">Full screen (F)</button>
+  <div class="ph1">
+    <img class="lg" src="/_blob/20bebcb301e3e494d675c4db884e4189" alt="Let's Balance! A Budget Simulation Game">
+    <div class="join"><div class="qr" role="img" aria-label="Join code QR placeholder"><svg viewBox="0 0 84 84" width="108" height="108" aria-hidden="true"><g fill="#1d4289"><rect x="0" y="0" width="26" height="26"/><rect x="58" y="0" width="26" height="26"/><rect x="0" y="58" width="26" height="26"/></g><g fill="#fff"><rect x="5" y="5" width="16" height="16"/><rect x="63" y="5" width="16" height="16"/><rect x="5" y="63" width="16" height="16"/></g><g fill="#1d4289"><rect x="10" y="10" width="6" height="6"/><rect x="68" y="10" width="6" height="6"/><rect x="10" y="68" width="6" height="6"/><rect x="32" y="4" width="6" height="6"/><rect x="42" y="14" width="6" height="6"/><rect x="32" y="30" width="6" height="6"/><rect x="48" y="34" width="6" height="6"/><rect x="62" y="36" width="6" height="6"/><rect x="34" y="50" width="6" height="6"/><rect x="50" y="56" width="6" height="6"/><rect x="62" y="62" width="6" height="6"/><rect x="72" y="72" width="6" height="6"/></g></svg></div><div class="t"><span>Join with code</span><span class="c">BIHK</span></div></div>
+    <div class="clk"><span class="p">Main Game</span><span class="n" aria-label="Main Game time remaining 39 minutes 48 seconds">39:48</span></div>
+  </div>
+  <div class="pg">
+    <div class="pc def">
+  <div class="top"><h2>Kent</h2><div class="big def" role="status"><span>▼</span><div>Deficit $6</div></div></div>
+  <div class="ppl"><span><img src="/_blob/c16cfa6ad48cef3786c949dbebfe68a0" alt="">Admin</span><span><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">Bob<em>Chair</em></span><span><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">Jess</span><span><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">John</span></div>
+  <div class="mid">
+    <div class="m" style="background:var(--rev)"><div class="l"><img src="/_blob/d9d6158e490b0488768b3d19dbcc7c00" alt="">Revenue</div><b>$101</b></div>
+    <div class="m" style="background:var(--exp)"><div class="l"><img src="/_blob/5daad98f8840fb689376e6fc2a1de15b" alt="">Expenditures</div><b>$107</b></div>
+    <div class="m" style="background:var(--bg)"><div class="l"><img src="/_blob/ef938f62b32be7f564aa8b4ed7d06a26" alt="">Reserves</div><b style="color:var(--forest)">$20</b></div>
+  </div>
+  <div class="gz"><svg viewBox="0 0 200 112" width="300" height="168" role="img" aria-label="Public Trust gauge"><path d="M20 100 A80 80 0 0 1 60 30.7" stroke="#f9423a" stroke-width="16" fill="none"/><path d="M60 30.7 A80 80 0 0 1 140 30.7" stroke="#d9e1e2" stroke-width="16" fill="none"/><path d="M140 30.7 A80 80 0 0 1 180 100" stroke="#00966c" stroke-width="16" fill="none"/><circle cx="147" cy="35.3" r="10" fill="#fff" stroke="#252a36" stroke-width="4"/></svg><div class="tx"><h3>Public Trust</h3><span class="gv" style="color:var(--forest)">+2</span><span class="cp2">Slightly positive</span></div></div>
+</div>
+    <div class="pc">
+  <div class="top"><h2>Ottawa</h2><div class="big sur" role="status"><span>▲</span><div>Surplus $1</div></div></div>
+  <div class="ppl"><span><img src="/_blob/c16cfa6ad48cef3786c949dbebfe68a0" alt="">Admin2</span><span><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">Comm5<em>Chair</em></span><span><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">Comm6</span><span><img src="/_blob/ad0807d46fb21d9abb29cf14683f8747" alt="">Comm7</span><span><img src="/_blob/2da48e900e4b09c0aec048904deba2b1" alt="">Speaker2</span></div>
+  <div class="mid">
+    <div class="m" style="background:var(--rev)"><div class="l"><img src="/_blob/d9d6158e490b0488768b3d19dbcc7c00" alt="">Revenue</div><b>$102</b></div>
+    <div class="m" style="background:var(--exp)"><div class="l"><img src="/_blob/5daad98f8840fb689376e6fc2a1de15b" alt="">Expenditures</div><b>$101</b></div>
+    <div class="m" style="background:var(--bg)"><div class="l"><img src="/_blob/ef938f62b32be7f564aa8b4ed7d06a26" alt="">Reserves</div><b style="color:var(--forest)">$16</b></div>
+  </div>
+  <div class="gz"><svg viewBox="0 0 200 112" width="300" height="168" role="img" aria-label="Public Trust gauge"><path d="M20 100 A80 80 0 0 1 60 30.7" stroke="#f9423a" stroke-width="16" fill="none"/><path d="M60 30.7 A80 80 0 0 1 140 30.7" stroke="#d9e1e2" stroke-width="16" fill="none"/><path d="M140 30.7 A80 80 0 0 1 180 100" stroke="#00966c" stroke-width="16" fill="none"/><circle cx="75.3" cy="23.9" r="10" fill="#fff" stroke="#252a36" stroke-width="4"/></svg><div class="tx"><h3>Public Trust</h3><span class="gv" style="color:var(--ink)">−1</span><span class="cp2">Slightly negative</span></div></div>
+</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
