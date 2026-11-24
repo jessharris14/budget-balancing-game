@@ -6,7 +6,7 @@ import { useConnectionStatus } from "../hooks/useConnectionStatus";
 import { rememberSession } from "../services/localSession";
 import { startPresence } from "../services/presenceService";
 import { subscribeToSession } from "../services/sessionService";
-import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import { formatClock, useCountdown } from "../hooks/useCountdown";
 import CommissionerView from "./CommissionerView";
 import EventPopupHost from "./EventPopupHost";
 import FacilitatorConsole from "./FacilitatorConsole";
@@ -169,8 +169,8 @@ function Lobby() {
         {reconnectBanner}
         <span className="eyebrow">Phase: {SESSION_PHASE_LABELS[session.phase] ?? session.phase}</span>
         <h1 style={{ fontSize: 24 }}>Lobby</h1>
-        {session.phase === "rankPriorities" && phaseTimerMs !== null && <p>Rank Priorities time remaining: {formatDuration(phaseTimerMs)}</p>}
-        {session.phase === "mainGame" && mainGameMs !== null && <p>Main Game time remaining: {formatDuration(mainGameMs)}</p>}
+        {session.phase === "rankPriorities" && phaseTimerMs !== null && <p>Rank Priorities time remaining: {formatClock(phaseTimerMs)}</p>}
+        {session.phase === "mainGame" && mainGameMs !== null && <p>Main Game time remaining: {formatClock(mainGameMs)}</p>}
         <p style={{ color: "var(--lb-muted)" }}>Debate timer: {session.settings.debateTimerMinutes} min</p>
         {myParticipant && (
           <p>

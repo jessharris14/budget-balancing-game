@@ -14,7 +14,7 @@ import {
   type CardType,
 } from "../services/ledgerService";
 import { isMotionLocked } from "../services/motionService";
-import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import { formatClock, useCountdown } from "../hooks/useCountdown";
 import { useIsDesktop } from "../hooks/useIsDesktop";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasureModal from "./BallotMeasureModal";
@@ -256,8 +256,8 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
   // Desktop (screen 12): Main Game/Rank Priorities time + Chair fold into
   // the header's one row instead of this small-panels grid.
   const headerMainGameLabel =
-    (session.phase === "rankPriorities" && phaseTimerMs !== null && formatDuration(phaseTimerMs)) ||
-    (session.phase === "mainGame" && mainGameMs !== null && formatDuration(mainGameMs)) ||
+    (session.phase === "rankPriorities" && phaseTimerMs !== null && formatClock(phaseTimerMs)) ||
+    (session.phase === "mainGame" && mainGameMs !== null && formatClock(mainGameMs)) ||
     undefined;
 
   const tilesPanel = !isDesktop && (
@@ -265,13 +265,13 @@ function ManagerConsole({ code, session, commissionId, commission }: Props) {
       {session.phase === "rankPriorities" && phaseTimerMs !== null && (
         <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
           <span className="eyebrow">Rank Priorities time remaining</span>
-          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(phaseTimerMs)}</b>
+          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatClock(phaseTimerMs)}</b>
         </div>
       )}
       {session.phase === "mainGame" && mainGameMs !== null && (
         <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
           <span className="eyebrow">Main Game time remaining</span>
-          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
+          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatClock(mainGameMs)}</b>
         </div>
       )}
       <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>

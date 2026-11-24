@@ -36,8 +36,21 @@ describe("CardUnderDebateBar", () => {
     expect(screen.getByText("Cut a Program")).toBeInTheDocument();
   });
 
-  it("renders no timer at all when no debate timer is running", () => {
+  it("shows a neutral 'Waiting for Chair' pill (not a blank or NaN timer) when debateTimerEndsAt is null", () => {
     render(<CardUnderDebateBar cardTitle="Cut a Program" budgetEffectLabel="Save $1" debateTimerEndsAt={null} />);
-    expect(screen.queryByText(/⏱|Time is up/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/⏱|Time is up|NaN/)).not.toBeInTheDocument();
+    const pill = screen.getByText("Waiting for Chair");
+    expect(pill).toHaveClass("debate-bar__timer--waiting");
+    expect(pill).not.toHaveClass("debate-bar__timer--urgent");
+  });
+
+  // The actual live-app bug: a motion seconded before the Chair starts the
+  // debate timer means this prop is undefined at runtime (RTDB prunes an
+  // unset field to "key absent"), not the null its declared type promises
+  // -- this must behave identically to the null case above, not "NaN:NaN".
+  it("shows the same 'Waiting for Chair' pill when debateTimerEndsAt is undefined (seconded but timer not started)", () => {
+    render(<CardUnderDebateBar cardTitle="Cut a Program" budgetEffectLabel="Save $1" debateTimerEndsAt={undefined} />);
+    expect(screen.queryByText(/⏱|Time is up|NaN/)).not.toBeInTheDocument();
+    expect(screen.getByText("Waiting for Chair")).toBeInTheDocument();
   });
 });

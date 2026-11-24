@@ -12,7 +12,7 @@ import {
 } from "../services/facilitatorService";
 import { persistGameResults } from "../services/resultsService";
 import { clearSessionData } from "../services/sessionService";
-import { useCountdown, formatDuration } from "../hooks/useCountdown";
+import { useCountdown, formatClock } from "../hooks/useCountdown";
 import ActivityFeedButton from "./ActivityFeedButton";
 import BudgetEffectLabel from "./BudgetEffectLabel";
 import DebriefScorecard from "./DebriefScorecard";
@@ -223,8 +223,9 @@ function FacilitatorConsole({ code, session }: Props) {
     window.open(`/display/${code}`, "_blank", "noopener");
   }
 
+  // Loose != null deliberately also catches undefined -- RTDB prunes an unset nextChallengeDue to "key absent," same reasoning as useCountdown's own comment.
   const challengeReminderDue =
-    session.phase === "mainGame" && clock.nextChallengeDue !== null && (nextChallengeMs ?? 0) <= 0;
+    session.phase === "mainGame" && clock.nextChallengeDue != null && (nextChallengeMs ?? 0) <= 0;
 
   return (
     <div className="session-view facilitator-console-page">
@@ -243,12 +244,12 @@ function FacilitatorConsole({ code, session }: Props) {
         </div>
 
         {session.phase === "rankPriorities" && phaseTimerMs !== null && (
-          <span>Rank Priorities: {formatDuration(phaseTimerMs)}</span>
+          <span>Rank Priorities: {formatClock(phaseTimerMs)}</span>
         )}
 
         {session.phase === "mainGame" && mainGameMs !== null && (
           <span className="facilitator-top-bar__clock">
-            {mainGameMs > 0 ? `⏱ ${formatDuration(mainGameMs)}` : "⏰ Time's up"}
+            {mainGameMs > 0 ? `⏱ ${formatClock(mainGameMs)}` : "⏰ Time's up"}
           </span>
         )}
 
@@ -257,7 +258,7 @@ function FacilitatorConsole({ code, session }: Props) {
             {challengeReminderDue
               ? "⏰ Challenge due"
               : clock.nextChallengeDue !== null && nextChallengeMs !== null
-                ? `Next challenge in: ${formatDuration(nextChallengeMs)}`
+                ? `Next challenge in: ${formatClock(nextChallengeMs)}`
                 : "No more challenge reminders"}
           </span>
         )}

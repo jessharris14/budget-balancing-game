@@ -135,6 +135,13 @@
   color: var(--lb-ink);
 }
 
+/* Card under debate, but the Chair hasn't started the timer yet -- a neutral waiting state, never a clock showing no digits or NaN. */
+.debate-bar__timer--waiting {
+  background: #e3e8ec;
+  color: var(--lb-muted);
+  font: 700 0.8rem/1 var(--lb-f-body);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .debate-bar__timer--urgent {
     animation: debate-bar-pulse 1s ease-in-out infinite;

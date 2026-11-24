@@ -124,6 +124,16 @@
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  /*
+   * index.css's pre-existing #root { text-align: center } (the app
+   * shell's own landing-page style, left alone -- see tokens.css's
+   * comment) otherwise inherits down into the Impact list and every
+   * other paragraph here, centering the bullet text and its wrapped
+   * lines instead of a left-aligned hanging indent. Scoped to .body
+   * only, not .modal as a whole, so .band's title and .acts' primary
+   * button/"Not now" link keep their current (inherited) centering.
+   */
+  text-align: left;
 }
 
 .modal .cardrow {

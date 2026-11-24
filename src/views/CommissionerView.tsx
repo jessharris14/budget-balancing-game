@@ -12,7 +12,7 @@ import { getCardLedgerLabel } from "../services/challengeLedgerEffect";
 import type { CardDisplayItem } from "../services/cardDisplay";
 import { isCardAvailable, type CardType } from "../services/ledgerService";
 import { clearMotion, isMotionLocked, signalMotion, signalSecond } from "../services/motionService";
-import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import { formatClock, useCountdown } from "../hooks/useCountdown";
 import AppliedChallengesPanel from "./AppliedChallengesPanel";
 import BallotMeasuresList from "./BallotMeasuresList";
 import BudgetEffectLabel from "./BudgetEffectLabel";
@@ -23,6 +23,7 @@ import DebriefScorecard from "./DebriefScorecard";
 import LedgerStatusBar from "./LedgerStatusBar";
 import PriorityTile from "./PriorityTile";
 import PublicTrustGauge from "./PublicTrustGauge";
+import RankPrioritiesGrid from "./RankPrioritiesGrid";
 import RoleHeaderBar from "./RoleHeaderBar";
 import type { CardCatalog } from "../types/catalog";
 import { SESSION_PHASE_LABELS, type Commission, type Session } from "../types/session";
@@ -308,7 +309,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
   // something (falls back to "Not yet elected"), matching the body's own
   // fallback text below -- so the header never shows just one stat when it
   // has room for two.
-  const headerMainGameLabel = session.phase === "mainGame" && mainGameMs !== null ? formatDuration(mainGameMs) : undefined;
+  const headerMainGameLabel = session.phase === "mainGame" && mainGameMs !== null ? formatClock(mainGameMs) : undefined;
   const headerChairName = `${chairName ?? "Not yet elected"}${isMyChair ? " (you)" : ""}`;
 
   const tilesPanel = !isDesktop && (
@@ -316,7 +317,7 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
       {session.phase === "mainGame" && mainGameMs !== null && (
         <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
           <span className="eyebrow">Main Game time remaining</span>
-          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatDuration(mainGameMs)}</b>
+          <b style={{ font: "800 22px/1 var(--lb-f-head)", fontVariantNumeric: "tabular-nums" }}>{formatClock(mainGameMs)}</b>
         </div>
       )}
       <div className="panel" style={{ padding: "10px 14px", gap: "4px" }}>
@@ -403,9 +404,10 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
           )}
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
             <button type="button" className="btn ghost sm" onClick={handleStartTimer} disabled={busy}>
-              {commission.debateTimerEndsAt !== null ? "Restart Timer" : "Start Timer"}
+              {/* Loose !=/== null deliberately also catches undefined -- RTDB prunes a never-started debateTimerEndsAt to "key absent," not a stored null, same reasoning as useCountdown's own comment. */}
+              {commission.debateTimerEndsAt != null ? "Restart Timer" : "Start Timer"}
             </button>
-            <button type="button" className="btn ghost sm" onClick={handleStopTimer} disabled={busy || commission.debateTimerEndsAt === null}>
+            <button type="button" className="btn ghost sm" onClick={handleStopTimer} disabled={busy || commission.debateTimerEndsAt == null}>
               Stop Timer
             </button>
           </div>
@@ -460,35 +462,15 @@ function CommissionerView({ code, session, commissionId, commission, isMyChair, 
         {error && <p style={{ color: "var(--lb-red)" }}>{error}</p>}
 
         {session.phase === "rankPriorities" && (
-          <div className="panel">
+          <div className="panel" style={{ textAlign: "left" }}>
             <h3>Rank Priorities</h3>
-            {phaseTimerMs !== null && <p>Time remaining: {formatDuration(phaseTimerMs)}</p>}
-            {isMyChair ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {catalog.priorityCards.map((card) => {
-                  const selected = commission.priority?.selectedCardId === card.id;
-                  return (
-                    <label key={card.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "normal" }}>
-                      <input type="radio" name="priority" checked={selected} disabled={busy} onChange={() => handleSelectPriority(card.id)} />
-                      {card.title} — {card.description}
-                      {selected && <span style={{ color: "var(--lb-forest)", fontWeight: 700 }}> ✓ Selected</span>}
-                    </label>
-                  );
-                })}
-              </div>
-            ) : (
-              <ul style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                {catalog.priorityCards.map((card) => {
-                  const selected = commission.priority?.selectedCardId === card.id;
-                  return (
-                    <li key={card.id} style={selected ? { color: "var(--lb-forest)", fontWeight: 700 } : undefined}>
-                      {card.title} — {card.description}
-                      {selected && " ✓ Selected"}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            {phaseTimerMs !== null && <p>Time remaining: {formatClock(phaseTimerMs)}</p>}
+            <RankPrioritiesGrid
+              priorityCards={catalog.priorityCards}
+              selectedCardId={commission.priority?.selectedCardId}
+              onSelect={isMyChair ? handleSelectPriority : undefined}
+              disabled={busy}
+            />
             <p style={{ fontWeight: 700 }}>
               Selected:{" "}
               {commission.priority?.selectedCardId

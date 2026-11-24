@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardCatalog } from "../types/catalog";
 import type { Commission, Session } from "../types/session";
@@ -8,8 +8,13 @@ import type { Commission, Session } from "../types/session";
 vi.mock("../services/catalogService", () => ({
   getCatalog: vi.fn(),
 }));
+vi.mock("../services/chairService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/chairService")>();
+  return { ...actual, recordCommissionPriority: vi.fn().mockResolvedValue(undefined) };
+});
 
 import { getCatalog } from "../services/catalogService";
+import { recordCommissionPriority } from "../services/chairService";
 import CommissionerView from "./CommissionerView";
 
 const catalog: CardCatalog = {
@@ -17,7 +22,10 @@ const catalog: CardCatalog = {
   revenueCards: [],
   expenditureCards: [],
   challengeCards: [],
-  priorityCards: [],
+  priorityCards: [
+    { id: "P1", title: "Economic Development", description: "Incentive for a new employer", amount: 1, linkedCardId: "R1", linkedCardType: "revenue" },
+    { id: "P2", title: "Human Services", description: "Outreach funding", amount: 1, linkedCardId: "E1", linkedCardType: "expenditure" },
+  ],
   budgetPicture: { currentBudget: 0, projectedRevenue: 0, projectedExpenditure: 0, shortfall: 0, narrative: "" },
   reservePolicy: { max: 20, minimum: 10 },
   promptBank: [],
@@ -88,5 +96,40 @@ describe("CommissionerView: Card Under Debate wording", () => {
 
     expect(await screen.findByText("No card under debate.")).toBeInTheDocument();
     expect(screen.queryByText("No card currently highlighted by the Chair.")).not.toBeInTheDocument();
+  });
+});
+
+describe("CommissionerView: Rank Priorities card grid", () => {
+  beforeEach(() => {
+    vi.mocked(getCatalog).mockResolvedValue(catalog);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("the Chair can select a priority card, which calls the exact same recordCommissionPriority write as before", async () => {
+    const commission = baseCommission({ priority: { selectedCardId: null, funded: false } });
+    const session: Session = { ...baseSession(commission), phase: "rankPriorities" };
+    render(<CommissionerView code="TEST" session={session} commissionId="c1" commission={commission} isMyChair={true} myUid="chair-1" />);
+
+    const humanServicesCard = await screen.findByText("Human Services");
+    const radio = humanServicesCard.closest(".prio-card")!.querySelector("input[type='radio']")!;
+    fireEvent.click(radio);
+
+    expect(recordCommissionPriority).toHaveBeenCalledTimes(1);
+    expect(recordCommissionPriority).toHaveBeenCalledWith("TEST", "c1", "P2");
+  });
+
+  it("a non-Chair Commissioner sees the same cards read-only (not tappable), with the Chair's pick highlighted", async () => {
+    const commission = baseCommission({ priority: { selectedCardId: "P2", funded: false } });
+    const session: Session = { ...baseSession(commission), phase: "rankPriorities" };
+    render(<CommissionerView code="TEST" session={session} commissionId="c1" commission={commission} isMyChair={false} myUid="comm-1" />);
+
+    await screen.findByText("Human Services");
+    expect(document.querySelector("input[type='radio']")).not.toBeInTheDocument();
+    const humanServicesCard = screen.getByText("Human Services").closest(".prio-card");
+    expect(humanServicesCard).toHaveClass("sel");
   });
 });

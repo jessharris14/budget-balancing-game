@@ -4,7 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { getBalanceStatus } from "../services/ledgerService";
 import { subscribeToSession } from "../services/sessionService";
-import { formatDuration, useCountdown } from "../hooks/useCountdown";
+import { formatClock, useCountdown } from "../hooks/useCountdown";
 import BalanceStatusDisplay from "./BalanceStatusDisplay";
 import PublicTrustGauge from "./PublicTrustGauge";
 import { SESSION_PHASE_LABELS, type Session } from "../types/session";
@@ -95,7 +95,7 @@ function PublicView() {
         <div className="public-view-header__phase">
           <p className="public-view-header__phase-name">{SESSION_PHASE_LABELS[session.phase] ?? session.phase}</p>
           {session.phase === "mainGame" && mainGameMs !== null && (
-            <p className="public-view-header__clock">{formatDuration(mainGameMs)}</p>
+            <p className="public-view-header__clock">{formatClock(mainGameMs)}</p>
           )}
         </div>
         <div className="public-view-header__qr">
